@@ -408,7 +408,7 @@ columns:
     default: false
     width: 15
   - id: Proto
-    group: L3 Layer
+    group: Protocol Info
     name: Protocol
     tooltip: The value of the protocol number in the IP packet header
     field: Proto
@@ -416,34 +416,43 @@ columns:
     default: true
     width: 10
   - id: Dscp
-    group: L3 Layer
+    group: Protocol Info
     name: DSCP
     tooltip: The value of the Differentiated Services Code Point
     field: Dscp
     filter: dscp
+    default: false
+    width: 10
+  - id: TCPFlags
+    group: Protocol Info
+    name: TCP Flags
+    tooltip: Logical OR combination of unique TCP flags comprised in the flow, according to RFC-9293, with additional custom values.
+    field: Flags
+    filter: tcp_flags
+    default: false
+    width: 10
+  - id: TLSVersion
+    group: Protocol Info
+    name: TLS Version
+    tooltip: TLS Version found in the packets header
+    field: TLSVersion
+    filter: tls_version
     default: true
     width: 10
   - id: IcmpType
-    group: ICMP
-    name: Type
+    group: Protocol Info
+    name: ICMP Type
     tooltip: The type of the ICMP message
     field: IcmpType
     filter: icmp_type
     default: false
     width: 10
   - id: IcmpCode
-    group: ICMP
-    name: Code
+    group: Protocol Info
+    name: ICMP Code
     tooltip: The code of the ICMP message
     field: IcmpCode
     filter: icmp_code
-    default: false
-    width: 10
-  - id: TCPFlags
-    name: TCP Flags
-    tooltip: Logical OR combination of unique TCP flags comprised in the flow, according to RFC-9293, with additional custom values.
-    field: Flags
-    filter: tcp_flags
     default: false
     width: 10
   - id: FlowDirection
@@ -1117,6 +1126,11 @@ filters:
               - A protocol number like 6, 17
               - A IANA name like TCP, UDP
     docUrl: https://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml
+  - id: tls_version
+    name: TLS version
+    component: text
+    placeholder: 'E.g: TLS 1.2'
+    hint: Specify a version of TLS.
   - id: dscp
     name: DSCP
     component: autocomplete
@@ -1524,6 +1538,12 @@ fields:
   - name: Proto
     type: number
     description: L4 protocol
+  - name: TLSVersion
+    type: string
+    description: TLS version
+  - name: TLSTypes
+    type: number
+    description: TLS message types (bitfield)
   - name: Dscp
     type: number
     description: Differentiated Services Code Point (DSCP) value
