@@ -63,6 +63,35 @@ func TestStatusWorkflow(t *testing.T) {
 	assertHasCondition(t, conds, "WaitingMonitoring", "Ready", metav1.ConditionFalse)
 }
 
+func TestHoldModeStatus(t *testing.T) {
+	s := NewManager()
+	sl := s.ForComponent(FlowCollectorLegacy)
+	sm := s.ForComponent(Monitoring)
+
+	// Set some component statuses
+	sl.SetReady()
+	sm.SetFailure("AnError", "bad one")
+
+	// Verify normal conditions exist
+	conds := s.getConditions()
+	assert.Len(t, conds, 4)
+	assertHasCondition(t, conds, "Ready", "Failure", metav1.ConditionFalse)
+	assertHasCondition(t, conds, "WaitingFlowCollectorLegacy", "Ready", metav1.ConditionFalse)
+	assertHasCondition(t, conds, "WaitingMonitoring", "AnError", metav1.ConditionTrue)
+
+	// Enable hold mode
+	s.SetOnHold("Hold mode is active. All operator-managed resources have been deleted while preserving FlowCollector, FlowCollectorSlice, and FlowMetric CRDs and namespaces.")
+
+	// Verify conditions are simplified to only one condition
+	conds = s.getConditions()
+	assert.Len(t, conds, 1, "Expected only one condition when in hold mode")
+	assertHasCondition(t, conds, "Ready", "OnHold", metav1.ConditionFalse)
+	assert.Equal(t, "Operator is in hold mode. All managed resources have been deleted.", conds[0].Message)
+
+	// Verify onHold message is preserved
+	assert.Equal(t, "Hold mode is active. All operator-managed resources have been deleted while preserving FlowCollector, FlowCollectorSlice, and FlowMetric CRDs and namespaces.", s.getOnHold())
+}
+
 func assertHasCondition(t *testing.T, conditions []metav1.Condition, searchType, reason string, value metav1.ConditionStatus) {
 	for _, c := range conditions {
 		if c.Type == searchType {

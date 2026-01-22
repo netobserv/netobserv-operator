@@ -37,6 +37,8 @@ var allNames = []ComponentName{FlowCollectorLegacy, Monitoring, StaticController
 
 type Manager struct {
 	statuses sync.Map
+	onHold   string
+	mu       sync.RWMutex
 }
 
 func NewManager() *Manager {
@@ -97,6 +99,19 @@ func (s *Manager) setUnused(cpnt ComponentName, message string) {
 }
 
 func (s *Manager) getConditions() []metav1.Condition {
+	// If in hold mode, return only the Ready condition with OnHold status
+	if s.getOnHold() != "" {
+		return []metav1.Condition{
+			{
+				Type:    "Ready",
+				Status:  metav1.ConditionFalse,
+				Reason:  "OnHold",
+				Message: "Operator is in hold mode. All managed resources have been deleted.",
+			},
+		}
+	}
+
+	// Normal operation: return all component conditions
 	global := metav1.Condition{
 		Type:   "Ready",
 		Status: metav1.ConditionTrue,
@@ -121,11 +136,23 @@ func (s *Manager) getConditions() []metav1.Condition {
 	return append([]metav1.Condition{global}, conds...)
 }
 
-func (s *Manager) Sync(ctx context.Context, c client.Client) {
-	updateStatus(ctx, c, s.getConditions()...)
+func (s *Manager) SetOnHold(message string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.onHold = message
 }
 
-func updateStatus(ctx context.Context, c client.Client, conditions ...metav1.Condition) {
+func (s *Manager) getOnHold() string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.onHold
+}
+
+func (s *Manager) Sync(ctx context.Context, c client.Client) {
+	updateStatus(ctx, c, s.getOnHold(), s.getConditions()...)
+}
+
+func updateStatus(ctx context.Context, c client.Client, onHold string, conditions ...metav1.Condition) {
 	log := log.FromContext(ctx)
 	log.Info("Updating FlowCollector status")
 
@@ -144,6 +171,8 @@ func updateStatus(ctx context.Context, c client.Client, conditions ...metav1.Con
 		for _, c := range conditions {
 			meta.SetStatusCondition(&fc.Status.Conditions, c)
 		}
+		// Update on-hold status
+		fc.Status.OnHold = onHold
 		return c.Status().Update(ctx, &fc)
 	})
 
@@ -197,6 +226,10 @@ func (i *Instance) SetUnknown() {
 
 func (i *Instance) SetUnused(message string) {
 	i.s.setUnused(i.cpnt, message)
+}
+
+func (i *Instance) SetOnHold(message string) {
+	i.s.SetOnHold(message)
 }
 
 func (i *Instance) CheckDeploymentProgress(d *appsv1.Deployment) {

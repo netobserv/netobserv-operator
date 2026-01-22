@@ -75,6 +75,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Result
 	r.status.SetUnknown()
 	defer r.status.Commit(ctx, r.Client)
 
+	// In hold mode, disable static plugin to trigger cleanup
+	enableStaticPlugin := !r.mgr.Config.Hold
+	if r.mgr.Config.Hold {
+		clog.Info("Hold mode enabled: disabling Static console plugin")
+	}
+
 	if r.mgr.ClusterInfo.HasConsolePlugin() {
 		// Only deploy static plugin on OpenShift 4.15+
 		if !r.mgr.ClusterInfo.IsOpenShift() {
@@ -89,7 +95,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Result
 				return ctrl.Result{}, fmt.Errorf("failed to get controller deployment: %w", err)
 			}
 			staticPluginReconciler := consoleplugin.NewStaticReconciler(r.newDefaultReconcilerInstance(scp))
-			if err := staticPluginReconciler.ReconcileStaticPlugin(ctx, true); err != nil {
+			if err := staticPluginReconciler.ReconcileStaticPlugin(ctx, enableStaticPlugin); err != nil {
 				clog.Error(err, "Static plugin reconcile failure")
 				// Set status failure unless it was already set
 				if !r.status.HasFailure() {

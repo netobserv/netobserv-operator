@@ -51,6 +51,7 @@ var _ = Describe("FlowCollector Controller", Ordered, Serial, func() {
 	flowCollectorMinimalSpecs()
 	flowCollectorIsoSpecs()
 	flowCollectorCertificatesSpecs()
+	flowCollectorHoldModeSpecs()
 })
 
 var _ = BeforeSuite(func() {

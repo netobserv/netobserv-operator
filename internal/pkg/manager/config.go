@@ -22,6 +22,8 @@ type Config struct {
 	Namespace string
 	// Release kind is either upstream or downstream
 	DownstreamDeployment bool
+	// Hold mode: when enabled, all operator-controlled resources are deleted while keeping CRDs (FlowCollector, FlowCollectorSlice, FlowMetric) and namespaces
+	Hold bool
 }
 
 func (cfg *Config) Validate() error {

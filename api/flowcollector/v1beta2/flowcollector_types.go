@@ -1553,6 +1553,14 @@ type FlowCollectorStatus struct {
 	//
 	// Deprecated: annotations are used instead
 	Namespace string `json:"namespace,omitempty"`
+
+	// `onHold` indicates whether the operator is in hold mode. When enabled, the operator deletes all managed
+	// resources (except CRDs and namespaces) while preserving FlowCollector, FlowCollectorSlice, and FlowMetric
+	// custom resources. This allows verifying that NetObserv is not impacting the cluster without losing configuration.
+	// To disable hold mode, set the HOLD environment variable to false in the operator CSV (ClusterServiceVersion)
+	// in the openshift-netobserv-operator namespace, or restart the operator with the --hold flag set to false.
+	// +optional
+	OnHold string `json:"onHold,omitempty"`
 }
 
 // +kubebuilder:object:root=true

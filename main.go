@@ -118,6 +118,7 @@ func main() {
 	flag.StringVar(&config.Namespace, "namespace", "netobserv", "Current controller namespace")
 	flag.StringVar(&config.DemoLokiImage, "demo-loki-image", "grafana/loki:3.5.0", "The image of the zero click loki deployment")
 	flag.BoolVar(&config.DownstreamDeployment, "downstream-deployment", false, "Either this deployment is a downstream deployment ot not")
+	flag.BoolVar(&config.Hold, "hold", false, "Hold mode: delete all operator-controlled resources while keeping CRDs (FlowCollector, FlowCollectorSlice, FlowMetric) and namespaces")
 	flag.BoolVar(&enableHTTP2, "enable-http2", enableHTTP2, "If HTTP/2 should be enabled for the metrics and webhook servers.")
 	flag.BoolVar(&versionFlag, "v", false, "print version")
 	opts := zap.Options{

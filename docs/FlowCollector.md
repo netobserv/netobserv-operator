@@ -12734,6 +12734,17 @@ If the namespace is different, the config map or the secret is copied so that it
 Deprecated: annotations are used instead<br/>
         </td>
         <td>false</td>
+      </tr><tr>
+        <td><b>onHold</b></td>
+        <td>string</td>
+        <td>
+          `onHold` indicates whether the operator is in hold mode. When enabled, the operator deletes all managed
+resources (except CRDs and namespaces) while preserving FlowCollector, FlowCollectorSlice, and FlowMetric
+custom resources. This allows verifying that NetObserv is not impacting the cluster without losing configuration.
+To disable hold mode, set the HOLD environment variable to false in the operator CSV (ClusterServiceVersion)
+in the openshift-netobserv-operator namespace, or restart the operator with the --hold flag set to false.<br/>
+        </td>
+        <td>false</td>
       </tr></tbody>
 </table>
 

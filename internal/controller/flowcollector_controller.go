@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	lokiv1 "github.com/grafana/loki/operator/apis/loki/v1"
 	osv1 "github.com/openshift/api/console/v1"
@@ -34,6 +35,11 @@ import (
 
 const (
 	flowsFinalizer = "flows.netobserv.io/finalizer"
+)
+
+var (
+	// Track if cleanup has been triggered to avoid doing it multiple times across controllers
+	holdCleanupOnce sync.Once
 )
 
 // FlowCollectorReconciler reconciles a FlowCollector object
@@ -106,6 +112,20 @@ func Start(ctx context.Context, mgr *manager.Manager) (manager.PostCreateHook, e
 func (r *FlowCollectorReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Result, error) {
 	l := log.Log.WithName("legacy") // clear context (too noisy)
 	ctx = log.IntoContext(ctx, l)
+
+	// In hold mode, trigger cleanup once and return
+	if r.mgr.Config.Hold {
+		holdCleanupOnce.Do(func() {
+			l.Info("Hold mode enabled: deleting all operator-managed resources")
+			if err := cleanup.DeleteAllManagedResources(ctx, r.Client); err != nil {
+				l.Error(err, "Failed to cleanup managed resources in hold mode")
+			}
+		})
+		// Update status to indicate hold mode is active
+		r.status.SetOnHold("Hold mode is active. All operator-managed resources have been deleted while preserving FlowCollector, FlowCollectorSlice, and FlowMetric CRDs and namespaces. To disable hold mode, set the HOLD environment variable to false in the operator CSV (ClusterServiceVersion) in the openshift-netobserv-operator namespace, or restart the operator with --hold=false.")
+		r.status.SetReady()
+		return ctrl.Result{}, nil
+	}
 
 	// Get flowcollector & create dedicated client
 	clh, desired, err := helper.NewFlowCollectorClientHelper(ctx, r.Client)

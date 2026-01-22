@@ -91,6 +91,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Result
 	l := log.Log.WithName("flp") // clear context (too noisy)
 	ctx = log.IntoContext(ctx, l)
 
+	// In hold mode, skip reconciliation (cleanup is handled by FlowCollector controller)
+	if r.mgr.Config.Hold {
+		return ctrl.Result{}, nil
+	}
+
 	// Get flowcollector & create dedicated client
 	clh, fc, err := helper.NewFlowCollectorClientHelper(ctx, r.Client)
 	if err != nil {
