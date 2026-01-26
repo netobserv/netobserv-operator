@@ -5,7 +5,6 @@ import (
 	"reflect"
 
 	osv1 "github.com/openshift/api/console/v1"
-	securityv1 "github.com/openshift/api/security/v1"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 
 	"github.com/netobserv/network-observability-operator/internal/pkg/helper"
@@ -131,10 +130,11 @@ func DeleteAllManagedResources(ctx context.Context, cl client.Client) error {
 	}
 
 	// Cluster-scoped resources
+	// Note: We don't include SecurityContextConstraints as they are infrastructure/policy resources
+	// that require elevated permissions and don't directly impact cluster workload performance.
 	clusterTypes := []client.ObjectList{
 		&rbacv1.ClusterRoleList{},
 		&rbacv1.ClusterRoleBindingList{},
-		&securityv1.SecurityContextConstraintsList{},
 		&osv1.ConsolePluginList{},
 	}
 
