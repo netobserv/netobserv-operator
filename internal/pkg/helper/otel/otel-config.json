@@ -30,6 +30,7 @@
   "TimeFlowRttNs": "tcp.rtt",
   "Interfaces": "interface.names",
   "IfDirections": "interface.directions",
+  "IPSecStatus": "ipsec.status",
   "FlowDirection": "host.direction",
   "DnsErrno": "dns.errno",
   "DnsFlags": "dns.flags",

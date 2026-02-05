@@ -36,6 +36,7 @@ func TestOtelTransformConfig(t *testing.T) {
 		{Input: "DstSubnetLabel", Output: "destination.subnet.label", Multiplier: 0},
 		{Input: "Flags", Output: "tcp.flags", Multiplier: 0},
 		{Input: "FlowDirection", Output: "host.direction", Multiplier: 0},
+		{Input: "IPSecStatus", Output: "ipsec.status", Multiplier: 0},
 		{Input: "IcmpCode", Output: "icmp.code", Multiplier: 0},
 		{Input: "IcmpType", Output: "icmp.type", Multiplier: 0},
 		{Input: "IfDirections", Output: "interface.directions", Multiplier: 0},

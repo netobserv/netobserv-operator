@@ -24,6 +24,13 @@ func TestIncludeExclude(t *testing.T) {
 		"namespace_network_policy_events_total",
 		"namespace_rtt_seconds",
 		"namespace_sampling",
+		"network_dns_latency_seconds",
+		"network_drop_bytes_total",
+		"network_ingress_bytes_total",
+		"network_ipsec_flows_total",
+		"network_network_policy_events_total",
+		"network_rtt_seconds",
+		"network_sampling",
 		"node_dns_latency_seconds",
 		"node_drop_bytes_total",
 		"node_ingress_bytes_total",
@@ -87,4 +94,205 @@ func TestGetDefinitionsRemoveZoneCluster(t *testing.T) {
 	assert.Equal("workload_egress_packets_total", res[2].Spec.MetricName)
 	assert.Equal("Packets", res[2].Spec.ValueField)
 	assert.Equal([]string{"SrcK8S_Namespace", "DstK8S_Namespace", "K8S_FlowLayer", "SrcSubnetLabel", "DstSubnetLabel", "SrcK8S_OwnerName", "DstK8S_OwnerName", "SrcK8S_OwnerType", "DstK8S_OwnerType", "SrcK8S_Type", "DstK8S_Type"}, res[2].Spec.Labels)
+}
+
+func TestGetDefinitionsNetworkMetrics(t *testing.T) {
+	assert := assert.New(t)
+
+	res := GetDefinitions(util.SpecForMetrics("network_ingress_bytes_total", "network_egress_packets_total", "network_flows_total"), false)
+	assert.Len(res, 3)
+	// Results are in the order they appear in predefinedMetrics
+	assert.Equal("network_ingress_bytes_total", res[0].Spec.MetricName)
+	assert.Equal("Bytes", res[0].Spec.ValueField)
+	assert.Equal([]string{"K8S_ClusterName", "SrcK8S_Zone", "DstK8S_Zone", "SrcK8S_NetworkName", "DstK8S_NetworkName", "K8S_FlowLayer"}, res[0].Spec.Labels)
+	assert.Equal("network_egress_packets_total", res[1].Spec.MetricName)
+	assert.Equal("Packets", res[1].Spec.ValueField)
+	assert.Equal([]string{"K8S_ClusterName", "SrcK8S_Zone", "DstK8S_Zone", "SrcK8S_NetworkName", "DstK8S_NetworkName", "K8S_FlowLayer"}, res[1].Spec.Labels)
+	assert.Equal("network_flows_total", res[2].Spec.MetricName)
+	assert.Empty(res[2].Spec.ValueField)
+	assert.Equal([]string{"K8S_ClusterName", "SrcK8S_Zone", "DstK8S_Zone", "SrcK8S_NetworkName", "DstK8S_NetworkName", "K8S_FlowLayer"}, res[2].Spec.Labels)
+}
+
+func TestGetDefinitionsNetworkRTT(t *testing.T) {
+	assert := assert.New(t)
+
+	res := GetDefinitions(util.SpecForMetrics("network_rtt_seconds"), false)
+	assert.Len(res, 1)
+	assert.Equal("network_rtt_seconds", res[0].Spec.MetricName)
+	assert.Equal("TimeFlowRttNs", res[0].Spec.ValueField)
+	assert.Equal("1000000000", res[0].Spec.Divider)
+	assert.Equal([]string{"K8S_ClusterName", "SrcK8S_Zone", "DstK8S_Zone", "SrcK8S_NetworkName", "DstK8S_NetworkName", "K8S_FlowLayer"}, res[0].Spec.Labels)
+	assert.Len(res[0].Spec.Filters, 1)
+	assert.Equal("TimeFlowRttNs", res[0].Spec.Filters[0].Field)
+}
+
+func TestGetDefinitionsNetworkDNS(t *testing.T) {
+	assert := assert.New(t)
+
+	res := GetDefinitions(util.SpecForMetrics("network_dns_latency_seconds"), false)
+	assert.Len(res, 1)
+	assert.Equal("network_dns_latency_seconds", res[0].Spec.MetricName)
+	assert.Equal("DnsLatencyMs", res[0].Spec.ValueField)
+	assert.Equal("1000", res[0].Spec.Divider)
+	assert.Equal([]string{"K8S_ClusterName", "SrcK8S_Zone", "DstK8S_Zone", "SrcK8S_NetworkName", "DstK8S_NetworkName", "K8S_FlowLayer", "DnsFlagsResponseCode"}, res[0].Spec.Labels)
+}
+
+func TestGetDefinitionsNetworkDrop(t *testing.T) {
+	assert := assert.New(t)
+
+	res := GetDefinitions(util.SpecForMetrics("network_drop_packets_total", "network_drop_bytes_total"), false)
+	assert.Len(res, 2)
+	// Results are sorted alphabetically
+	assert.Equal("network_drop_packets_total", res[0].Spec.MetricName)
+	assert.Equal("PktDropPackets", res[0].Spec.ValueField)
+	assert.Equal([]string{"K8S_ClusterName", "SrcK8S_Zone", "DstK8S_Zone", "SrcK8S_NetworkName", "DstK8S_NetworkName", "K8S_FlowLayer", "PktDropLatestState", "PktDropLatestDropCause"}, res[0].Spec.Labels)
+	assert.Equal("network_drop_bytes_total", res[1].Spec.MetricName)
+	assert.Equal("PktDropBytes", res[1].Spec.ValueField)
+	assert.Equal([]string{"K8S_ClusterName", "SrcK8S_Zone", "DstK8S_Zone", "SrcK8S_NetworkName", "DstK8S_NetworkName", "K8S_FlowLayer", "PktDropLatestState", "PktDropLatestDropCause"}, res[1].Spec.Labels)
+}
+
+func TestGetDefinitionsNetworkIPSec(t *testing.T) {
+	assert := assert.New(t)
+
+	res := GetDefinitions(util.SpecForMetrics("network_ipsec_flows_total"), false)
+	assert.Len(res, 1)
+	assert.Equal("network_ipsec_flows_total", res[0].Spec.MetricName)
+	assert.Equal([]string{"K8S_ClusterName", "SrcK8S_Zone", "DstK8S_Zone", "SrcK8S_NetworkName", "DstK8S_NetworkName", "K8S_FlowLayer", "IPSecStatus"}, res[0].Spec.Labels)
+}
+
+func TestGetDefinitionsRemoveNetworkLabels(t *testing.T) {
+	assert := assert.New(t)
+
+	spec := util.SpecForMetrics("network_ingress_bytes_total", "namespace_ingress_bytes_total")
+	// Disable multiNetworks feature (UDN mapping and secondary indexes)
+	spec.Agent.EBPF.Features = []flowslatest.AgentFeature{flowslatest.FlowRTT, flowslatest.DNSTracking, flowslatest.PacketDrop} // Remove UDNMapping if it was there
+	spec.Processor.Advanced = nil                                                                                               // Ensure no secondary indexes
+	res := GetDefinitions(spec, false)
+	assert.Len(res, 2)
+	// Namespace metric should keep all labels
+	assert.Equal("namespace_ingress_bytes_total", res[0].Spec.MetricName)
+	assert.Equal([]string{"K8S_ClusterName", "SrcK8S_Zone", "DstK8S_Zone", "SrcK8S_Namespace", "DstK8S_Namespace", "K8S_FlowLayer", "SrcSubnetLabel", "DstSubnetLabel"}, res[0].Spec.Labels)
+	// Network metric should have network labels removed
+	assert.Equal("network_ingress_bytes_total", res[1].Spec.MetricName)
+	assert.Equal([]string{"K8S_ClusterName", "SrcK8S_Zone", "DstK8S_Zone", "K8S_FlowLayer"}, res[1].Spec.Labels)
+}
+
+func TestGetDefinitionsNodeMetrics(t *testing.T) {
+	assert := assert.New(t)
+
+	res := GetDefinitions(util.SpecForMetrics("node_ingress_bytes_total", "node_egress_packets_total", "node_flows_total"), false)
+	assert.Len(res, 3)
+	assert.Equal("node_ingress_bytes_total", res[0].Spec.MetricName)
+	assert.Equal("Bytes", res[0].Spec.ValueField)
+	assert.Equal([]string{"K8S_ClusterName", "SrcK8S_Zone", "DstK8S_Zone", "SrcK8S_HostName", "DstK8S_HostName"}, res[0].Spec.Labels)
+	assert.Equal("node_egress_packets_total", res[1].Spec.MetricName)
+	assert.Equal("Packets", res[1].Spec.ValueField)
+	assert.Equal([]string{"K8S_ClusterName", "SrcK8S_Zone", "DstK8S_Zone", "SrcK8S_HostName", "DstK8S_HostName"}, res[1].Spec.Labels)
+	assert.Equal("node_flows_total", res[2].Spec.MetricName)
+	assert.Empty(res[2].Spec.ValueField)
+	assert.Equal([]string{"K8S_ClusterName", "SrcK8S_Zone", "DstK8S_Zone", "SrcK8S_HostName", "DstK8S_HostName"}, res[2].Spec.Labels)
+}
+
+func TestGetDefinitionsNamespaceMetrics(t *testing.T) {
+	assert := assert.New(t)
+
+	res := GetDefinitions(util.SpecForMetrics("namespace_ingress_bytes_total", "namespace_egress_packets_total", "namespace_flows_total"), false)
+	assert.Len(res, 3)
+	assert.Equal("namespace_ingress_bytes_total", res[0].Spec.MetricName)
+	assert.Equal("Bytes", res[0].Spec.ValueField)
+	assert.Equal([]string{"K8S_ClusterName", "SrcK8S_Zone", "DstK8S_Zone", "SrcK8S_Namespace", "DstK8S_Namespace", "K8S_FlowLayer", "SrcSubnetLabel", "DstSubnetLabel"}, res[0].Spec.Labels)
+	assert.Equal("namespace_egress_packets_total", res[1].Spec.MetricName)
+	assert.Equal("Packets", res[1].Spec.ValueField)
+	assert.Equal([]string{"K8S_ClusterName", "SrcK8S_Zone", "DstK8S_Zone", "SrcK8S_Namespace", "DstK8S_Namespace", "K8S_FlowLayer", "SrcSubnetLabel", "DstSubnetLabel"}, res[1].Spec.Labels)
+	assert.Equal("namespace_flows_total", res[2].Spec.MetricName)
+	assert.Empty(res[2].Spec.ValueField)
+	assert.Equal([]string{"K8S_ClusterName", "SrcK8S_Zone", "DstK8S_Zone", "SrcK8S_Namespace", "DstK8S_Namespace", "K8S_FlowLayer", "SrcSubnetLabel", "DstSubnetLabel"}, res[2].Spec.Labels)
+}
+
+func TestGetDefinitionsWorkloadMetrics(t *testing.T) {
+	assert := assert.New(t)
+
+	res := GetDefinitions(util.SpecForMetrics("workload_ingress_bytes_total", "workload_egress_packets_total", "workload_flows_total"), false)
+	assert.Len(res, 3)
+	assert.Equal("workload_ingress_bytes_total", res[0].Spec.MetricName)
+	assert.Equal("Bytes", res[0].Spec.ValueField)
+	assert.Equal([]string{"K8S_ClusterName", "SrcK8S_Zone", "DstK8S_Zone", "SrcK8S_Namespace", "DstK8S_Namespace", "K8S_FlowLayer", "SrcSubnetLabel", "DstSubnetLabel", "SrcK8S_OwnerName", "DstK8S_OwnerName", "SrcK8S_OwnerType", "DstK8S_OwnerType", "SrcK8S_Type", "DstK8S_Type"}, res[0].Spec.Labels)
+	assert.Equal("workload_egress_packets_total", res[1].Spec.MetricName)
+	assert.Equal("Packets", res[1].Spec.ValueField)
+	assert.Equal("workload_flows_total", res[2].Spec.MetricName)
+	assert.Empty(res[2].Spec.ValueField)
+}
+
+func TestGetDefinitionsAllMetricTypesForGroup(t *testing.T) {
+	assert := assert.New(t)
+
+	// Test all metric types for a single group (node)
+	res := GetDefinitions(util.SpecForMetrics("node_ingress_bytes_total", "node_rtt_seconds", "node_drop_packets_total", "node_dns_latency_seconds", "node_ipsec_flows_total"), false)
+	assert.Len(res, 5)
+
+	// Check that different metric types are present
+	metricNames := make([]string, len(res))
+	for i, m := range res {
+		metricNames[i] = m.Spec.MetricName
+	}
+	assert.Contains(metricNames, "node_ingress_bytes_total")
+	assert.Contains(metricNames, "node_rtt_seconds")
+	assert.Contains(metricNames, "node_drop_packets_total")
+	assert.Contains(metricNames, "node_dns_latency_seconds")
+	assert.Contains(metricNames, "node_ipsec_flows_total")
+
+	// Verify RTT has correct configuration
+	for _, m := range res {
+		if m.Spec.MetricName == "node_rtt_seconds" {
+			assert.Equal("TimeFlowRttNs", m.Spec.ValueField)
+			assert.Equal("1000000000", m.Spec.Divider)
+			assert.Len(m.Spec.Filters, 1)
+		}
+	}
+}
+
+func TestGetDefinitionsMixedGroups(t *testing.T) {
+	assert := assert.New(t)
+
+	// Test requesting metrics from different groups
+	res := GetDefinitions(util.SpecForMetrics("node_ingress_bytes_total", "namespace_flows_total", "workload_egress_packets_total", "network_rtt_seconds"), false)
+	assert.Len(res, 4)
+
+	metricNames := make([]string, len(res))
+	for i, m := range res {
+		metricNames[i] = m.Spec.MetricName
+	}
+	assert.Contains(metricNames, "node_ingress_bytes_total")
+	assert.Contains(metricNames, "namespace_flows_total")
+	assert.Contains(metricNames, "workload_egress_packets_total")
+	assert.Contains(metricNames, "network_rtt_seconds")
+}
+
+func TestGetDefinitionsRemoveZoneLabels(t *testing.T) {
+	assert := assert.New(t)
+
+	spec := util.SpecForMetrics("node_ingress_bytes_total", "network_ingress_bytes_total", "namespace_flows_total")
+	spec.Processor.AddZone = ptr.To(false)
+	res := GetDefinitions(spec, false)
+	assert.Len(res, 3)
+
+	// All metrics should have zone labels removed
+	for _, m := range res {
+		assert.NotContains(m.Spec.Labels, "SrcK8S_Zone")
+		assert.NotContains(m.Spec.Labels, "DstK8S_Zone")
+	}
+}
+
+func TestGetDefinitionsRemoveMultiClusterLabels(t *testing.T) {
+	assert := assert.New(t)
+
+	spec := util.SpecForMetrics("node_ingress_bytes_total", "network_ingress_bytes_total", "namespace_flows_total")
+	spec.Processor.MultiClusterDeployment = ptr.To(false)
+	res := GetDefinitions(spec, false)
+	assert.Len(res, 3)
+
+	// All metrics should have cluster label removed
+	for _, m := range res {
+		assert.NotContains(m.Spec.Labels, "K8S_ClusterName")
+	}
 }

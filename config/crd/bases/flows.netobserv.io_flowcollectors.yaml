@@ -5548,22 +5548,33 @@ spec:
                               - workload_ingress_bytes_total
                               - workload_ingress_packets_total
                               - workload_flows_total
+                              - network_egress_bytes_total
+                              - network_egress_packets_total
+                              - network_ingress_bytes_total
+                              - network_ingress_packets_total
+                              - network_flows_total
                               - namespace_drop_bytes_total
                               - namespace_drop_packets_total
                               - node_drop_bytes_total
                               - node_drop_packets_total
                               - workload_drop_bytes_total
                               - workload_drop_packets_total
+                              - network_drop_bytes_total
+                              - network_drop_packets_total
                               - namespace_rtt_seconds
                               - node_rtt_seconds
                               - workload_rtt_seconds
+                              - network_rtt_seconds
                               - namespace_dns_latency_seconds
                               - node_dns_latency_seconds
                               - workload_dns_latency_seconds
+                              - network_dns_latency_seconds
                               - node_network_policy_events_total
                               - namespace_network_policy_events_total
                               - workload_network_policy_events_total
                               - node_ipsec_flows_total
+                              - workload_ipsec_flows_total
+                              - network_ipsec_flows_total
                               - node_to_node_ingress_flows_total
                             type: string
                           type: array
