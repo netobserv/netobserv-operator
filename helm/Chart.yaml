@@ -70,11 +70,8 @@ annotations:
       url: https://netobserv.io/static/assets/images/about/network-traffic-main.png
 
 dependencies:
-- name: prometheus
-  version: "~28.2.0"
-  repository: https://prometheus-community.github.io/helm-charts
-  condition: install.prom
 - name: kube-prometheus-stack
+  alias: prom-stack
   version: "~80.4.1"
   repository: https://prometheus-community.github.io/helm-charts
   condition: install.prom-stack

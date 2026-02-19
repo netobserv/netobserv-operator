@@ -1,10 +1,12 @@
 # Global configuration
 clusterDomain: cluster.local
 certManager:
+  enable: true
   # if existingIssuer.name is not provided, a new self-signed Issuer will be created
   existingIssuer:
-    kind: ClusterIssuer
+    kind: ""
     name: ""
+  trustNamespace: cert-manager
 # Deployment manifest values
 ebpfAgent:
   image: quay.io/netobserv/netobserv-ebpf-agent
@@ -43,10 +45,9 @@ operator:
 # Dependency toggle condition value
 install:
   prom-stack: false
-  prom: false
   loki: false
 # Subcharts config
-kube-prometheus-stack:
+prom-stack:
   prometheus:
     prometheusSpec:
       ruleSelector:

@@ -43,9 +43,10 @@ When all component drafts are ready, you can test the helm chart on your cluster
 
 ```bash
 helm repo add cert-manager https://charts.jetstack.io
-helm install my-cert-manager cert-manager/cert-manager --set crds.enabled=true
+helm install cert-manager -n cert-manager --create-namespace cert-manager/cert-manager --set crds.enabled=true
+helm upgrade trust-manager oci://quay.io/jetstack/charts/trust-manager --install --namespace cert-manager --wait
 
-helm install my-netobserv -n netobserv --create-namespace --set install.loki=true --set install.prom-stack=true ./helm
+helm install netobserv -n netobserv --create-namespace --set install.loki=true --set install.prom-stack=true ./helm
 
 cat <<EOF | kubectl apply -f -
 apiVersion: flows.netobserv.io/v1beta2
@@ -67,14 +68,14 @@ spec:
   loki:
     mode: Monolithic
     monolithic:
-      url: 'http://my-netobserv-loki.netobserv.svc.cluster.local.:3100/'
+      url: 'http://netobserv-loki.netobserv.svc.cluster.local.:3100/'
   prometheus:
     querier:
       mode: Manual
       manual:
-        url: http://my-netobserv-kube-promethe-prometheus.netobserv.svc.cluster.local.:9090/
+        url: http://netobserv-prom-stack-prometheus.netobserv.svc.cluster.local.:9090/
         alertManager:
-          url: http://my-netobserv-kube-promethe-alertmanager.netobserv.svc.cluster.local.:9093/
+          url: http://netobserv-prom-stack-alertmanager.netobserv.svc.cluster.local.:9093/
 EOF
 
 # Check components image:
@@ -90,7 +91,7 @@ Then open http://localhost:9001/ in your browser, and do some manual smoke tests
 To clean up:
 
 ```bash
-helm delete my-netobserv -n netobserv
+helm delete netobserv -n netobserv
 ```
 
 ### Commit operator changes

@@ -1,0 +1,33 @@
+🛰 Welcome to NetObserv!
+
+The operator was just installed. The flow collection process only starts after a FlowCollector resource is created.
+
+⌨️ To create a FlowCollector (example):
+
+$ cat <<EOF | kubectl apply -f -
+apiVersion: flows.netobserv.io/v1beta2
+kind: FlowCollector
+metadata:
+  name: cluster
+spec:
+  namespace: {{ .Release.Namespace }}
+  networkPolicy:
+    enable: false
+  consolePlugin:
+    standalone: true
+  loki:
+    mode: Monolithic
+    monolithic:
+      url: 'http://{{ .Release.Name }}-loki.{{ .Release.Namespace }}.svc.cluster.local.:3100/'
+  prometheus:
+    querier:
+      mode: Manual
+      manual:
+        url: http://{{ .Release.Name }}-prom-stack-prometheus.{{ .Release.Namespace }}.svc.cluster.local.:9090/
+        alertManager:
+          url: http://{{ .Release.Name }}-prom-stack-alertmanager.{{ .Release.Namespace }}.svc.cluster.local.:9093/
+EOF
+
+⌨️ To view the web console at http://localhost:9001/ (port-forwarding):
+
+$ kubectl port-forward svc/netobserv-plugin 9001:9001 -n {{ .Release.Namespace }}
