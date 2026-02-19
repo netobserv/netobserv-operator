@@ -15,6 +15,9 @@ spec:
     enable: false
   consolePlugin:
     standalone: true
+  processor:
+    service:
+      tlsType: Auto-mTLS
   loki:
     mode: Monolithic
     monolithic:

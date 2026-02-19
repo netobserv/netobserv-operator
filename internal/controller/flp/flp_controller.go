@@ -235,14 +235,14 @@ func annotateKafkaCerts(ctx context.Context, info *reconcilers.Common, spec *flo
 }
 
 func reconcileMonitoringCerts(ctx context.Context, info *reconcilers.Common, tlsConfig *flowslatest.ServerTLS, ns string) error {
-	if tlsConfig.Type == flowslatest.ServerTLSProvided && tlsConfig.Provided != nil {
+	if tlsConfig.Type == flowslatest.TLSProvided && tlsConfig.Provided != nil {
 		_, err := info.Watcher.ProcessCertRef(ctx, info.Client, tlsConfig.Provided, ns)
 		if err != nil {
 			return err
 		}
 	}
-	if !tlsConfig.InsecureSkipVerify && tlsConfig.ProvidedCaFile != nil && tlsConfig.ProvidedCaFile.File != "" {
-		_, err := info.Watcher.ProcessFileReference(ctx, info.Client, *tlsConfig.ProvidedCaFile, ns)
+	if !tlsConfig.InsecureSkipVerify && tlsConfig.ProvidedCAFile != nil && tlsConfig.ProvidedCAFile.File != "" {
+		_, err := info.Watcher.ProcessFileReference(ctx, info.Client, *tlsConfig.ProvidedCAFile, ns)
 		if err != nil {
 			return err
 		}

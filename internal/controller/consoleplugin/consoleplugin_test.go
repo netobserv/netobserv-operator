@@ -264,12 +264,7 @@ func TestConfigMapUpdateCheck(t *testing.T) {
 	old = nEw
 
 	// update status user cert
-	loki.LokiManualParams.StatusTLS.UserCert = flowslatest.CertificateReference{
-		Type:     "secret",
-		Name:     "sec-name",
-		CertFile: "tls.crt",
-		CertKey:  "tls.key",
-	}
+	loki.LokiManualParams.StatusTLS.UserCert = ptr.Deref(helper.DefaultCertificateReference("sec-name", ""), flowslatest.CertificateReference{})
 	builder = getBuilder(&spec, &loki)
 	nEw, _, _ = builder.configMap(context.Background(), nil)
 	assert.NotEqual(old.Data, nEw.Data)

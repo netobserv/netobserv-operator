@@ -474,6 +474,46 @@ spec:
         path: processor.metrics.includeList
       - displayName: Port
         path: processor.metrics.server.port
+      - displayName: Service
+        path: processor.service
+      - displayName: Provided certificates
+        path: processor.service.providedCertificates
+      - displayName: Ca file
+        path: processor.service.providedCertificates.caFile
+      - displayName: File
+        path: processor.service.providedCertificates.caFile.file
+      - displayName: Name
+        path: processor.service.providedCertificates.caFile.name
+      - displayName: Namespace
+        path: processor.service.providedCertificates.caFile.namespace
+      - displayName: Type
+        path: processor.service.providedCertificates.caFile.type
+      - displayName: Client cert
+        path: processor.service.providedCertificates.clientCert
+      - displayName: Cert file
+        path: processor.service.providedCertificates.clientCert.certFile
+      - displayName: Cert key
+        path: processor.service.providedCertificates.clientCert.certKey
+      - displayName: Name
+        path: processor.service.providedCertificates.clientCert.name
+      - displayName: Namespace
+        path: processor.service.providedCertificates.clientCert.namespace
+      - displayName: Type
+        path: processor.service.providedCertificates.clientCert.type
+      - displayName: Server cert
+        path: processor.service.providedCertificates.serverCert
+      - displayName: Cert file
+        path: processor.service.providedCertificates.serverCert.certFile
+      - displayName: Cert key
+        path: processor.service.providedCertificates.serverCert.certKey
+      - displayName: Name
+        path: processor.service.providedCertificates.serverCert.name
+      - displayName: Namespace
+        path: processor.service.providedCertificates.serverCert.namespace
+      - displayName: Type
+        path: processor.service.providedCertificates.serverCert.type
+      - displayName: Tls type
+        path: processor.service.tlsType
       - displayName: Slices config
         path: processor.slicesConfig
       - displayName: Collection mode

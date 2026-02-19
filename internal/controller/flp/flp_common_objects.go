@@ -33,21 +33,20 @@ const (
 	startupPeriodSeconds    = 10
 )
 
-func newGRPCPipeline(desired *flowslatest.FlowCollectorSpec, volumes *volumes.Builder) config.PipelineBuilderStage {
+func newGRPCPipeline(desired *flowslatest.FlowCollectorSpec, volumes *volumes.Builder, isOpenShift bool) config.PipelineBuilderStage {
 	adv := helper.GetAdvancedProcessorConfig(desired)
 	cfg := api.IngestGRPCProto{Port: int(*adv.Port)}
-	skipTLS := flowslatest.IsEnvEnabled(adv.Env, "SERVER_NOTLS")
-	if desired.DeploymentModel == flowslatest.DeploymentModelService && !skipTLS {
-		// Communication from agents uses TLS: set up server certificate
-		ref := flowslatest.CertificateReference{
-			Type:     flowslatest.RefTypeSecret,
-			Name:     monoCertSecretName,
-			CertFile: "tls.crt",
-			CertKey:  "tls.key",
+	if desired.DeploymentModel == flowslatest.DeploymentModelService {
+		serverCert, clientCA := helper.GetServiceServerTLSConfig(desired.Processor.Service, monoCertSecretName, isOpenShift)
+		if serverCert != nil {
+			// Communication from agents uses TLS: set up server certificate
+			certPath, keyPath := volumes.AddCertificate(serverCert, "svc-certs")
+			cfg.CertPath = certPath
+			cfg.KeyPath = keyPath
+			if clientCA != nil {
+				cfg.ClientCAPath = volumes.AddVolume(clientCA, "netobserv-ca")
+			}
 		}
-		cert, key := volumes.AddCertificate(&ref, "svc-certs")
-		cfg.CertPath = cert
-		cfg.KeyPath = key
 	}
 	return config.NewGRPCPipeline("grpc", cfg)
 }
@@ -68,19 +67,19 @@ func newKafkaPipeline(desired *flowslatest.FlowCollectorSpec, volumes *volumes.B
 func getPromTLS(desired *flowslatest.FlowCollectorSpec, serviceName string) (*flowslatest.CertificateReference, error) {
 	var promTLS *flowslatest.CertificateReference
 	switch desired.Processor.Metrics.Server.TLS.Type {
-	case flowslatest.ServerTLSProvided:
+	case flowslatest.TLSProvided:
 		promTLS = desired.Processor.Metrics.Server.TLS.Provided
 		if promTLS == nil {
 			return nil, fmt.Errorf("processor TLS configuration set to provided but none is provided")
 		}
-	case flowslatest.ServerTLSAuto:
+	case flowslatest.TLSAuto:
 		promTLS = &flowslatest.CertificateReference{
 			Type:     "secret",
 			Name:     serviceName,
 			CertFile: "tls.crt",
 			CertKey:  "tls.key",
 		}
-	case flowslatest.ServerTLSDisabled:
+	case flowslatest.TLSDisabled, flowslatest.TLSAutoMTLS:
 		// nothing to do there
 	}
 	return promTLS, nil
@@ -256,7 +255,7 @@ func metricsSettings(desired *flowslatest.FlowCollectorSpec, vol *volumes.Builde
 		Prefix:  "netobserv_",
 		NoPanic: true,
 	}
-	if desired.Processor.Metrics.Server.TLS.Type != flowslatest.ServerTLSDisabled {
+	if desired.Processor.Metrics.Server.TLS.Type != flowslatest.TLSDisabled {
 		cert, key := vol.AddCertificate(promTLS, "prom-certs")
 		if cert != "" && key != "" {
 			metricsSettings.TLS = &api.PromTLSConf{
@@ -330,7 +329,7 @@ func promService(desired *flowslatest.FlowCollectorSpec, svcName, namespace, app
 			}},
 		},
 	}
-	if desired.Processor.Metrics.Server.TLS.Type == flowslatest.ServerTLSAuto {
+	if desired.Processor.Metrics.Server.TLS.Type == flowslatest.TLSAuto {
 		svc.ObjectMeta.Annotations = map[string]string{
 			constants.OpenShiftCertificateAnnotation: svcName,
 		}

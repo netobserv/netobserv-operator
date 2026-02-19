@@ -74,7 +74,7 @@ func (c *AgentController) promService(target *flowslatest.FlowCollectorEBPF) *co
 			}},
 		},
 	}
-	if target.Metrics.Server.TLS.Type == flowslatest.ServerTLSAuto {
+	if target.Metrics.Server.TLS.Type == flowslatest.TLSAuto {
 		svc.ObjectMeta.Annotations = map[string]string{
 			constants.OpenShiftCertificateAnnotation: constants.EBPFAgentMetricsSvcName,
 		}

@@ -29,7 +29,7 @@ func GetSecretOrConfigMap(file *flowslatest.FileReference) monitoringv1.SecretOr
 }
 
 func GetServiceMonitorTLSConfig(tls *flowslatest.ServerTLS, serverName string, isDownstream bool) (monitoringv1.Scheme, *monitoringv1.TLSConfig) {
-	if tls.Type == flowslatest.ServerTLSAuto {
+	if tls.Type == flowslatest.TLSAuto {
 		if isDownstream {
 			return "https", &monitoringv1.TLSConfig{
 				SafeTLSConfig: monitoringv1.SafeTLSConfig{
@@ -54,15 +54,15 @@ func GetServiceMonitorTLSConfig(tls *flowslatest.ServerTLS, serverName string, i
 		}
 	}
 
-	if tls.Type == flowslatest.ServerTLSProvided {
+	if tls.Type == flowslatest.TLSProvided {
 		tlsOut := monitoringv1.TLSConfig{
 			SafeTLSConfig: monitoringv1.SafeTLSConfig{
 				ServerName:         ptr.To(serverName),
 				InsecureSkipVerify: &tls.InsecureSkipVerify,
 			},
 		}
-		if !tls.InsecureSkipVerify && tls.ProvidedCaFile != nil && tls.ProvidedCaFile.File != "" {
-			tlsOut.SafeTLSConfig.CA = GetSecretOrConfigMap(tls.ProvidedCaFile)
+		if !tls.InsecureSkipVerify && tls.ProvidedCAFile != nil && tls.ProvidedCAFile.File != "" {
+			tlsOut.SafeTLSConfig.CA = GetSecretOrConfigMap(tls.ProvidedCAFile)
 		}
 		return "https", &tlsOut
 	}

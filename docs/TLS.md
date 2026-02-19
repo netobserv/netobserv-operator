@@ -42,7 +42,7 @@ This document lists all required and optional TLS certificates for NetObserv. Yo
       <td>flowlogs-pipeline CA</td>
       <td>no</td>
       <td>ConfigMap</td>
-      <td>flowlogs-pipeline-ca</td>
+      <td>netobserv-ca</td>
       <td>service-ca.crt</td>
       <td>Must be installed in netobserv-privileged namespace. Only used when spec.deploymentModel is "Service".</td>
     </tr>

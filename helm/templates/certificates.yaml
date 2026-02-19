@@ -82,14 +82,32 @@ spec:
     kind: ClusterIssuer
     group: cert-manager.io
 ---
-# Flowlogs-pipeline CA bundle for the agents
+# Certificate for eBPF agents
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: "{{ .Release.Namespace }}-privileged"
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: ebpf-agent-cert
+  namespace: "{{ .Release.Namespace }}-privileged"
+spec:
+  secretName: ebpf-agent-cert
+  commonName: netobserv-ebpf-agent
+  issuerRef:
+    name: netobserv-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io
+---
+# CA bundle
 apiVersion: trust.cert-manager.io/v1alpha1
 kind: Bundle
 metadata:
-  name: flowlogs-pipeline-ca
+  name: netobserv-ca
 spec:
   sources:
-  - useDefaultCAs: false
   - secret:
       name: netobserv-ca-secret
       key: ca.crt
@@ -97,6 +115,6 @@ spec:
     configMap:
       key: service-ca.crt
     namespaceSelector:
-      matchLabels:
-        kubernetes.io/metadata.name: "{{ .Release.Namespace }}-privileged"
+      matchExpressions:
+      - { key: kubernetes.io/metadata.name, operator: In, values: ["{{ .Release.Namespace }}", "{{ .Release.Namespace }}-privileged"] }
 {{ end }}

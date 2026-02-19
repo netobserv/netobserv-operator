@@ -54,17 +54,14 @@ kind: FlowCollector
 metadata:
   name: cluster
 spec:
-  namespace: netobserv
-  agent:
-    eBPF:
-      privileged: true
-      features:
-      - NetworkEvents
   networkPolicy:
     enable: false
-  deploymentModel: Direct
+  consumerReplicas: 1
   consolePlugin:
     standalone: true
+  processor:
+    service:
+      tlsType: Auto-mTLS
   loki:
     mode: Monolithic
     monolithic:

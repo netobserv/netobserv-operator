@@ -38,6 +38,8 @@ const (
 	envFlowsTargetHost            = "TARGET_HOST"
 	envFlowsTargetPort            = "TARGET_PORT"
 	envTargetTLSCACertPath        = "TARGET_TLS_CA_CERT_PATH"
+	envTargetTLSUserCertPath      = "TARGET_TLS_USER_CERT_PATH"
+	envTargetTLSUserKeyPath       = "TARGET_TLS_USER_KEY_PATH"
 	envGRPCReconnect              = "GRPC_RECONNECT_TIMER"
 	envGRPCReconnectRnd           = "GRPC_RECONNECT_TIMER_RANDOMIZATION"
 	envSampling                   = "SAMPLING"
@@ -237,23 +239,18 @@ func (c *AgentController) desired(ctx context.Context, coll *flowslatest.FlowCol
 	}
 	advancedConfig := helper.GetAdvancedAgentConfig(coll.Spec.Agent.EBPF.Advanced)
 
-	if coll.Spec.Agent.EBPF.Metrics.Server.TLS.Type != flowslatest.ServerTLSDisabled {
+	if coll.Spec.Agent.EBPF.Metrics.Server.TLS.Type != flowslatest.TLSDisabled {
 		var promTLS *flowslatest.CertificateReference
 		switch coll.Spec.Agent.EBPF.Metrics.Server.TLS.Type {
-		case flowslatest.ServerTLSProvided:
+		case flowslatest.TLSProvided:
 			promTLS = coll.Spec.Agent.EBPF.Metrics.Server.TLS.Provided
 			if promTLS == nil {
 				rlog.Info("EBPF agent metric tls configuration set to provided but none is provided")
 			}
-		case flowslatest.ServerTLSAuto:
-			promTLS = &flowslatest.CertificateReference{
-				Type:     "secret",
-				Name:     constants.EBPFAgentMetricsSvcName,
-				CertFile: "tls.crt",
-				CertKey:  "tls.key",
-			}
-		case flowslatest.ServerTLSDisabled:
-			// show never happens added for linting purposes
+		case flowslatest.TLSAuto:
+			promTLS = helper.DefaultCertificateReference(constants.EBPFAgentMetricsSvcName, "")
+		case flowslatest.TLSDisabled, flowslatest.TLSAutoMTLS:
+			// should never happens added for linting purposes
 		}
 		cert, key := c.volumes.AddCertificate(promTLS, "prom-certs")
 		if cert != "" && key != "" {
@@ -503,23 +500,17 @@ func (c *AgentController) envConfig(ctx context.Context, coll *flowslatest.FlowC
 				Value: strconv.Itoa(int(*advancedConfig.Port)),
 			})
 		} else {
-			skipTLS := flowslatest.IsEnvEnabled(advancedConfig.Env, "SERVER_NOTLS")
-			if !skipTLS {
+			// Service mode
+			ca, clientCert := helper.GetServiceClientTLSConfig(coll.Spec.Processor.Service, "ebpf-agent-cert", c.ClusterInfo.IsOpenShift())
+			if ca != nil {
 				// Send to FLP service using TLS
-				caConfigMapName := "flowlogs-pipeline-ca"
-				if c.ClusterInfo.IsOpenShift() {
-					caConfigMapName = "openshift-service-ca.crt"
-				}
-				tlsCfg := flowslatest.ClientTLS{
-					Enable: true,
-					CACert: flowslatest.CertificateReference{
-						Type:     flowslatest.RefTypeConfigMap,
-						Name:     caConfigMapName,
-						CertFile: "service-ca.crt",
-					},
-				}
-				caPath := c.volumes.AddCACertificate(&tlsCfg, "svc-certs")
+				caPath := c.volumes.AddVolume(ca, "netobserv-ca")
 				config = append(config, corev1.EnvVar{Name: envTargetTLSCACertPath, Value: caPath})
+				if clientCert != nil {
+					certPath, keyPath := c.volumes.AddCertificate(clientCert, "client-certs")
+					config = append(config, corev1.EnvVar{Name: envTargetTLSUserCertPath, Value: certPath})
+					config = append(config, corev1.EnvVar{Name: envTargetTLSUserKeyPath, Value: keyPath})
+				}
 			}
 			config = append(config,
 				corev1.EnvVar{

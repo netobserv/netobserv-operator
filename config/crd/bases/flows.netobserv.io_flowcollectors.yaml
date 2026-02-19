@@ -5722,6 +5722,102 @@ spec:
                             More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
                           type: object
                       type: object
+                    service:
+                      description: Service configuration, only used when `spec.deploymentModel` is `Service`.
+                      properties:
+                        providedCertificates:
+                          description: TLS or mTLS configuration when `type` is set to `Provided`.
+                          properties:
+                            caFile:
+                              description: Reference to the CA file.
+                              properties:
+                                file:
+                                  description: File name within the config map or secret.
+                                  type: string
+                                name:
+                                  description: Name of the config map or secret containing the file.
+                                  type: string
+                                namespace:
+                                  default: ""
+                                  description: |-
+                                    Namespace of the config map or secret containing the file. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+                                    If the namespace is different, the config map or the secret is copied so that it can be mounted as required.
+                                  type: string
+                                type:
+                                  description: 'Type for the file reference: `configmap` or `secret`.'
+                                  enum:
+                                    - configmap
+                                    - secret
+                                  type: string
+                              type: object
+                            clientCert:
+                              description: TLS client certificate reference.
+                              properties:
+                                certFile:
+                                  description: '`certFile` defines the path to the certificate file name within the config map or secret.'
+                                  type: string
+                                certKey:
+                                  description: '`certKey` defines the path to the certificate private key file name within the config map or secret. Omit when the key is not necessary.'
+                                  type: string
+                                name:
+                                  description: Name of the config map or secret containing certificates.
+                                  type: string
+                                namespace:
+                                  default: ""
+                                  description: |-
+                                    Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+                                    If the namespace is different, the config map or the secret is copied so that it can be mounted as required.
+                                  type: string
+                                type:
+                                  description: 'Type for the certificate reference: `configmap` or `secret`.'
+                                  enum:
+                                    - configmap
+                                    - secret
+                                  type: string
+                              type: object
+                            serverCert:
+                              description: TLS server certificate reference.
+                              properties:
+                                certFile:
+                                  description: '`certFile` defines the path to the certificate file name within the config map or secret.'
+                                  type: string
+                                certKey:
+                                  description: '`certKey` defines the path to the certificate private key file name within the config map or secret. Omit when the key is not necessary.'
+                                  type: string
+                                name:
+                                  description: Name of the config map or secret containing certificates.
+                                  type: string
+                                namespace:
+                                  default: ""
+                                  description: |-
+                                    Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+                                    If the namespace is different, the config map or the secret is copied so that it can be mounted as required.
+                                  type: string
+                                type:
+                                  description: 'Type for the certificate reference: `configmap` or `secret`.'
+                                  enum:
+                                    - configmap
+                                    - secret
+                                  type: string
+                              type: object
+                          type: object
+                        tlsType:
+                          default: Auto
+                          description: |-
+                            Select the type of TLS configuration:<br>
+                            - `Disabled` to not configure TLS for the endpoint.
+                            - `Provided` to manually provide cert file and a key file. [Unsupported (*)].
+                            - `Auto` (default) to try to determine if TLS can be enabled based on the running environment.
+                            - `Auto-mTLS` to preconfigure mTLS. [Unsupported (*)].
+                          enum:
+                            - Disabled
+                            - Provided
+                            - Auto
+                            - Auto-mTLS
+                          type: string
+                      required:
+                        - tlsType
+                      type: object
                     slicesConfig:
                       description: Global configuration managing FlowCollectorSlices custom resources.
                       properties:

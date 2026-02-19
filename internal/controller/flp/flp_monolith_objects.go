@@ -129,7 +129,7 @@ func (b *monolithBuilder) configMaps() (*corev1.ConfigMap, string, *corev1.Confi
 		b.info.Loki,
 		b.info.ClusterInfo.GetID(),
 		&b.volumes,
-		newGRPCPipeline(b.desired, &b.volumes),
+		newGRPCPipeline(b.desired, &b.volumes, b.info.ClusterInfo.IsOpenShift()),
 	)
 	if err != nil {
 		return nil, "", nil, err
