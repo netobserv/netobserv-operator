@@ -37,6 +37,9 @@ import (
 const proxyAlias = "backend"
 
 const configMapName = "console-plugin-config"
+
+// Annotation on PrometheusRule metadata for recording-rule metadata (key = metric name, value = same as alert annotations).
+const recordingAnnotationsAnnotation = "netobserv.io/network-health"
 const configFile = "config.yaml"
 const configVolume = "config-volume"
 const configPath = "/opt/app-root/"
@@ -622,8 +625,9 @@ func (b *builder) getHealthRecordingAnnotations() map[string]map[string]string {
 }
 
 // returns a configmap with a digest of its configuration contents, which will be used to
-// detect any configuration change
-func (b *builder) configMap(ctx context.Context, lokiStatus status.ComponentStatus) (*corev1.ConfigMap, string, error) {
+// detect any configuration change. externalRecordingAnnotations is optional (e.g. nil in tests);
+// when non-empty, those annotations are merged into the frontend config (from PrometheusRules).
+func (b *builder) configMap(ctx context.Context, externalRecordingAnnotations map[string]map[string]string, lokiStatus status.ComponentStatus) (*corev1.ConfigMap, string, error) {
 	config := cfg.PluginConfig{
 		Server: cfg.ServerConfig{
 			Port: int(*b.advanced.Port),
@@ -666,6 +670,13 @@ func (b *builder) configMap(ctx context.Context, lokiStatus status.ComponentStat
 	// TODO: with NETOBSERV-2375 => add DEGRADED to console status instead of this log
 	if warning != "" {
 		log.FromContext(ctx).Info("Frontend config DEGRADED", "message", warning)
+	}
+
+	for k, v := range externalRecordingAnnotations {
+		if config.Frontend.RecordingAnnotations == nil {
+			config.Frontend.RecordingAnnotations = make(map[string]map[string]string)
+		}
+		config.Frontend.RecordingAnnotations[k] = v
 	}
 
 	var configStr string

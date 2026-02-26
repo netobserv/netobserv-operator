@@ -2,6 +2,7 @@ package consoleplugin
 
 import (
 	"context"
+	"encoding/json"
 	"reflect"
 
 	osv1 "github.com/openshift/api/console/v1"
@@ -11,6 +12,7 @@ import (
 	ascv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
@@ -203,7 +205,11 @@ func (r *CPReconciler) reconcilePlugin(ctx context.Context, builder *builder, de
 }
 
 func (r *CPReconciler) reconcileConfigMap(ctx context.Context, builder *builder, lokiStatus status.ComponentStatus) (string, error) {
-	newCM, configDigest, err := builder.configMap(ctx, lokiStatus)
+	externalRecordingAnnotations, err := getExternalRecordingAnnotations(ctx, r.Client)
+	if err != nil {
+		return "", err
+	}
+	newCM, configDigest, err := builder.configMap(ctx, externalRecordingAnnotations, lokiStatus)
 	if err != nil {
 		return "", err
 	}
@@ -272,4 +278,45 @@ func (r *CPReconciler) reconcileHPA(ctx context.Context, builder *builder, desir
 func pluginNeedsUpdate(plg *osv1.ConsolePlugin, desired *pluginSpec) bool {
 	advancedConfig := helper.GetAdvancedPluginConfig(desired.Advanced)
 	return plg.Spec.Backend.Service.Port != *advancedConfig.Port
+}
+
+// getExternalRecordingAnnotations reads PrometheusRules with label netobserv=true and netobserv.io/network-health annotation.
+// Returns metric name -> annotations. Recording rules without the annotation are not included.
+// On List failure returns an error so the caller does not overwrite the config with empty external rules (transient API errors).
+func getExternalRecordingAnnotations(ctx context.Context, cl client.Client) (map[string]map[string]string, error) {
+	out := make(map[string]map[string]string)
+	list := &monitoringv1.PrometheusRuleList{}
+	if err := cl.List(ctx, list, client.MatchingLabels{"netobserv": "true"}); err != nil {
+		log.FromContext(ctx).Error(err, "Failed to list PrometheusRules for recording annotations")
+		return nil, err
+	}
+	for i := range list.Items {
+		pr := &list.Items[i]
+		// Process recording rules from spec
+		for _, group := range pr.Spec.Groups {
+			for _, rule := range group.Rules {
+				// Only process recording rules (not alerts) with netobserv label
+				if rule.Record != "" {
+					if labelVal, ok := rule.Labels["netobserv"]; ok && labelVal == "true" {
+						// Check if there's annotation metadata for this rule
+						raw, hasAnnot := pr.Annotations[recordingAnnotationsAnnotation]
+						if hasAnnot && raw != "" {
+							var perRule map[string]map[string]string
+							if err := json.Unmarshal([]byte(raw), &perRule); err != nil {
+								log.FromContext(ctx).Info("Invalid netobserv.io/network-health annotation on PrometheusRule",
+									"namespace", pr.Namespace, "name", pr.Name, "error", err)
+								// Continue processing other rules even if annotation is malformed
+								continue
+							}
+							if annots, found := perRule[rule.Record]; found && len(annots) > 0 {
+								out[rule.Record] = annots
+							}
+						}
+						// Rules without annotation are not included - annotation is required
+					}
+				}
+			}
+		}
+	}
+	return out, nil
 }

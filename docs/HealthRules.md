@@ -3,7 +3,7 @@
 The NetObserv operator comes with a set of predefined health rules, based on its [metrics](./Metrics.md), that you can configure, extend or disable.
 These rules are converted into a `PrometheusRule` resource, either as Alerts or as Recording rules. The alerts are then managed by Prometheus AlertManager. Both recording rules and alerts are displayed in the Network Health page of the Console.
 
-These health rules are provided as a convenience, to take the most of NetObserv built-in metrics without requiring you to write complexe PromQL or to do fine-tuning. They give a health indication of your cluster network.
+These health rules are provided as a convenience, to take the most of NetObserv built-in metrics without requiring you to write complex PromQL or to do fine-tuning. They give a health indication of your cluster network.
 
 To get a detailed description of the rules, [check the runbooks](https://github.com/openshift/runbooks/tree/master/alerts/network-observability-operator).
 
@@ -71,21 +71,33 @@ Alert templates can be disabled in `spec.processor.metrics.disableAlerts`. This 
 
 If a template is disabled _and_ overridden in `spec.processor.metrics.healthRules`, the disable setting takes precedence: the alert rule will not be created.
 
-## Creating your own rules that contribute to the Health dashboard
+## Creating your own custom rules that contribute to the Health dashboard
 
-This health rule API in NetObserv `FlowCollector` is simply a mapping to the Prometheus operator API, generating a `PrometheusRule`.
+Beyond configuring the predefined health rules, you can create your own custom rules that contribute to the Network Health dashboard. NetObserv supports two types of custom rules:
 
-You can check what is the actual generated resource by running:
+- **Alert Rules**
+- **Recording Rules**
+
+Both types use the Prometheus operator API via `PrometheusRule` resources. You can check the actual generated resources by running:
 
 ```bash
 kubectl get prometheusrules -n netobserv -oyaml
 ```
 
-While the above sections explain how you can customize those opinionated rules, you are not limited to them: you can go further and create your own `AlertingRule` (or `PrometheusRule`) resources. You'll just need to be familiar with PromQL (or to learn).
+### Requirements for custom rules
 
-[Click here](../config/samples/alerts) to see sample alerts, that are not built-in NetObserv.
+- **Label requirement**: Add the label `netobserv: "true"` to each rule's `labels` section so the rule is considered for Network Health.
+  - **For recording rules only**: Also add the label `netobserv: "true"` to the **PrometheusRule metadata**. The operator lists PrometheusRules **cluster-wide** with this label.
+  - **For alerts**: The label in the PrometheusRule metadata is not required. Alerts are discovered by Prometheus.
+- **Lifecycle and namespace**: Custom PrometheusRules are **not** owned by the FlowCollector. If you put them in the **NetObserv namespace** (e.g. `netobserv`), that namespace may be removed when the FlowCollector is uninstalled (depending on install mode), and your rules would be deleted. To avoid that, create your PrometheusRules in **another namespace** (e.g. `monitoring` or a dedicated `netobserv-rules`). If you do keep rules in the NetObserv namespace, back them up (e.g. in Git) and re-apply after reinstalling.
 
-Let's take the [incoming-traffic-surge](../config/samples/alerts/incoming-traffic-surge.yaml) as an example. What it does is raise an alert when the current ingress traffic exceeds by more than twice the traffic from the day before.
+### Custom Alert Rules
+
+You can create your own custom `PrometheusRule` resources with alerting rules. You'll need to be familiar with PromQL to write these rules.
+
+[Click here](../config/samples/alerts) to see sample alerts that are not built-in NetObserv.
+
+Let's take the [incoming-traffic-surge](../config/samples/alerts/incoming-traffic-surge.yaml) as an example. This alert triggers when the current ingress traffic exceeds by more than twice the traffic from the day before.
 
 ### Anatomy of the PromQL
 
@@ -141,17 +153,58 @@ On top of that, in order to have the rule picked up in the Health dashboard, Net
         netobserv: "true"
 ```
 
-The label `netobserv: "true"` is required.
+See the [Common annotation fields](#common-annotation-fields) section above for details on the `netobserv_io_network_health` annotation.
 
-The annotation `netobserv_io_network_health` is optional, and gives you some control on how the alert renders in the Health page. It is a JSON string that consists in:
-- `namespaceLabels`: one or more labels that hold namespaces. When provided, the alert will show up under the "Namespaces" tab.
-- `nodeLabels`: one or more labels that hold node names. When provided, the alert will show up under the "Nodes" tab.
-- `workloadLabels`: one or more labels that hold owner/workload names. When provided alongside with `kindLabels`, the alert will show up under the "Owners" tab.
-- `kindLabels`: one or more labels that hold owner/workload kinds. When provided alongside with `workloadLabels`, the alert will show up under the "Owners" tab.
-- `threshold`: the alert threshold as a string, expected to match the one defined in PromQL.
+### Custom Recording Rules
+
+In addition to alert rules, you can create your own **recording rules** so that custom pre-computed metrics appear on the Network Health page. The PrometheusRule CRD does not allow annotations on individual rules of type `record`, so NetObserv uses a single annotation on the `PrometheusRule` resource to describe metadata for all recording rules in that resource.
+
+#### Recording rules specific requirements
+
+- Add the annotation `netobserv.io/network-health` on the **PrometheusRule metadata** (**required** - rules without this annotation will not appear in the Health dashboard). The value is a JSON object: keys are the **metric names** (the `record:` field of each rule), and each value consists of:
+  - `summary` (optional): Short title; may use Prometheus template (e.g. `{{ $labels.namespace }}`).
+  - `description` (optional): Longer description; may use template.
+  - `netobserv_io_network_health` (**required**): JSON string with the same fields described in [Common annotation fields](#common-annotation-fields). For recording rules, use `recordingThresholds` instead of `threshold`.
+
+#### Example
+
+```yaml
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: my-recording-rules
+  namespace: netobserv
+  annotations:
+    netobserv.io/network-health: |
+      {
+        "my_metric_per_namespace": {
+          "summary": "Custom metric is {{ $value }} in the namespace {{ $labels.namespace }}",
+          "description": "Custom metric is {{ $value }} in the namespace {{ $labels.namespace }}",
+          "netobserv_io_network_health": "{\"unit\":\"%\",\"upperBound\":\"100\",\"namespaceLabels\":[\"namespace\"],\"recordingThresholds\":{\"info\":\"10\",\"warning\":\"25\",\"critical\":\"50\"}}"
+        }
+      }
+spec:
+  groups:
+    - name: MyRecordingRules
+      interval: 30s
+      rules:
+        - record: my_metric_per_namespace
+          expr: (count by (namespace) (kube_pod_info) * 0 + 20)
+          labels:
+            netobserv: "true"
+```
+
+### Common annotation fields
+
+The annotation `netobserv_io_network_health` is optional for alert rules but **required for recording rules**. It gives you some control on how the rule renders in the Health page. It is a JSON string that consists in:
+
+- `namespaceLabels`: one or more labels that hold namespaces. When provided, the rule will show up under the "Namespaces" tab.
+- `nodeLabels`: one or more labels that hold node names. When provided, the rule will show up under the "Nodes" tab.
+- `workloadLabels`: one or more labels that hold owner/workload names. When provided alongside with `kindLabels`, the rule will show up under the "Workloads" tab.
+- `kindLabels`: one or more labels that hold owner/workload kinds. When provided alongside with `workloadLabels`, the rule will show up under the "Workloads" tab.
 - `unit`: the data unit, used only for display purpose.
 - `upperBound`: an upper bound value used to compute score on a closed scale. It doesn't necessarily have to be a maximum of the metric values, but metric values will be clamped if they are above the upper bound.
-- `links`: a list of links to be displayed contextually to the alert. Each link consists in:
+- `links`: a list of links to be displayed contextually to the rule. Each link consists in:
   - `name`: display name.
   - `url`: the link URL.
 - `trafficLink`: information related to the link to the Network Traffic page, for URL building. Some filters will be set automatically, such as the node or namespace filter.
@@ -159,4 +212,10 @@ The annotation `netobserv_io_network_health` is optional, and gives you some con
   - `backAndForth`: should the filter include return traffic? (true/false)
   - `filterDestination`: should the filter target the destination of the traffic instead of the source? (true/false)
 
-`namespaceLabels` and `nodeLabels` are mutually exclusive. If none of them is provided, the alert will show up under the "Global" tab.
+`namespaceLabels` and `nodeLabels` are mutually exclusive. If none of them is provided, the rule will show up under the "Global" tab.
+
+**Alert-specific fields:**
+- `threshold`: the alert threshold as a string, expected to match the one defined in PromQL.
+
+**Recording rule-specific fields:**
+- `recordingThresholds`: thresholds for recording rules to drive the health score and coloring (e.g. `{"info":"10","warning":"25","critical":"50"}`).
