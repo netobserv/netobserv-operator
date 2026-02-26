@@ -260,6 +260,7 @@ func (v *validator) validateFLP() {
 	v.validateFLPFilters()
 	v.validateFLPAlerts()
 	v.validateFLPMetricsForAlerts()
+	v.validateFLPTLS()
 }
 
 func (v *validator) validateScheduling() {
@@ -430,6 +431,27 @@ func (v *validator) validateFLPMetricsForAlerts() {
 					)
 				}
 			}
+		}
+	}
+}
+
+func (v *validator) validateFLPTLS() {
+	if v.fc.DeploymentModel == DeploymentModelService && v.fc.Processor.Service != nil && v.fc.Processor.Service.TLSType == TLSProvided {
+		if v.fc.Processor.Service.ProvidedCertificates == nil {
+			v.errors = append(
+				v.errors,
+				errors.New("missing configuration in spec.processor.providedCertificates despite spec.processor.tlsType being set to Provided"),
+			)
+		} else if v.fc.Processor.Service.ProvidedCertificates.CAFile == nil {
+			v.errors = append(
+				v.errors,
+				errors.New("missing configuration in spec.processor.providedCertificates.caFile despite spec.processor.tlsType being set to Provided"),
+			)
+		} else if v.fc.Processor.Service.ProvidedCertificates.ServerCert == nil {
+			v.errors = append(
+				v.errors,
+				errors.New("missing configuration in spec.processor.providedCertificates.serverCert despite spec.processor.tlsType being set to Provided"),
+			)
 		}
 	}
 }

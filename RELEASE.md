@@ -56,10 +56,10 @@ metadata:
 spec:
   networkPolicy:
     enable: false
-  consumerReplicas: 1
   consolePlugin:
     standalone: true
   processor:
+    consumerReplicas: 1
     service:
       tlsType: Auto-mTLS
   loki:

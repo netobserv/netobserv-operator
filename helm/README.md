@@ -34,11 +34,11 @@ Cert-manager and Trust-manager have to be installed separately. For example, usi
 
 ```bash
 helm repo add cert-manager https://charts.jetstack.io
-helm install my-cert-manager cert-manager/cert-manager --set crds.enabled=true
+helm install cert-manager -n cert-manager --create-namespace cert-manager/cert-manager --set crds.enabled=true
 helm upgrade trust-manager oci://quay.io/jetstack/charts/trust-manager --install --namespace cert-manager --wait
 ```
 
-If you don't want to use Cert-manager and Trust-manager, you will need to provide the expected certificates by other means (refer to [TLS.md](https://github.com/netobserv/network-observability-operator/blob/main/docs/TLS.md)).
+If you don't want to use Cert-manager and Trust-manager, you need to provide  certificates by other means: refer to [TLS.md](https://github.com/netobserv/network-observability-operator/blob/main/docs/TLS.md).
 
 Prometheus and Loki can be installed separately, or as dependencies of NetObserv (see below).
 

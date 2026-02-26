@@ -893,6 +893,21 @@ func TestValidateFLP(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:       "Missing provided TLS config",
+			ocpVersion: "4.18.0",
+			fc: &FlowCollector{
+				Spec: FlowCollectorSpec{
+					DeploymentModel: DeploymentModelService,
+					Processor: FlowCollectorFLP{
+						Service: &ProcessorServiceConfig{
+							TLSType: TLSProvided,
+						},
+					},
+				},
+			},
+			expectedError: "missing configuration in spec.processor.providedCertificates despite spec.processor.tlsType being set to Provided",
+		},
 	}
 
 	r := FlowCollector{}

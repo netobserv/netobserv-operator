@@ -23,39 +23,55 @@ func DefaultCAReference(name, namespace string) *flowslatest.FileReference {
 	}
 }
 
-// getServiceTLSConfig returns configs for [server cert, ca, client cert]
-func getServiceTLSConfig(desired *flowslatest.ProcessorServiceConfig, autoServerName, autoCAName, autoClientName string) (*flowslatest.CertificateReference, *flowslatest.FileReference, *flowslatest.CertificateReference) {
-	if desired != nil && desired.TLSType != flowslatest.TLSAuto && desired.TLSType != flowslatest.TLSAutoMTLS {
-		if desired.TLSType == flowslatest.TLSDisabled {
-			return nil, nil, nil
-		}
-		return desired.ProvidedCertificates.ServerCert, desired.ProvidedCertificates.CAFile, desired.ProvidedCertificates.ClientCert
-	}
-	// Mode auto
-	var mTLSClientCert, mTLSServerCert *flowslatest.CertificateReference
-	if desired != nil && desired.TLSType == flowslatest.TLSAutoMTLS {
-		mTLSClientCert = DefaultCertificateReference(autoClientName, "")
-		mTLSServerCert = DefaultCertificateReference(autoServerName, "")
-	}
-	return mTLSServerCert, DefaultCAReference(autoCAName, ""), mTLSClientCert
-}
-
 // GetServiceClientTLSConfig returns configs for [ca, client cert]
 func GetServiceClientTLSConfig(desired *flowslatest.ProcessorServiceConfig, defaultSecretName string, isOpenShift bool) (*flowslatest.FileReference, *flowslatest.CertificateReference) {
+	if desired != nil && desired.TLSType != flowslatest.TLSAuto && desired.TLSType != flowslatest.TLSAutoMTLS {
+		if desired.TLSType == flowslatest.TLSDisabled {
+			return nil, nil
+		}
+		if desired.ProvidedCertificates == nil {
+			// This should not happen, prevented by the validation webhook
+			return nil, nil
+		}
+		return desired.ProvidedCertificates.CAFile, desired.ProvidedCertificates.ClientCert
+	}
+	// Mode auto
 	caConfigMapName := "netobserv-ca"
 	if isOpenShift {
 		caConfigMapName = "openshift-service-ca.crt"
 	}
-	_, ca, clientCert := getServiceTLSConfig(desired, "", caConfigMapName, defaultSecretName)
-	return ca, clientCert
+	ca := DefaultCAReference(caConfigMapName, "")
+	if desired != nil && desired.TLSType == flowslatest.TLSAutoMTLS {
+		return ca, DefaultCertificateReference(defaultSecretName, "")
+	}
+	return ca, nil
 }
 
 // GetServiceServerTLSConfig returns configs for [server cert, ca]
 func GetServiceServerTLSConfig(desired *flowslatest.ProcessorServiceConfig, defaultSecretName string, isOpenShift bool) (*flowslatest.CertificateReference, *flowslatest.FileReference) {
+	if desired != nil && desired.TLSType != flowslatest.TLSAuto && desired.TLSType != flowslatest.TLSAutoMTLS {
+		if desired.TLSType == flowslatest.TLSDisabled {
+			return nil, nil
+		}
+		if desired.ProvidedCertificates == nil {
+			// This should not happen, prevented by the validation webhook
+			return nil, nil
+		}
+		if desired.ProvidedCertificates.ClientCert != nil {
+			// mTLS => provide the CA for server
+			return desired.ProvidedCertificates.ServerCert, desired.ProvidedCertificates.CAFile
+		}
+		// Simple TLS => no CA for server
+		return desired.ProvidedCertificates.ServerCert, nil
+	}
+	// Mode auto
 	caConfigMapName := "netobserv-ca"
 	if isOpenShift {
 		caConfigMapName = "openshift-service-ca.crt"
 	}
-	serverCert, ca, _ := getServiceTLSConfig(desired, defaultSecretName, caConfigMapName, "")
-	return serverCert, ca
+	serverCert := DefaultCertificateReference(defaultSecretName, "")
+	if desired != nil && desired.TLSType == flowslatest.TLSAutoMTLS {
+		return serverCert, DefaultCAReference(caConfigMapName, "")
+	}
+	return serverCert, nil
 }
