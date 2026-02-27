@@ -2,8 +2,6 @@
 package monitoring
 
 import (
-	"time"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
@@ -18,11 +16,8 @@ import (
 )
 
 const (
-	timeout                     = test.Timeout
-	interval                    = test.Interval
-	conntrackEndTimeout         = 10 * time.Second
-	conntrackTerminatingTimeout = 5 * time.Second
-	conntrackHeartbeatInterval  = 30 * time.Second
+	timeout  = test.Timeout
+	interval = test.Interval
 )
 
 var (

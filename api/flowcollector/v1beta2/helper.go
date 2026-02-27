@@ -13,6 +13,10 @@ func (spec *FlowCollectorSpec) GetNamespace() string {
 	return constants.DefaultOperatorNamespace
 }
 
+func (spec *FlowCollectorSpec) OnHold() bool {
+	return spec.Execution.Mode == OnHold
+}
+
 func (spec *FlowCollectorSpec) GetSampling() int {
 	if spec.Agent.EBPF.Sampling == nil {
 		return 50

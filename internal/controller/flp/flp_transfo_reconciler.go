@@ -75,6 +75,12 @@ func (r *transformerReconciler) reconcile(ctx context.Context, desired *flowslat
 		return err
 	}
 
+	if desired.Spec.OnHold() {
+		r.Status.SetUnused("FlowCollector is on hold")
+		r.Managed.TryDeleteAll(ctx)
+		return nil
+	}
+
 	if !desired.Spec.UseKafka() {
 		r.Status.SetUnused("Transformer only used with Kafka")
 		r.Managed.TryDeleteAll(ctx)

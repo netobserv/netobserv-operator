@@ -13,7 +13,6 @@ import (
 const (
 	downstreamLabelKey    = "openshift.io/cluster-monitoring"
 	downstreamLabelValue  = "true"
-	roleSuffix            = "-metrics-reader"
 	dashboardCMNamespace  = "openshift-config-managed"
 	dashboardCMAnnotation = "console.openshift.io/dashboard"
 

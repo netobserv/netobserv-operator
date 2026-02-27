@@ -123,6 +123,13 @@ Kafka can provide better scalability, resiliency, and high availability (for mor
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#flowcollectorspecexecution">execution</a></b></td>
+        <td>object</td>
+        <td>
+          `execution` defines configuration related to the execution of the flow collection process.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#flowcollectorspecexportersindex">exporters</a></b></td>
         <td>[]object</td>
         <td>
@@ -6002,6 +6009,39 @@ inside a container.<br/>
           Request is the name chosen for a request in the referenced claim.
 If empty, everything from the claim is made available, otherwise
 only the result of this request.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### FlowCollector.spec.execution
+<sup><sup>[↩ Parent](#flowcollectorspec)</sup></sup>
+
+
+
+`execution` defines configuration related to the execution of the flow collection process.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>mode</b></td>
+        <td>enum</td>
+        <td>
+          `mode` is the flow collection process execution desired mode: `Running` or `OnHold`.
+When `OnHold`, the operator deletes all managed services and workloads, with the exception
+of the static console plugin, and the operator itself.
+It allows to use minimal cluster resources without losing configuration.<br/>
+          <br/>
+            <i>Enum</i>: , Running, OnHold<br/>
+            <i>Default</i>: Running<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -12732,17 +12772,6 @@ If the namespace is different, the config map or the secret is copied so that it
           Namespace where console plugin and flowlogs-pipeline have been deployed.
 
 Deprecated: annotations are used instead<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>onHold</b></td>
-        <td>string</td>
-        <td>
-          `onHold` indicates whether the operator is in hold mode. When enabled, the operator deletes all managed
-resources (except CRDs and namespaces) while preserving FlowCollector, FlowCollectorSlice, and FlowMetric
-custom resources. This allows verifying that NetObserv is not impacting the cluster without losing configuration.
-To disable hold mode, set the HOLD environment variable to false in the operator CSV (ClusterServiceVersion)
-in the openshift-netobserv-operator namespace, or restart the operator with the --hold flag set to false.<br/>
         </td>
         <td>false</td>
       </tr></tbody>

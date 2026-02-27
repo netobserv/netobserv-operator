@@ -410,6 +410,10 @@ spec:
         path: consolePlugin.standalone
       - displayName: Unmanaged replicas
         path: consolePlugin.unmanagedReplicas
+      - displayName: Execution
+        path: execution
+      - displayName: Mode
+        path: execution.mode
       - displayName: Address
         path: kafka.address
       - displayName: Topic
@@ -951,7 +955,6 @@ spec:
                 - --demo-loki-image=$(RELATED_IMAGE_DEMO_LOKI)
                 - --namespace=$(NAMESPACE)
                 - --downstream-deployment=$(DOWNSTREAM_DEPLOYMENT)
-                - --hold=$(HOLD)
                 - --profiling-bind-address=$(PROFILING_BIND_ADDRESS)
                 - --metrics-cert-file=/etc/tls/private/tls.crt
                 - --metrics-cert-key-file=/etc/tls/private/tls.key
@@ -969,8 +972,6 @@ spec:
                 - name: RELATED_IMAGE_DEMO_LOKI
                   value: grafana/loki:3.5.0
                 - name: DOWNSTREAM_DEPLOYMENT
-                  value: "false"
-                - name: HOLD
                   value: "false"
                 - name: PROFILING_BIND_ADDRESS
                 - name: NAMESPACE

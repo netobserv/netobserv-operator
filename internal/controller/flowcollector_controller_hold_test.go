@@ -2,15 +2,12 @@
 package controllers
 
 import (
-	"time"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
 
 	flowslatest "github.com/netobserv/network-observability-operator/api/flowcollector/v1beta2"
 	sliceslatest "github.com/netobserv/network-observability-operator/api/flowcollectorslice/v1alpha1"
@@ -44,22 +41,6 @@ func flowCollectorHoldModeSpecs() {
 				Spec: flowslatest.FlowCollectorSpec{
 					Namespace:       operatorNamespace,
 					DeploymentModel: flowslatest.DeploymentModelDirect,
-					Agent: flowslatest.FlowCollectorAgent{
-						Type: "eBPF",
-						EBPF: flowslatest.FlowCollectorEBPF{
-							Sampling:           ptr.To(int32(100)),
-							CacheActiveTimeout: "10s",
-							CacheMaxFlows:      50,
-						},
-					},
-					Processor: flowslatest.FlowCollectorFLP{
-						ImagePullPolicy: "Never",
-						LogLevel:        "info",
-					},
-					ConsolePlugin: flowslatest.FlowCollectorConsolePlugin{
-						Enable:          ptr.To(true),
-						ImagePullPolicy: "Never",
-					},
 				},
 			}
 
@@ -96,15 +77,6 @@ func flowCollectorHoldModeSpecs() {
 				ns := corev1.Namespace{}
 				return k8sClient.Get(ctx, privilegedNsKey, &ns)
 			}).WithTimeout(timeout).WithPolling(interval).Should(Succeed())
-
-			By("Verifying status is not in hold mode")
-			Eventually(func() bool {
-				fc := &flowslatest.FlowCollector{}
-				if err := k8sClient.Get(ctx, crKey, fc); err != nil {
-					return false
-				}
-				return fc.Status.OnHold == ""
-			}).WithTimeout(timeout).WithPolling(interval).Should(BeTrue())
 		})
 
 		It("Should create FlowMetric and FlowCollectorSlice CRDs", func() {
@@ -146,16 +118,25 @@ func flowCollectorHoldModeSpecs() {
 		})
 
 		It("Should delete managed resources but preserve CRDs when hold mode is enabled", func() {
-			// Note: In this test we can't actually enable hold mode in the running controllers
-			// since they're already started. This test verifies the cleanup function works correctly.
-			// In a real scenario, you would restart the operator with --hold=true
+			updateCR(crKey, func(fc *flowslatest.FlowCollector) {
+				fc.Spec.Agent.EBPF.Privileged = true
+				fc.Spec.Execution.Mode = flowslatest.OnHold
+			})
 
-			By("Manually triggering cleanup (simulating hold mode)")
-			// Import the cleanup package and call DeleteAllManagedResources
-			// This simulates what happens when hold mode is enabled
+			By("Expecting to delete the eBPF agent DaemonSet")
+			Eventually(func() error {
+				return k8sClient.Get(ctx, agentKey, &appsv1.DaemonSet{})
+			}, timeout, interval).Should(MatchError(`daemonsets.apps "netobserv-ebpf-agent" not found`))
 
-			// Wait a bit for resources to stabilize
-			time.Sleep(2 * time.Second)
+			By("Expecting to delete the FLP DaemonSet")
+			Eventually(func() interface{} {
+				return k8sClient.Get(ctx, flpKey, &appsv1.DaemonSet{})
+			}, timeout, interval).Should(MatchError(`daemonsets.apps "flowlogs-pipeline" not found`))
+
+			By("Expecting to delete the Console Plugin Deployment")
+			Eventually(func() error {
+				return k8sClient.Get(ctx, pluginKey, &appsv1.Deployment{})
+			}, timeout, interval).Should(MatchError(`deployments.apps "netobserv-plugin" not found`))
 
 			By("Verifying FlowCollector CRD still exists")
 			fc := &flowslatest.FlowCollector{}

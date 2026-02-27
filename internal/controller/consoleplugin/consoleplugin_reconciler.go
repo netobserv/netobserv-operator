@@ -70,7 +70,7 @@ func (r *CPReconciler) Reconcile(ctx context.Context, desired *flowslatest.FlowC
 		}
 	}
 
-	if desired.Spec.UseConsolePlugin() && (r.ClusterInfo.HasConsolePlugin() || desired.Spec.ConsolePlugin.Standalone) {
+	if desired.Spec.UseConsolePlugin() && (r.ClusterInfo.HasConsolePlugin() || desired.Spec.ConsolePlugin.Standalone) && !desired.Spec.OnHold() {
 		// Create object builder
 		builder := newBuilder(r.Instance, &desired.Spec, constants.PluginName)
 

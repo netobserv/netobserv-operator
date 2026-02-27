@@ -3044,6 +3044,22 @@ spec:
                     - Direct
                     - Kafka
                   type: string
+                execution:
+                  description: '`execution` defines configuration related to the execution of the flow collection process.'
+                  properties:
+                    mode:
+                      default: Running
+                      description: |-
+                        `mode` is the flow collection process execution desired mode: `Running` or `OnHold`.
+                        When `OnHold`, the operator deletes all managed services and workloads, with the exception
+                        of the static console plugin, and the operator itself.
+                        It allows to use minimal cluster resources without losing configuration.
+                      enum:
+                        - ""
+                        - Running
+                        - OnHold
+                      type: string
+                  type: object
                 exporters:
                   description: '`exporters` defines additional optional exporters for custom consumption or storage.'
                   items:
@@ -6027,14 +6043,6 @@ spec:
                     Namespace where console plugin and flowlogs-pipeline have been deployed.
 
                     Deprecated: annotations are used instead
-                  type: string
-                onHold:
-                  description: |-
-                    `onHold` indicates whether the operator is in hold mode. When enabled, the operator deletes all managed
-                    resources (except CRDs and namespaces) while preserving FlowCollector, FlowCollectorSlice, and FlowMetric
-                    custom resources. This allows verifying that NetObserv is not impacting the cluster without losing configuration.
-                    To disable hold mode, set the HOLD environment variable to false in the operator CSV (ClusterServiceVersion)
-                    in the openshift-netobserv-operator namespace, or restart the operator with the --hold flag set to false.
                   type: string
               required:
                 - conditions
