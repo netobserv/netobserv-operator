@@ -8780,7 +8780,8 @@ By convention, some values are forbidden. It must be greater than 1024 and diffe
         <td>
           Defines secondary networks to be checked for resources identification.
 To guarantee a correct identification, indexed values must form an unique identifier across the cluster.
-If the same index is used by several resources, those resources might be incorrectly labeled.<br/>
+If the same index is used by several resources, those resources might be incorrectly labeled.
+If not provided and `spec.agent.ebpf.privileged` is `true`, secondary networks are detected automatically.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -10558,9 +10559,9 @@ Fields absent from the 'k8s.v1.cni.cncf.io/network-status' annotation must not b
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          `name` should match the network name as visible in the pods annotation 'k8s.v1.cni.cncf.io/network-status'.<br/>
+          Deprecated: `name` is unused.<br/>
         </td>
-        <td>true</td>
+        <td>false</td>
       </tr></tbody>
 </table>
 

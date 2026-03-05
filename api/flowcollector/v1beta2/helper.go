@@ -159,8 +159,18 @@ func (spec *FlowCollectorFLP) IsSubnetLabelsEnabled() bool {
 	return spec.HasAutoDetectOpenShiftNetworks() || len(spec.SubnetLabels.CustomLabels) > 0
 }
 
-func (spec *FlowCollectorFLP) HasSecondaryIndexes() bool {
-	return spec.Advanced != nil && len(spec.Advanced.SecondaryNetworks) > 0
+func (spec *FlowCollectorSpec) GetSecondaryIndexes() []SecondaryNetwork {
+	if spec.Processor.Advanced != nil && len(spec.Processor.Advanced.SecondaryNetworks) > 0 {
+		return spec.Processor.Advanced.SecondaryNetworks
+	}
+	if spec.Agent.EBPF.Privileged {
+		// Turn-on auto-detection in FLP by interface+MAC or interface+IP
+		return []SecondaryNetwork{
+			{Index: []SecondaryNetworkIndex{SecondaryNetworkIndexByInterface, SecondaryNetworkIndexByIP}},
+			{Index: []SecondaryNetworkIndex{SecondaryNetworkIndexByInterface, SecondaryNetworkIndexByMAC}},
+		}
+	}
+	return nil
 }
 
 func (spec *FlowCollectorFLP) HasAutoDetectOpenShiftNetworks() bool {

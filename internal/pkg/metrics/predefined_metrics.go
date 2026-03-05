@@ -319,7 +319,7 @@ func GetDefinitions(fc *flowslatest.FlowCollectorSpec, allMetrics bool) []metric
 	if !fc.Processor.IsMultiClusterEnabled() {
 		labelsToRemove = append(labelsToRemove, "K8S_ClusterName")
 	}
-	if !fc.Agent.EBPF.IsUDNMappingEnabled() && !fc.Processor.HasSecondaryIndexes() {
+	if !fc.Agent.EBPF.IsUDNMappingEnabled() && len(fc.GetSecondaryIndexes()) == 0 {
 		labelsToRemove = append(labelsToRemove, "SrcK8S_NetworkName", "DstK8S_NetworkName")
 	}
 

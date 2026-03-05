@@ -481,7 +481,7 @@ func (b *builder) setFrontendConfig(fconf *cfg.FrontendConfig, metrics []cfg.Met
 		fconf.Features = append(fconf.Features, "udnMapping")
 	}
 
-	if b.desired.Agent.EBPF.IsUDNMappingEnabled() || b.desired.Processor.HasSecondaryIndexes() {
+	if b.desired.Agent.EBPF.IsUDNMappingEnabled() || len(b.desired.GetSecondaryIndexes()) > 0 {
 		fconf.Features = append(fconf.Features, "multiNetworks")
 	}
 
