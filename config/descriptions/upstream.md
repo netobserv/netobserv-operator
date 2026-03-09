@@ -46,7 +46,7 @@ In that case, you still get the Prometheus metrics or export raw flows to a cust
 
 ## Configuration
 
-The `FlowCollector` resource is used to configure the operator and its managed components. A comprehensive documentation is [available here](https://github.com/netobserv/network-observability-operator/blob/1.11.1-community/docs/FlowCollector.md), and a full sample file [there](https://github.com/netobserv/network-observability-operator/blob/1.11.1-community/config/samples/flows_v1beta2_flowcollector.yaml).
+The `FlowCollector` resource is used to configure the operator and its managed components. A comprehensive documentation is [available here](https://github.com/netobserv/netobserv-operator/blob/1.11.1-community/docs/FlowCollector.md), and a full sample file [there](https://github.com/netobserv/netobserv-operator/blob/1.11.1-community/config/samples/flows_v1beta2_flowcollector.yaml).
 
 To edit configuration in cluster, run:
 
@@ -98,8 +98,8 @@ Please refer to the documentation on GitHub for more information.
 
 This documentation includes:
 
-- An [overview](https://github.com/netobserv/network-observability-operator#openshift-console) of the features, with screenshots
-- More information on [configuring metrics](https://github.com/netobserv/network-observability-operator/blob/1.11.1-community/docs/Metrics.md).
-- A [performance](https://github.com/netobserv/network-observability-operator#performance-fine-tuning) section, for fine-tuning
-- A [security](https://github.com/netobserv/network-observability-operator#securing-data-and-communications) section
-- An [F.A.Q.](https://github.com/netobserv/network-observability-operator#faq--troubleshooting) section
+- An [overview](https://github.com/netobserv/netobserv-operator#openshift-console) of the features, with screenshots
+- More information on [configuring metrics](https://github.com/netobserv/netobserv-operator/blob/1.11.1-community/docs/Metrics.md).
+- A [performance](https://github.com/netobserv/netobserv-operator#performance-fine-tuning) section, for fine-tuning
+- A [security](https://github.com/netobserv/netobserv-operator#securing-data-and-communications) section
+- An [F.A.Q.](https://github.com/netobserv/netobserv-operator#faq--troubleshooting) section

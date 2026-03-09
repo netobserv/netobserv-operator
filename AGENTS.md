@@ -14,7 +14,7 @@ Best practices for AI coding agents on NetObserv Operator.
   flow generation from packets (DaemonSet)
 - **[flowlogs-pipeline](https://github.com/netobserv/flowlogs-pipeline)**: Flow
   collection, enrichment, export (Deployment/StatefulSet) -
-  **[Console Plugin](https://github.com/netobserv/network-observability-console-plugin)**:
+  **[Console Plugin](https://github.com/netobserv/netobserv-web-console)**:
   OpenShift visualization (optional)
 - **CRD**: `FlowCollector` v1beta2 - **single cluster-wide resource named
   `cluster`**

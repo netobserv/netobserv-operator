@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/netobserv/network-observability-operator/internal/controller/consoleplugin/config"
+	"github.com/netobserv/netobserv-operator/internal/controller/consoleplugin/config"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

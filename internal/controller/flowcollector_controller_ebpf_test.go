@@ -13,10 +13,10 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 
-	flowslatest "github.com/netobserv/network-observability-operator/api/flowcollector/v1beta2"
-	"github.com/netobserv/network-observability-operator/internal/controller/constants"
-	. "github.com/netobserv/network-observability-operator/internal/controller/controllerstest"
-	"github.com/netobserv/network-observability-operator/internal/pkg/helper"
+	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
+	"github.com/netobserv/netobserv-operator/internal/controller/constants"
+	. "github.com/netobserv/netobserv-operator/internal/controller/controllerstest"
+	"github.com/netobserv/netobserv-operator/internal/pkg/helper"
 )
 
 func flowCollectorEBPFSpecs() {

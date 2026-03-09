@@ -8,10 +8,10 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
-	flowslatest "github.com/netobserv/network-observability-operator/api/flowcollector/v1beta2"
-	"github.com/netobserv/network-observability-operator/internal/controller/constants"
-	"github.com/netobserv/network-observability-operator/internal/pkg/helper"
-	"github.com/netobserv/network-observability-operator/internal/pkg/volumes"
+	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
+	"github.com/netobserv/netobserv-operator/internal/controller/constants"
+	"github.com/netobserv/netobserv-operator/internal/pkg/helper"
+	"github.com/netobserv/netobserv-operator/internal/pkg/volumes"
 
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	corev1 "k8s.io/api/core/v1"

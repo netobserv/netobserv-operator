@@ -6,8 +6,8 @@ import (
 	"strings"
 	"sync"
 
-	flowslatest "github.com/netobserv/network-observability-operator/api/flowcollector/v1beta2"
-	"github.com/netobserv/network-observability-operator/internal/controller/constants"
+	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
+	"github.com/netobserv/netobserv-operator/internal/controller/constants"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	kerr "k8s.io/apimachinery/pkg/api/errors"

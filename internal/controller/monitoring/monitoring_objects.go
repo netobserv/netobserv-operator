@@ -4,8 +4,8 @@ import (
 	"regexp"
 	"strings"
 
-	metricslatest "github.com/netobserv/network-observability-operator/api/flowmetrics/v1alpha1"
-	"github.com/netobserv/network-observability-operator/internal/pkg/dashboards"
+	metricslatest "github.com/netobserv/netobserv-operator/api/flowmetrics/v1alpha1"
+	"github.com/netobserv/netobserv-operator/internal/pkg/dashboards"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

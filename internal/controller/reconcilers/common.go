@@ -3,11 +3,11 @@ package reconcilers
 import (
 	"context"
 
-	"github.com/netobserv/network-observability-operator/internal/controller/constants"
-	"github.com/netobserv/network-observability-operator/internal/pkg/cluster"
-	"github.com/netobserv/network-observability-operator/internal/pkg/helper"
-	"github.com/netobserv/network-observability-operator/internal/pkg/manager/status"
-	"github.com/netobserv/network-observability-operator/internal/pkg/watchers"
+	"github.com/netobserv/netobserv-operator/internal/controller/constants"
+	"github.com/netobserv/netobserv-operator/internal/pkg/cluster"
+	"github.com/netobserv/netobserv-operator/internal/pkg/helper"
+	"github.com/netobserv/netobserv-operator/internal/pkg/manager/status"
+	"github.com/netobserv/netobserv-operator/internal/pkg/watchers"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 )

@@ -4,8 +4,8 @@ import (
 	"sort"
 	"testing"
 
-	flowslatest "github.com/netobserv/network-observability-operator/api/flowcollector/v1beta2"
-	"github.com/netobserv/network-observability-operator/internal/pkg/test/util"
+	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
+	"github.com/netobserv/netobserv-operator/internal/pkg/test/util"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/utils/ptr"
 )

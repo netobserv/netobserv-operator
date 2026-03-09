@@ -45,5 +45,5 @@ LABEL description="Network Observability operator for OpenShift."
 LABEL distribution-scope=public
 LABEL release=$BUILDVERSION
 LABEL version=$BUILDVERSION
-LABEL url="https://github.com/netobserv/network-observability-operator"
+LABEL url="https://github.com/netobserv/netobserv-operator"
 LABEL vendor="Red Hat, Inc."

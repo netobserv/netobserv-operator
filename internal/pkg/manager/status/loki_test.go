@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	lokiv1 "github.com/grafana/loki/operator/apis/loki/v1"
-	flowslatest "github.com/netobserv/network-observability-operator/api/flowcollector/v1beta2"
+	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	kerr "k8s.io/apimachinery/pkg/api/errors"

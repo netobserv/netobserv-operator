@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"slices"
 
-	flowslatest "github.com/netobserv/network-observability-operator/api/flowcollector/v1beta2"
+	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
 )
 
 //go:embed loki-labels.json

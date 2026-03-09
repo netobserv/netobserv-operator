@@ -19,17 +19,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	flowslatest "github.com/netobserv/network-observability-operator/api/flowcollector/v1beta2"
-	"github.com/netobserv/network-observability-operator/internal/controller/consoleplugin"
-	"github.com/netobserv/network-observability-operator/internal/controller/constants"
-	"github.com/netobserv/network-observability-operator/internal/controller/ebpf"
-	"github.com/netobserv/network-observability-operator/internal/controller/loki"
-	"github.com/netobserv/network-observability-operator/internal/controller/reconcilers"
-	"github.com/netobserv/network-observability-operator/internal/pkg/cleanup"
-	"github.com/netobserv/network-observability-operator/internal/pkg/helper"
-	"github.com/netobserv/network-observability-operator/internal/pkg/manager"
-	"github.com/netobserv/network-observability-operator/internal/pkg/manager/status"
-	"github.com/netobserv/network-observability-operator/internal/pkg/watchers"
+	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
+	"github.com/netobserv/netobserv-operator/internal/controller/consoleplugin"
+	"github.com/netobserv/netobserv-operator/internal/controller/constants"
+	"github.com/netobserv/netobserv-operator/internal/controller/ebpf"
+	"github.com/netobserv/netobserv-operator/internal/controller/loki"
+	"github.com/netobserv/netobserv-operator/internal/controller/reconcilers"
+	"github.com/netobserv/netobserv-operator/internal/pkg/cleanup"
+	"github.com/netobserv/netobserv-operator/internal/pkg/helper"
+	"github.com/netobserv/netobserv-operator/internal/pkg/manager"
+	"github.com/netobserv/netobserv-operator/internal/pkg/manager/status"
+	"github.com/netobserv/netobserv-operator/internal/pkg/watchers"
 )
 
 const (

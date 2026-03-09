@@ -3,7 +3,7 @@ package v1beta2
 import (
 	"strconv"
 
-	"github.com/netobserv/network-observability-operator/internal/controller/constants"
+	"github.com/netobserv/netobserv-operator/internal/controller/constants"
 )
 
 func (spec *FlowCollectorSpec) GetNamespace() string {

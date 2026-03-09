@@ -6,7 +6,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/netobserv/network-observability-operator/internal/controller/constants"
+	"github.com/netobserv/netobserv-operator/internal/controller/constants"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/json"

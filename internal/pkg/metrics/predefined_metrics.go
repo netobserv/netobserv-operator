@@ -6,16 +6,14 @@ import (
 	"slices"
 	"strings"
 
-	flowslatest "github.com/netobserv/network-observability-operator/api/flowcollector/v1beta2"
-	metricslatest "github.com/netobserv/network-observability-operator/api/flowmetrics/v1alpha1"
+	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
+	metricslatest "github.com/netobserv/netobserv-operator/api/flowmetrics/v1alpha1"
 )
 
 const (
 	tagNamespaces = "namespaces"
 	tagNodes      = "nodes"
 	tagWorkloads  = "workloads"
-	tagIngress    = "ingress"
-	tagEgress     = "egress"
 	tagBytes      = "bytes"
 	tagPackets    = "packets"
 )

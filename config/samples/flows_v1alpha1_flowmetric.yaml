@@ -3,7 +3,7 @@ kind: FlowMetric
 metadata:
   name: flowmetric-sample
 spec:
-  # More examples in https://github.com/netobserv/network-observability-operator/tree/main/config/samples/flowmetrics
+  # More examples in https://github.com/netobserv/netobserv-operator/tree/main/config/samples/flowmetrics
   type: Counter
   valueField: Bytes
   direction: Ingress

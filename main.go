@@ -49,13 +49,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	flowsv1beta2 "github.com/netobserv/network-observability-operator/api/flowcollector/v1beta2"
-	slicesv1alpha1 "github.com/netobserv/network-observability-operator/api/flowcollectorslice/v1alpha1"
-	metricsv1alpha1 "github.com/netobserv/network-observability-operator/api/flowmetrics/v1alpha1"
-	controllers "github.com/netobserv/network-observability-operator/internal/controller"
-	"github.com/netobserv/network-observability-operator/internal/controller/constants"
-	"github.com/netobserv/network-observability-operator/internal/pkg/helper"
-	"github.com/netobserv/network-observability-operator/internal/pkg/manager"
+	flowsv1beta2 "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
+	slicesv1alpha1 "github.com/netobserv/netobserv-operator/api/flowcollectorslice/v1alpha1"
+	metricsv1alpha1 "github.com/netobserv/netobserv-operator/api/flowmetrics/v1alpha1"
+	controllers "github.com/netobserv/netobserv-operator/internal/controller"
+	"github.com/netobserv/netobserv-operator/internal/controller/constants"
+	"github.com/netobserv/netobserv-operator/internal/pkg/helper"
+	"github.com/netobserv/netobserv-operator/internal/pkg/manager"
 	//+kubebuilder:scaffold:imports
 )
 

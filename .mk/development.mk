@@ -188,7 +188,7 @@ endif
 
 .PHONY: pprof
 pprof:
-	@echo -e "\n==> Enabling pprof... Check https://github.com/netobserv/network-observability-operator/blob/main/DEVELOPMENT.md#profiling for help."
+	@echo -e "\n==> Enabling pprof... Check https://github.com/netobserv/netobserv-operator/blob/main/DEVELOPMENT.md#profiling for help."
 	kubectl -n $(NAMESPACE) set env deployment netobserv-controller-manager -c "manager" PROFILING_BIND_ADDRESS=:6060
 	@echo -e "\n==> Redeploying..."
 	kubectl rollout status -n $(NAMESPACE) --timeout=60s deployment netobserv-controller-manager

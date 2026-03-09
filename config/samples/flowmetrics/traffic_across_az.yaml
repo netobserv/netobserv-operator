@@ -1,7 +1,7 @@
 # This metric provides byte-rate traffic crossing availability zones, per source and destination workloads. It also provides dashboard charts.
 # This show-cases the use of relative filters (SrcK8S_Zone not equals to DstK8S_Zone).
 # The processor feature "addZone" must be enabled.
-# More examples in https://github.com/netobserv/network-observability-operator/tree/main/config/samples/flowmetrics
+# More examples in https://github.com/netobserv/netobserv-operator/tree/main/config/samples/flowmetrics
 apiVersion: flows.netobserv.io/v1alpha1
 kind: FlowMetric
 metadata:

@@ -8437,7 +8437,7 @@ These network policies better isolate the NetObserv components to prevent undesi
 Because it cannot be tested with all CNIs, this option is only enabled by default when NetObserv runs in a known
 supported environment, and it is disabled by default otherwise.
 When disabled, it is highly recommended to create network policies manually, to prevent undesired accesses.
-More information: https://github.com/netobserv/network-observability-operator/blob/main/docs/NetworkPolicy.md.<br/>
+More information: https://github.com/netobserv/netobserv-operator/blob/main/docs/NetworkPolicy.md.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -11588,7 +11588,7 @@ available.<br/>
           `disableAlerts` is a list of alert groups that should be disabled from the default set of alerts.
 Possible values are: `NetObservNoFlows`, `NetObservLokiError`, `PacketDropsByKernel`, `PacketDropsByDevice`, `IPsecErrors`, `NetpolDenied`,
 `LatencyHighTrend`, `DNSErrors`, `DNSNxDomain`, `ExternalEgressHighTrend`, `ExternalIngressHighTrend`, `Ingress5xxErrors`, `IngressHTTPLatencyTrend`.
-More information on alerts: https://github.com/netobserv/network-observability-operator/blob/main/docs/HealthRules.md<br/>
+More information on alerts: https://github.com/netobserv/netobserv-operator/blob/main/docs/HealthRules.md<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -11597,7 +11597,7 @@ More information on alerts: https://github.com/netobserv/network-observability-o
         <td>
           `healthRules` is a list of health rules to be created for Prometheus, organized by templates and variants.
 Each health rule can be configured to generate either alerts or recording rules based on the mode field.
-More information on health rules: https://github.com/netobserv/network-observability-operator/blob/main/docs/HealthRules.md<br/>
+More information on health rules: https://github.com/netobserv/netobserv-operator/blob/main/docs/HealthRules.md<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -11613,7 +11613,7 @@ Metrics enabled by default are:
 `workload_egress_bytes_total`, `namespace_drop_packets_total` (when `PacketDrop` feature is enabled),
 `namespace_rtt_seconds` (when `FlowRTT` feature is enabled), `namespace_dns_latency_seconds` (when `DNSTracking` feature is enabled),
 `namespace_network_policy_events_total` (when `NetworkEvents` feature is enabled).
-More information, with full list of available metrics: https://github.com/netobserv/network-observability-operator/blob/main/docs/Metrics.md<br/>
+More information, with full list of available metrics: https://github.com/netobserv/netobserv-operator/blob/main/docs/Metrics.md<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -11651,7 +11651,7 @@ More information, with full list of available metrics: https://github.com/netobs
 Possible values are: `PacketDropsByKernel`, `PacketDropsByDevice`, `IPsecErrors`, `NetpolDenied`,
 `LatencyHighTrend`, `DNSErrors`, `DNSNxDomain`, `ExternalEgressHighTrend`, `ExternalIngressHighTrend`, `Ingress5xxErrors`, `IngressHTTPLatencyTrend`.
 Note: `NetObservNoFlows` and `NetObservLokiError` are alert-only and cannot be used as health rules.
-More information on health rules: https://github.com/netobserv/network-observability-operator/blob/main/docs/HealthRules.md<br/>
+More information on health rules: https://github.com/netobserv/netobserv-operator/blob/main/docs/HealthRules.md<br/>
           <br/>
             <i>Enum</i>: PacketDropsByKernel, PacketDropsByDevice, IPsecErrors, NetpolDenied, LatencyHighTrend, DNSErrors, DNSNxDomain, ExternalEgressHighTrend, ExternalIngressHighTrend, Ingress5xxErrors, IngressHTTPLatencyTrend<br/>
         </td>

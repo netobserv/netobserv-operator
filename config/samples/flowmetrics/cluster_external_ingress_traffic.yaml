@@ -1,5 +1,5 @@
 # This metric provides ingress cluster-external byte-rate per host and workload. It also provides dashboard charts.
-# More examples in https://github.com/netobserv/network-observability-operator/tree/main/config/samples/flowmetrics
+# More examples in https://github.com/netobserv/netobserv-operator/tree/main/config/samples/flowmetrics
 apiVersion: flows.netobserv.io/v1alpha1
 kind: FlowMetric
 metadata:

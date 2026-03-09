@@ -3,9 +3,9 @@ package networkpolicy
 import (
 	"testing"
 
-	flowslatest "github.com/netobserv/network-observability-operator/api/flowcollector/v1beta2"
-	"github.com/netobserv/network-observability-operator/internal/pkg/cluster"
-	"github.com/netobserv/network-observability-operator/internal/pkg/manager"
+	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
+	"github.com/netobserv/netobserv-operator/internal/pkg/cluster"
+	"github.com/netobserv/netobserv-operator/internal/pkg/manager"
 	"github.com/stretchr/testify/assert"
 
 	ascv2 "k8s.io/api/autoscaling/v2"

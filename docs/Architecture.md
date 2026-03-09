@@ -17,14 +17,14 @@ The components are:
   - It derives all flows into metric counters, for Prometheus.
   - Raw flows can be exported to Loki and/or custom exporters (Kafka, IPFIX, OpenTelemetry).
   - As a standalone, FLP is very flexible and configurable. It supports more inputs and outputs, allows more arbitrary filters, sampling, aggregations, relabelling, etc. When deployed via the operator, only a subset of its capacities is used.
-- When used in OpenShift, [a Console plugin](https://github.com/netobserv/network-observability-console-plugin) for flows visualization with powerful filtering options, a topology representation and more (outside of OpenShift, [it can be deployed as a standalone](https://github.com/netobserv/network-observability-operator/blob/main/FAQ.md#how-do-i-visualize-flows-and-metrics)).
+- [A web console](https://github.com/netobserv/netobserv-web-console) for flows visualization with powerful filtering options, a topology representation and more.
   - It provides a polished web UI to visualize and explore the flow logs and metrics stored in Loki and/or Prometheus.
   - Different views include metrics overview, a network topology and a table listing raw flows logs.
   - It supports multi-tenant access, making it relevant for various use cases: cluster/network admins, SREs, development teams...
-- [An operator](https://github.com/netobserv/network-observability-operator) that manages all of the above.
-  - It provides three APIs (CRD), one called [FlowCollector](https://github.com/netobserv/network-observability-operator/blob/main/docs/FlowCollector.md), which configures and pilots the whole deployment, another called [FlowCollectorSlice](https://github.com/netobserv/network-observability-operator/blob/main/docs/FlowCollectorSlice.md) for per-tenant configuration, and lastly [FlowMetrics](https://github.com/netobserv/network-observability-operator/blob/main/docs/FlowMetric.md) which allows to customize which metrics to generate out of flow logs.
+- [An operator](https://github.com/netobserv/netobserv-operator) that manages all of the above.
+  - It provides three APIs (CRD), one called [FlowCollector](https://github.com/netobserv/netobserv-operator/blob/main/docs/FlowCollector.md), which configures and pilots the whole deployment, another called [FlowCollectorSlice](https://github.com/netobserv/netobserv-operator/blob/main/docs/FlowCollectorSlice.md) for per-tenant configuration, and lastly [FlowMetrics](https://github.com/netobserv/netobserv-operator/blob/main/docs/FlowMetric.md) which allows to customize which metrics to generate out of flow logs.
   - As an [OLM operator](https://olm.operatorframework.io/), it is designed with `operator-sdk`, and allows subscriptions for easy updates.
-- [A CLI](https://github.com/netobserv/network-observability-cli) that also manages some of the above components, for on-demand monitoring and packet capture.
+- [A CLI](https://github.com/netobserv/netobserv-cli) that also manages some of the above components, for on-demand monitoring and packet capture.
   - It is provided as a `kubectl` or `oc` plugin, allowing to capture flows (similar to what the operator does, except it's on-demand and in the terminal), full packets (much like a `tcpdump` command) or metrics.
   - It is also available via [Krew](https://krew.sigs.k8s.io/).
   - It offers a live visualization via a TUI. For metrics, when used in OpenShift, it provides out-of-the-box dashboards.

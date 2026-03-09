@@ -98,7 +98,7 @@ metadata:
     operatorframework.io/suggested-namespace: openshift-netobserv-operator
     operators.operatorframework.io/builder: operator-sdk-v1.42.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
-    repository: https://github.com/netobserv/network-observability-operator
+    repository: https://github.com/netobserv/netobserv-operator
     support: NetObserv team
   labels:
     operatorframework.io/arch.amd64: supported
@@ -528,7 +528,7 @@ spec:
       name: flowcollectorslices.flows.netobserv.io
       version: v1alpha1
     - description: '`FlowMetric` is the schema for the custom metrics API, which allows
-        to generate more metrics out of flow logs. You can find examples here: https://github.com/netobserv/network-observability-operator/tree/main/config/samples/flowmetrics'
+        to generate more metrics out of flow logs. You can find examples here: https://github.com/netobserv/netobserv-operator/tree/main/config/samples/flowmetrics'
       displayName: Flow Metric
       kind: FlowMetric
       name: flowmetrics.flows.netobserv.io
@@ -582,7 +582,7 @@ spec:
 
     ## Configuration
 
-    The `FlowCollector` resource is used to configure the operator and its managed components. A comprehensive documentation is [available here](https://github.com/netobserv/network-observability-operator/blob/1.11.1-community/docs/FlowCollector.md), and a full sample file [there](https://github.com/netobserv/network-observability-operator/blob/1.11.1-community/config/samples/flows_v1beta2_flowcollector.yaml).
+    The `FlowCollector` resource is used to configure the operator and its managed components. A comprehensive documentation is [available here](https://github.com/netobserv/netobserv-operator/blob/1.11.1-community/docs/FlowCollector.md), and a full sample file [there](https://github.com/netobserv/netobserv-operator/blob/1.11.1-community/config/samples/flows_v1beta2_flowcollector.yaml).
 
     To edit configuration in cluster, run:
 
@@ -634,11 +634,11 @@ spec:
 
     This documentation includes:
 
-    - An [overview](https://github.com/netobserv/network-observability-operator#openshift-console) of the features, with screenshots
-    - More information on [configuring metrics](https://github.com/netobserv/network-observability-operator/blob/1.11.1-community/docs/Metrics.md).
-    - A [performance](https://github.com/netobserv/network-observability-operator#performance-fine-tuning) section, for fine-tuning
-    - A [security](https://github.com/netobserv/network-observability-operator#securing-data-and-communications) section
-    - An [F.A.Q.](https://github.com/netobserv/network-observability-operator#faq--troubleshooting) section
+    - An [overview](https://github.com/netobserv/netobserv-operator#openshift-console) of the features, with screenshots
+    - More information on [configuring metrics](https://github.com/netobserv/netobserv-operator/blob/1.11.1-community/docs/Metrics.md).
+    - A [performance](https://github.com/netobserv/netobserv-operator#performance-fine-tuning) section, for fine-tuning
+    - A [security](https://github.com/netobserv/netobserv-operator#securing-data-and-communications) section
+    - An [F.A.Q.](https://github.com/netobserv/netobserv-operator#faq--troubleshooting) section
   displayName: NetObserv Operator
   icon:
   - base64data: PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI2LjAuMiwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6dXJsKCNTVkdJRF8xXyk7fQoJLnN0MXtmaWxsOiNGRkZGRkY7fQoJLnN0MntvcGFjaXR5OjAuNjt9Cgkuc3Qze29wYWNpdHk6MC41O30KCS5zdDR7b3BhY2l0eTowLjQ7fQo8L3N0eWxlPgo8Zz4KCTxnPgoJCTxnPgoJCQk8cmFkaWFsR3JhZGllbnQgaWQ9IlNWR0lEXzFfIiBjeD0iMTQuNzc1OCIgY3k9Ii0yLjk3NzEiIHI9IjkxLjYyNyIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPgoJCQkJPHN0b3AgIG9mZnNldD0iMCIgc3R5bGU9InN0b3AtY29sb3I6IzNDM0ZBNiIvPgoJCQkJPHN0b3AgIG9mZnNldD0iMSIgc3R5bGU9InN0b3AtY29sb3I6IzNCMDM0MCIvPgoJCQk8L3JhZGlhbEdyYWRpZW50PgoJCQk8cGF0aCBjbGFzcz0ic3QwIiBkPSJNNTAsOTljLTEzLjMsMC0yNS40LTUuMy0zNC4yLTEzLjlDNi43LDc2LjIsMSw2My43LDEsNTBDMSwyMi45LDIyLjksMSw1MCwxYzEzLjcsMCwyNi4yLDUuNywzNS4xLDE0LjgKCQkJCUM5My43LDI0LjYsOTksMzYuNyw5OSw1MEM5OSw3Ny4xLDc3LjEsOTksNTAsOTl6Ii8+CgkJPC9nPgoJCTxnPgoJCQk8Y2lyY2xlIGNsYXNzPSJzdDEiIGN4PSIzNy41IiBjeT0iODEuOSIgcj0iNSIvPgoJCTwvZz4KCQk8cGF0aCBjbGFzcz0ic3QxIiBkPSJNNDguNiw5MS45bDE4LjgtNDMuM2MtMi41LTAuMS01LTAuNy03LjItMkwzMy4yLDY4LjJsMS40LTEuOGwyMC0yNS4xYy0xLjUtMi40LTIuMy01LjEtMi4zLTcuOUw5LDUyLjIKCQkJbDQ3LjYtMjkuOWwwLDBjMC4xLTAuMSwwLjItMC4yLDAuMi0wLjJjNi4xLTYuMSwxNS45LTYuMSwyMiwwbDAuMSwwLjFjNiw2LjEsNiwxNS45LTAuMSwyMS45Yy0wLjEsMC4xLTAuMiwwLjItMC4yLDAuMmwwLDAKCQkJTDQ4LjYsOTEuOXoiLz4KCQk8ZyBjbGFzcz0ic3QyIj4KCQkJPGNpcmNsZSBjbGFzcz0ic3QxIiBjeD0iNTAuMyIgY3k9IjE0LjciIHI9IjMuMSIvPgoJCTwvZz4KCQk8ZyBjbGFzcz0ic3QzIj4KCQkJPGNpcmNsZSBjbGFzcz0ic3QxIiBjeD0iMjcuNyIgY3k9IjU4IiByPSIxLjciLz4KCQk8L2c+CgkJPGc+CgkJCTxjaXJjbGUgY2xhc3M9InN0MSIgY3g9Ijc3LjQiIGN5PSI2OS4zIiByPSIxLjciLz4KCQk8L2c+CgkJPGc+CgkJCTxjaXJjbGUgY2xhc3M9InN0MSIgY3g9IjE2LjMiIGN5PSIzNi42IiByPSIxLjciLz4KCQk8L2c+CgkJPGcgY2xhc3M9InN0NCI+CgkJCTxjaXJjbGUgY2xhc3M9InN0MSIgY3g9IjYzLjciIGN5PSI4NS45IiByPSIyLjIiLz4KCQk8L2c+CgkJPGc+CgkJCTxjaXJjbGUgY2xhc3M9InN0MSIgY3g9IjI5LjQiIGN5PSIxOS42IiByPSI0LjgiLz4KCQk8L2c+CgkJPGcgY2xhc3M9InN0MyI+CgkJCTxjaXJjbGUgY2xhc3M9InN0MSIgY3g9Ijg4IiBjeT0iNTAiIHI9IjQuOCIvPgoJCTwvZz4KCTwvZz4KPC9nPgo8L3N2Zz4K
@@ -1084,11 +1084,11 @@ spec:
   - observability
   links:
   - name: Project page
-    url: https://github.com/netobserv/network-observability-operator
+    url: https://github.com/netobserv/netobserv-operator
   - name: Issue tracker
-    url: https://github.com/netobserv/network-observability-operator/issues
+    url: https://github.com/netobserv/netobserv-operator/issues
   - name: Discussion board
-    url: https://github.com/netobserv/network-observability-operator/discussions
+    url: https://github.com/netobserv/netobserv-operator/discussions
   maintainers:
   - email: jpinsonn@redhat.com
     name: Julien Pinsonneau

@@ -9,8 +9,8 @@ import (
 	. "github.com/onsi/gomega"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/netobserv/network-observability-operator/internal/pkg/manager"
-	"github.com/netobserv/network-observability-operator/internal/pkg/test"
+	"github.com/netobserv/netobserv-operator/internal/pkg/manager"
+	"github.com/netobserv/netobserv-operator/internal/pkg/test"
 )
 
 var (

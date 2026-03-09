@@ -9,10 +9,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	flowslatest "github.com/netobserv/network-observability-operator/api/flowcollector/v1beta2"
-	sliceslatest "github.com/netobserv/network-observability-operator/api/flowcollectorslice/v1alpha1"
-	metricslatest "github.com/netobserv/network-observability-operator/api/flowmetrics/v1alpha1"
-	"github.com/netobserv/network-observability-operator/internal/controller/constants"
+	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
+	sliceslatest "github.com/netobserv/netobserv-operator/api/flowcollectorslice/v1alpha1"
+	metricslatest "github.com/netobserv/netobserv-operator/api/flowmetrics/v1alpha1"
+	"github.com/netobserv/netobserv-operator/internal/controller/constants"
 )
 
 func flowCollectorHoldModeSpecs() {

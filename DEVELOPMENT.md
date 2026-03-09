@@ -344,7 +344,7 @@ This workflow is triggered when something is merged into `main`, to push new ima
 git push upstream HEAD:workflow-test -f
 ```
 
-Then, open the [action page](https://github.com/netobserv/network-observability-operator/actions/workflows/push_image.yml) in Github to monitor the jobs triggered. Make sure on Quay that you get the expected images for the [Operator](https://quay.io/repository/netobserv/network-observability-operator?tab=tags), the [bundle](https://quay.io/repository/netobserv/network-observability-operator-bundle?tab=tags) and the [catalog](https://quay.io/repository/netobserv/network-observability-operator-catalog?tab=tags).
+Then, open the [action page](https://github.com/netobserv/netobserv-operator/actions/workflows/push_image.yml) in Github to monitor the jobs triggered. Make sure on Quay that you get the expected images for the [Operator](https://quay.io/repository/netobserv/network-observability-operator?tab=tags), the [bundle](https://quay.io/repository/netobserv/network-observability-operator-bundle?tab=tags) and the [catalog](https://quay.io/repository/netobserv/network-observability-operator-catalog?tab=tags).
 
 Expected images:
 - Operator's tagged "workflow-test" manifest + every support archs
@@ -364,7 +364,7 @@ git push origin HEAD:dummy
 Then, open a PR in github, making sure to select `workflow-test` as the base branch and not `main`.
 On the PR, add the `ok-to-test` label.
 
-This will trigger the corresponding `push_image_pr.yml` workflow ([view on github](https://github.com/netobserv/network-observability-operator/actions/workflows/push_image_pr.yml)). As above, you should check that the images are well created in Quay:
+This will trigger the corresponding `push_image_pr.yml` workflow ([view on github](https://github.com/netobserv/netobserv-operator/actions/workflows/push_image_pr.yml)). As above, you should check that the images are well created in Quay:
 
 Expected images:
 - Operator's tagged with SHA manifest + single arch amd64 (make sure they expire)
@@ -379,7 +379,7 @@ git tag -a "0.0.0-rc0" -m "0.0.0-rc0"
 git push upstream --tags
 ```
 
-When the tag is pushed, it will trigger the corresponding workflow ([view on github](https://github.com/netobserv/network-observability-operator/actions/workflows/release.yml)). As above, you should check that the images are well created in Quay. It's fine if you tag from the `workflow-test` branch (or any branch).
+When the tag is pushed, it will trigger the corresponding workflow ([view on github](https://github.com/netobserv/netobserv-operator/actions/workflows/release.yml)). As above, you should check that the images are well created in Quay. It's fine if you tag from the `workflow-test` branch (or any branch).
 
 Expected images:
 - Operator's tagged 0.0.0-rc0 manifest + every support archs

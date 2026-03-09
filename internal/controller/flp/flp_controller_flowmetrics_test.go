@@ -12,12 +12,12 @@ import (
 	"k8s.io/utils/strings/slices"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
-	flowslatest "github.com/netobserv/network-observability-operator/api/flowcollector/v1beta2"
-	metricslatest "github.com/netobserv/network-observability-operator/api/flowmetrics/v1alpha1"
-	"github.com/netobserv/network-observability-operator/internal/controller/constants"
-	"github.com/netobserv/network-observability-operator/internal/controller/flp/fmstatus"
-	"github.com/netobserv/network-observability-operator/internal/pkg/helper"
-	"github.com/netobserv/network-observability-operator/internal/pkg/helper/cardinality"
+	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
+	metricslatest "github.com/netobserv/netobserv-operator/api/flowmetrics/v1alpha1"
+	"github.com/netobserv/netobserv-operator/internal/controller/constants"
+	"github.com/netobserv/netobserv-operator/internal/controller/flp/fmstatus"
+	"github.com/netobserv/netobserv-operator/internal/pkg/helper"
+	"github.com/netobserv/netobserv-operator/internal/pkg/helper/cardinality"
 )
 
 // nolint:cyclop

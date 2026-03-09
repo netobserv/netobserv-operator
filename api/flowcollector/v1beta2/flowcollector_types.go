@@ -102,7 +102,7 @@ type NetworkPolicy struct {
 	// Because it cannot be tested with all CNIs, this option is only enabled by default when NetObserv runs in a known
 	// supported environment, and it is disabled by default otherwise.
 	// When disabled, it is highly recommended to create network policies manually, to prevent undesired accesses.
-	// More information: https://github.com/netobserv/network-observability-operator/blob/main/docs/NetworkPolicy.md.
+	// More information: https://github.com/netobserv/netobserv-operator/blob/main/docs/NetworkPolicy.md.
 	// +optional
 	Enable *bool `json:"enable,omitempty"`
 
@@ -568,7 +568,7 @@ type MetricsServerConfig struct {
 	TLS ServerTLS `json:"tls"`
 }
 
-// Metric name. More information in https://github.com/netobserv/network-observability-operator/blob/main/docs/Metrics.md.
+// Metric name. More information in https://github.com/netobserv/netobserv-operator/blob/main/docs/Metrics.md.
 // +kubebuilder:validation:Enum:="namespace_egress_bytes_total";"namespace_egress_packets_total";"namespace_ingress_bytes_total";"namespace_ingress_packets_total";"namespace_flows_total";"node_egress_bytes_total";"node_egress_packets_total";"node_ingress_bytes_total";"node_ingress_packets_total";"node_flows_total";"workload_egress_bytes_total";"workload_egress_packets_total";"workload_ingress_bytes_total";"workload_ingress_packets_total";"workload_flows_total";"namespace_drop_bytes_total";"namespace_drop_packets_total";"node_drop_bytes_total";"node_drop_packets_total";"workload_drop_bytes_total";"workload_drop_packets_total";"namespace_rtt_seconds";"node_rtt_seconds";"workload_rtt_seconds";"namespace_dns_latency_seconds";"node_dns_latency_seconds";"workload_dns_latency_seconds";"node_network_policy_events_total";"namespace_network_policy_events_total";"workload_network_policy_events_total";"node_ipsec_flows_total";"node_to_node_ingress_flows_total"
 type FLPMetric string
 
@@ -587,20 +587,20 @@ type FLPMetrics struct {
 	// `workload_egress_bytes_total`, `namespace_drop_packets_total` (when `PacketDrop` feature is enabled),
 	// `namespace_rtt_seconds` (when `FlowRTT` feature is enabled), `namespace_dns_latency_seconds` (when `DNSTracking` feature is enabled),
 	// `namespace_network_policy_events_total` (when `NetworkEvents` feature is enabled).
-	// More information, with full list of available metrics: https://github.com/netobserv/network-observability-operator/blob/main/docs/Metrics.md
+	// More information, with full list of available metrics: https://github.com/netobserv/netobserv-operator/blob/main/docs/Metrics.md
 	// +optional
 	IncludeList *[]FLPMetric `json:"includeList,omitempty"`
 
 	// `disableAlerts` is a list of alert groups that should be disabled from the default set of alerts.
 	// Possible values are: `NetObservNoFlows`, `NetObservLokiError`, `PacketDropsByKernel`, `PacketDropsByDevice`, `IPsecErrors`, `NetpolDenied`,
 	// `LatencyHighTrend`, `DNSErrors`, `DNSNxDomain`, `ExternalEgressHighTrend`, `ExternalIngressHighTrend`, `Ingress5xxErrors`, `IngressHTTPLatencyTrend`.
-	// More information on alerts: https://github.com/netobserv/network-observability-operator/blob/main/docs/HealthRules.md
+	// More information on alerts: https://github.com/netobserv/netobserv-operator/blob/main/docs/HealthRules.md
 	// +optional
 	DisableAlerts []HealthRuleTemplate `json:"disableAlerts"`
 
 	// `healthRules` is a list of health rules to be created for Prometheus, organized by templates and variants.
 	// Each health rule can be configured to generate either alerts or recording rules based on the mode field.
-	// More information on health rules: https://github.com/netobserv/network-observability-operator/blob/main/docs/HealthRules.md
+	// More information on health rules: https://github.com/netobserv/netobserv-operator/blob/main/docs/HealthRules.md
 	// +optional
 	HealthRules *[]FLPHealthRule `json:"healthRules"`
 }

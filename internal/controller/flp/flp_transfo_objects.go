@@ -6,13 +6,13 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	flowslatest "github.com/netobserv/network-observability-operator/api/flowcollector/v1beta2"
-	sliceslatest "github.com/netobserv/network-observability-operator/api/flowcollectorslice/v1alpha1"
-	metricslatest "github.com/netobserv/network-observability-operator/api/flowmetrics/v1alpha1"
-	"github.com/netobserv/network-observability-operator/internal/controller/constants"
-	"github.com/netobserv/network-observability-operator/internal/controller/reconcilers"
-	"github.com/netobserv/network-observability-operator/internal/pkg/helper"
-	"github.com/netobserv/network-observability-operator/internal/pkg/volumes"
+	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
+	sliceslatest "github.com/netobserv/netobserv-operator/api/flowcollectorslice/v1alpha1"
+	metricslatest "github.com/netobserv/netobserv-operator/api/flowmetrics/v1alpha1"
+	"github.com/netobserv/netobserv-operator/internal/controller/constants"
+	"github.com/netobserv/netobserv-operator/internal/controller/reconcilers"
+	"github.com/netobserv/netobserv-operator/internal/pkg/helper"
+	"github.com/netobserv/netobserv-operator/internal/pkg/volumes"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 )
 

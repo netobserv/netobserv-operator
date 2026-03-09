@@ -1,4 +1,4 @@
-module github.com/netobserv/network-observability-operator
+module github.com/netobserv/netobserv-operator
 
 go 1.25.0
 

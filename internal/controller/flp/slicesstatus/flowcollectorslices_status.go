@@ -3,7 +3,7 @@ package slicesstatus
 import (
 	"context"
 
-	sliceslatest "github.com/netobserv/network-observability-operator/api/flowcollectorslice/v1alpha1"
+	sliceslatest "github.com/netobserv/netobserv-operator/api/flowcollectorslice/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

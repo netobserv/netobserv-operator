@@ -14,13 +14,13 @@ import (
 
 	lokiv1 "github.com/grafana/loki/operator/apis/loki/v1"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
-	flowslatest "github.com/netobserv/network-observability-operator/api/flowcollector/v1beta2"
-	config "github.com/netobserv/network-observability-operator/internal/controller/consoleplugin/config"
-	"github.com/netobserv/network-observability-operator/internal/controller/constants"
-	"github.com/netobserv/network-observability-operator/internal/controller/reconcilers"
-	"github.com/netobserv/network-observability-operator/internal/pkg/cluster"
-	"github.com/netobserv/network-observability-operator/internal/pkg/helper"
-	"github.com/netobserv/network-observability-operator/internal/pkg/manager/status"
+	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
+	config "github.com/netobserv/netobserv-operator/internal/controller/consoleplugin/config"
+	"github.com/netobserv/netobserv-operator/internal/controller/constants"
+	"github.com/netobserv/netobserv-operator/internal/controller/reconcilers"
+	"github.com/netobserv/netobserv-operator/internal/pkg/cluster"
+	"github.com/netobserv/netobserv-operator/internal/pkg/helper"
+	"github.com/netobserv/netobserv-operator/internal/pkg/manager/status"
 )
 
 const testImage = "quay.io/netobserv/network-observability-console-plugin:dev"

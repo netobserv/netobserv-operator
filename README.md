@@ -2,7 +2,7 @@
 
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/netobserv/network-observability-operator)
 [![Artifact HUB](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/NetObserv)](https://artifacthub.io/packages/helm/netobserv/netobserv-operator)
-[![Go Report Card](https://goreportcard.com/badge/github.com/netobserv/network-observability-operator)](https://goreportcard.com/report/github.com/netobserv/network-observability-operator)
+[![Go Report Card](https://goreportcard.com/badge/github.com/netobserv/netobserv-operator)](https://goreportcard.com/report/github.com/netobserv/netobserv-operator)
 
 NetObserv Operator is a Kubernetes operator for network observability. It deploys a monitoring pipeline that consists in:
 - An eBPF agent, that generates network flows from captured packets.
@@ -91,7 +91,7 @@ EOF
 ```
 
 A few remarks:
-- You can change the Prometheus and Loki URLs depending on your installation. This example works if you use the "standalone" installation described above, with `install.loki=true` and `install.prom-stack=true`. Check more configuration options for [Prometheus](https://github.com/netobserv/network-observability-operator/blob/main/docs/FlowCollector.md#flowcollectorspecprometheus-1) and [Loki](https://github.com/netobserv/network-observability-operator/blob/main/docs/FlowCollector.md#flowcollectorspecloki-1).
+- You can change the Prometheus and Loki URLs depending on your installation. This example works if you use the "standalone" installation described above, with `install.loki=true` and `install.prom-stack=true`. Check more configuration options for [Prometheus](https://github.com/netobserv/netobserv-operator/blob/main/docs/FlowCollector.md#flowcollectorspecprometheus-1) and [Loki](https://github.com/netobserv/netobserv-operator/blob/main/docs/FlowCollector.md#flowcollectorspecloki-1).
 - Depending on the Kubernetes distribution and CNI, NetObserv may come secured by default with a built-in network policy. You can force installing it or not by setting `spec.networkPolicy.enable` in `FlowCollector`. If the built-in policy does not work as intended, it is recommended to turn it off and create your own instead. NetObserv runs some highly privileged workloads, thus it is important to keep it as much isolated as possible. See [NetworkPolicy.md](./docs/NetworkPolicy.md) for more details on how to create a policy.
 - The processor env `SERVER_NOTLS` means that the communication between eBPF agents and Flowlogs-pipeline won't be encrypted. To enable TLS, you need to supply the TLS certificates to Flowlogs-pipeline (a Secret named `flowlogs-pipeline-cert`), and the CA to the eBPF agents (a ConfigMap named `flowlogs-pipeline-ca` in the privileged namespace).
 
@@ -108,7 +108,7 @@ Then open http://localhost:9001/ in your browser.
 A couple of `make` targets are provided in this repository to allow installing without OLM:
 
 ```bash
-git clone https://github.com/netobserv/network-observability-operator.git && cd network-observability-operator
+git clone https://github.com/netobserv/netobserv-operator.git && cd network-observability-operator
 USER=netobserv make deploy deploy-loki deploy-grafana
 ```
 

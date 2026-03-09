@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/netobserv/network-observability-operator/internal/controller/constants"
+	"github.com/netobserv/netobserv-operator/internal/controller/constants"
 	configv1 "github.com/openshift/api/config/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"

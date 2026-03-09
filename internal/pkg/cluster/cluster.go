@@ -9,7 +9,7 @@ import (
 
 	"github.com/coreos/go-semver/semver"
 	lokiv1 "github.com/grafana/loki/operator/apis/loki/v1"
-	flowslatest "github.com/netobserv/network-observability-operator/api/flowcollector/v1beta2"
+	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
 	osv1 "github.com/openshift/api/console/v1"
 	operatorv1 "github.com/openshift/api/operator/v1"
 	securityv1 "github.com/openshift/api/security/v1"

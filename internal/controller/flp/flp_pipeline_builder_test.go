@@ -7,9 +7,9 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
-	flowslatest "github.com/netobserv/network-observability-operator/api/flowcollector/v1beta2"
-	metricslatest "github.com/netobserv/network-observability-operator/api/flowmetrics/v1alpha1"
-	"github.com/netobserv/network-observability-operator/internal/controller/flp/fmstatus"
+	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
+	metricslatest "github.com/netobserv/netobserv-operator/api/flowmetrics/v1alpha1"
+	"github.com/netobserv/netobserv-operator/internal/controller/flp/fmstatus"
 
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"

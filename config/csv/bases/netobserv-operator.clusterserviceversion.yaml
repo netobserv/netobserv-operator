@@ -13,7 +13,7 @@ metadata:
     operatorframework.io/suggested-namespace: openshift-netobserv-operator
     operatorframework.io/initialization-resource: '{"apiVersion":"flows.netobserv.io/v1beta2",
       "kind":"FlowCollector","metadata":{"name":"cluster"},"spec": {}}'
-    repository: https://github.com/netobserv/network-observability-operator
+    repository: https://github.com/netobserv/netobserv-operator
   labels:
     operatorframework.io/arch.amd64: supported
     operatorframework.io/arch.arm64: supported
@@ -292,7 +292,7 @@ spec:
             - urn:alm:descriptor:io.kubernetes.conditions
     - description: '`FlowMetric` is the schema for the custom metrics API,
         which allows to generate more metrics out of flow logs.
-        You can find examples here: https://github.com/netobserv/network-observability-operator/tree/main/config/samples/flowmetrics'
+        You can find examples here: https://github.com/netobserv/netobserv-operator/tree/main/config/samples/flowmetrics'
       displayName: Flow Metric
       kind: FlowMetric
       name: flowmetrics.flows.netobserv.io
@@ -331,11 +331,11 @@ spec:
   - observability
   links:
   - name: Project page
-    url: https://github.com/netobserv/network-observability-operator
+    url: https://github.com/netobserv/netobserv-operator
   - name: Issue tracker
-    url: https://github.com/netobserv/network-observability-operator/issues
+    url: https://github.com/netobserv/netobserv-operator/issues
   - name: Discussion board
-    url: https://github.com/netobserv/network-observability-operator/discussions
+    url: https://github.com/netobserv/netobserv-operator/discussions
   maintainers:
   - email: jpinsonn@redhat.com
     name: Julien Pinsonneau

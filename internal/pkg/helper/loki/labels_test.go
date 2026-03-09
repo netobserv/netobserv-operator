@@ -3,7 +3,7 @@ package loki
 import (
 	"testing"
 
-	flowslatest "github.com/netobserv/network-observability-operator/api/flowcollector/v1beta2"
+	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/utils/ptr"
 )

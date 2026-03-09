@@ -8,7 +8,7 @@ import (
 	"slices"
 	"strings"
 
-	flowslatest "github.com/netobserv/network-observability-operator/api/flowcollector/v1beta2"
+	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/log"

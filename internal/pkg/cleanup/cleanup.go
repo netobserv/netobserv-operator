@@ -3,7 +3,7 @@ package cleanup
 import (
 	"context"
 
-	"github.com/netobserv/network-observability-operator/internal/pkg/helper"
+	"github.com/netobserv/netobserv-operator/internal/pkg/helper"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"

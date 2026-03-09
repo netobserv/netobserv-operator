@@ -39,12 +39,12 @@ import (
 	_ "github.com/openshift/api/operator/v1/zz_generated.crd-manifests"
 	_ "github.com/openshift/api/security/v1/zz_generated.crd-manifests"
 
-	flowsv1beta2 "github.com/netobserv/network-observability-operator/api/flowcollector/v1beta2"
-	slicesv1alpha1 "github.com/netobserv/network-observability-operator/api/flowcollectorslice/v1alpha1"
-	metricsv1alpha1 "github.com/netobserv/network-observability-operator/api/flowmetrics/v1alpha1"
-	"github.com/netobserv/network-observability-operator/internal/pkg/helper"
-	"github.com/netobserv/network-observability-operator/internal/pkg/manager"
-	"github.com/netobserv/network-observability-operator/internal/pkg/manager/status"
+	flowsv1beta2 "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
+	slicesv1alpha1 "github.com/netobserv/netobserv-operator/api/flowcollectorslice/v1alpha1"
+	metricsv1alpha1 "github.com/netobserv/netobserv-operator/api/flowmetrics/v1alpha1"
+	"github.com/netobserv/netobserv-operator/internal/pkg/helper"
+	"github.com/netobserv/netobserv-operator/internal/pkg/manager"
+	"github.com/netobserv/netobserv-operator/internal/pkg/manager/status"
 )
 
 const (

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	metricslatest "github.com/netobserv/network-observability-operator/api/flowmetrics/v1alpha1"
-	"github.com/netobserv/network-observability-operator/internal/controller/constants"
+	metricslatest "github.com/netobserv/netobserv-operator/api/flowmetrics/v1alpha1"
+	"github.com/netobserv/netobserv-operator/internal/controller/constants"
 )
 
 func CreateHealthDashboard(netobsNs, nsFlowsMetric string) (string, error) {

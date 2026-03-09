@@ -8,7 +8,7 @@ layout:
 plugins:
   manifests.sdk.operatorframework.io/v2: {}
 projectName: netobserv-operator
-repo: github.com/netobserv/network-observability-operator
+repo: github.com/netobserv/netobserv-operator
 resources:
 - api:
     crdVersion: v1
@@ -16,7 +16,7 @@ resources:
   domain: netobserv.io
   group: flows
   kind: FlowCollector
-  path: github.com/netobserv/network-observability-operator/api/flowcollector/v1beta2
+  path: github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2
   version: v1beta2
   webhooks:
     conversion: false
@@ -33,7 +33,7 @@ resources:
   domain: netobserv.io
   group: flows
   kind: FlowMetric
-  path: github.com/netobserv/network-observability-operator/api/flowmetrics/v1alpha1
+  path: github.com/netobserv/netobserv-operator/api/flowmetrics/v1alpha1
   version: v1alpha1
   webhooks:
     validation: true
@@ -44,6 +44,6 @@ resources:
   domain: netobserv.io
   group: flows
   kind: FlowCollectorSlice
-  path: github.com/netobserv/network-observability-operator/api/flowcollectorslice/v1alpha1
+  path: github.com/netobserv/netobserv-operator/api/flowcollectorslice/v1alpha1
   version: v1alpha1
 version: "3"

@@ -3,9 +3,9 @@ package dashboards
 import (
 	"testing"
 
-	metricslatest "github.com/netobserv/network-observability-operator/api/flowmetrics/v1alpha1"
-	"github.com/netobserv/network-observability-operator/internal/pkg/metrics"
-	"github.com/netobserv/network-observability-operator/internal/pkg/test/util"
+	metricslatest "github.com/netobserv/netobserv-operator/api/flowmetrics/v1alpha1"
+	"github.com/netobserv/netobserv-operator/internal/pkg/metrics"
+	"github.com/netobserv/netobserv-operator/internal/pkg/test/util"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

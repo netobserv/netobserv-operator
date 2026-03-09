@@ -12,17 +12,17 @@ import (
 	promConfig "github.com/prometheus/common/config"
 	"github.com/prometheus/common/model"
 
-	flowslatest "github.com/netobserv/network-observability-operator/api/flowcollector/v1beta2"
-	sliceslatest "github.com/netobserv/network-observability-operator/api/flowcollectorslice/v1alpha1"
-	metricslatest "github.com/netobserv/network-observability-operator/api/flowmetrics/v1alpha1"
-	"github.com/netobserv/network-observability-operator/internal/controller/constants"
-	"github.com/netobserv/network-observability-operator/internal/controller/flp/fmstatus"
-	"github.com/netobserv/network-observability-operator/internal/pkg/conversion"
-	"github.com/netobserv/network-observability-operator/internal/pkg/helper"
-	"github.com/netobserv/network-observability-operator/internal/pkg/helper/loki"
-	otelConfig "github.com/netobserv/network-observability-operator/internal/pkg/helper/otel"
-	"github.com/netobserv/network-observability-operator/internal/pkg/metrics"
-	"github.com/netobserv/network-observability-operator/internal/pkg/volumes"
+	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
+	sliceslatest "github.com/netobserv/netobserv-operator/api/flowcollectorslice/v1alpha1"
+	metricslatest "github.com/netobserv/netobserv-operator/api/flowmetrics/v1alpha1"
+	"github.com/netobserv/netobserv-operator/internal/controller/constants"
+	"github.com/netobserv/netobserv-operator/internal/controller/flp/fmstatus"
+	"github.com/netobserv/netobserv-operator/internal/pkg/conversion"
+	"github.com/netobserv/netobserv-operator/internal/pkg/helper"
+	"github.com/netobserv/netobserv-operator/internal/pkg/helper/loki"
+	otelConfig "github.com/netobserv/netobserv-operator/internal/pkg/helper/otel"
+	"github.com/netobserv/netobserv-operator/internal/pkg/metrics"
+	"github.com/netobserv/netobserv-operator/internal/pkg/volumes"
 )
 
 const (

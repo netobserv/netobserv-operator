@@ -4,7 +4,7 @@
 
 All components deployed by this operator can be released separatly, at their own pace.
 
-To release them, a tag in the format "v1.6.0-community" or "v1.6.0-crc0" must be set on the desired clean HEAD state (generally, up-to-date `main` branch; "crc" stands for "community release candidate"), then pushed. It applies to [the console plugin](https://github.com/netobserv/network-observability-console-plugin/), [flowlogs-pipeline](https://github.com/netobserv/flowlogs-pipeline) and [netobserv-ebpf-agent](https://github.com/netobserv/netobserv-ebpf-agent).
+To release them, a tag in the format "v1.6.0-community" or "v1.6.0-crc0" must be set on the desired clean HEAD state (generally, up-to-date `main` branch; "crc" stands for "community release candidate"), then pushed. It applies to [the console plugin](https://github.com/netobserv/netobserv-web-console/), [flowlogs-pipeline](https://github.com/netobserv/flowlogs-pipeline) and [netobserv-ebpf-agent](https://github.com/netobserv/netobserv-ebpf-agent).
 
 E.g:
 
@@ -35,7 +35,7 @@ git tag -a "$version" -m "$version"
 git push upstream --tags
 ```
 
-The release script should be triggered ([check github actions](https://github.com/netobserv/network-observability-operator/actions)).
+The release script should be triggered ([check github actions](https://github.com/netobserv/netobserv-operator/actions)).
 
 ### Testing
 
@@ -105,7 +105,7 @@ git push upstream :$test_branch
 ### Publish releases - related components
 
 Use the github interface to accept the releases, via:
-- [console plugin](https://github.com/netobserv/network-observability-console-plugin/releases)
+- [console plugin](https://github.com/netobserv/netobserv-web-console/releases)
 - [flowlogs-pipeline](https://github.com/netobserv/flowlogs-pipeline/releases)
 - [netobserv-ebpf-agent](https://github.com/netobserv/netobserv-ebpf-agent/releases)
 
@@ -125,7 +125,7 @@ If you think the "Dependencies" section is too long, you can surround it in a `<
 ### Publish releases - operator
 
 Use the github interface to accept the release, via:
-- [operator](https://github.com/netobserv/network-observability-operator/releases)
+- [operator](https://github.com/netobserv/netobserv-operator/releases)
 
 Edit the draft, set the previous tag then click the "Generate release notes" button. Like previously, don't hesitate to surround Dependencies in a `<details>` block.
 

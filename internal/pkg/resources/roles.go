@@ -1,7 +1,7 @@
 package resources
 
 import (
-	"github.com/netobserv/network-observability-operator/internal/controller/constants"
+	"github.com/netobserv/netobserv-operator/internal/controller/constants"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

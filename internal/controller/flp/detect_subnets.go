@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"net"
 
-	flowslatest "github.com/netobserv/network-observability-operator/api/flowcollector/v1beta2"
-	"github.com/netobserv/network-observability-operator/internal/pkg/cluster"
-	"github.com/netobserv/network-observability-operator/internal/pkg/helper"
+	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
+	"github.com/netobserv/netobserv-operator/internal/pkg/cluster"
+	"github.com/netobserv/netobserv-operator/internal/pkg/helper"
 	configv1 "github.com/openshift/api/config/v1"
 	operatorv1 "github.com/openshift/api/operator/v1"
 	"gopkg.in/yaml.v2"

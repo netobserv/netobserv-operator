@@ -73,7 +73,7 @@ The full list of fields is [available there](./flows-format.adoc). The "Cardinal
 
 Be also aware that for each field used as a label, the fields cardinality is potentially multiplied - and this is especially true when mixing Source and Destination fields. For instance, using `SrcK8S_Name` or `DstK8S_Name` (ie. Pod/Node/Service names) alone as a label might be reasonable, but using both `SrcK8S_Name` and `DstK8S_Name` in the same metric potentially generates the square of the cardinality of Pods/Nodes/Services.
 
-Don't hesitate to [reach out](https://github.com/netobserv/network-observability-operator/discussions/new/choose) if you need more guidance.
+Don't hesitate to [reach out](https://github.com/netobserv/netobserv-operator/discussions/new/choose) if you need more guidance.
 
 Some of those fields require special features to be enabled in `FlowCollector`, such as `TimeFlowRttNs` via `spec.agent.ebpf.features` or `Src/DstK8S_Zone` via `spec.processor.addZone`.
 
@@ -133,7 +133,7 @@ Since the RTT is provided as nanos in flows, we use a divider of 1 billion to co
 
 ### More examples
 
-You can find more examples in https://github.com/netobserv/network-observability-operator/tree/main/config/samples/flowmetrics.
+You can find more examples in https://github.com/netobserv/netobserv-operator/tree/main/config/samples/flowmetrics.
 
 ### Charts (OpenShift only)
 

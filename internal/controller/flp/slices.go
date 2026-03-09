@@ -6,9 +6,9 @@ import (
 	"strings"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
-	flowslatest "github.com/netobserv/network-observability-operator/api/flowcollector/v1beta2"
-	sliceslatest "github.com/netobserv/network-observability-operator/api/flowcollectorslice/v1alpha1"
-	"github.com/netobserv/network-observability-operator/internal/controller/flp/slicesstatus"
+	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
+	sliceslatest "github.com/netobserv/netobserv-operator/api/flowcollectorslice/v1alpha1"
+	"github.com/netobserv/netobserv-operator/internal/controller/flp/slicesstatus"
 )
 
 func slicesToFilters(fc *flowslatest.FlowCollectorSpec, fcSlices []sliceslatest.FlowCollectorSlice) []api.TransformFilterRule {

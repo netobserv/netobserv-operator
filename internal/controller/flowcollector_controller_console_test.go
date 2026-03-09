@@ -16,8 +16,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 
-	flowslatest "github.com/netobserv/network-observability-operator/api/flowcollector/v1beta2"
-	. "github.com/netobserv/network-observability-operator/internal/controller/controllerstest"
+	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
+	. "github.com/netobserv/netobserv-operator/internal/controller/controllerstest"
 )
 
 // Because the simulated Kube server doesn't manage automatic resource cleanup like an actual Kube would do,

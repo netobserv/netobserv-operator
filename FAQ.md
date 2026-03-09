@@ -1,6 +1,6 @@
 # F.A.Q / Troubleshooting
 
-If you can't find help here, don't hesitate to open [an issue](https://github.com/netobserv/network-observability-operator/issues) or a [Q&A](https://github.com/netobserv/network-observability-operator/discussions/categories/q-a). There are several repositories under _netobserv_ github org, but it is fine to centralize these in _network-observability-operator_.
+If you can't find help here, don't hesitate to open [an issue](https://github.com/netobserv/netobserv-operator/issues) or a [Q&A](https://github.com/netobserv/netobserv-operator/discussions/categories/q-a). There are several repositories under _netobserv_ github org, but it is fine to centralize these in _network-observability-operator_.
 
 ## Table of Contents
 
@@ -19,34 +19,6 @@ If you can't find help here, don't hesitate to open [an issue](https://github.co
   * [I'm finding discrepancies in metrics](#im-finding-discrepancies-in-metrics)
 
 ## Q&A
-
-### Is it for OpenShift only?
-
-No! While some features are developed primarily for OpenShift, we want to keep it on track with other / "vanilla" Kubes. For instance, there has been some work to make the console plugin [run as a standalone](https://github.com/netobserv/network-observability-console-plugin/pull/163), or the operator to manage upstream (non-OpenShift) [ovn-kubernetes](https://github.com/netobserv/network-observability-operator/pull/97).
-
-And if something is not working as hoped with your setup, you are welcome to contribute to the project ;-)
-
-### Which version of Kubernetes / OpenShift is supported?
-
-All versions of Kubernetes since 1.22 should work, although there is no official support (best effort).
-
-All versions of OpenShift currently supported by Red Hat are supported. Older version, greater than 4.10, should also work although not being officially supported (best effort).
-
-Some features depend on the Linux kernel version in use. It should be at least 4.18 (earlier versions have never been tested). More recent kernels (> 5.14) are better, for agent feature completeness and improved performances.
-
-### How do I visualize flows and metrics?
-
-For OpenShift users, a visualization tool is integrated in the OpenShift console. Just open the console in your browser, and you will see new menu items (such as Network Traffic under Observe) once NetObserv is installed and configured.
-
-Non-OpenShift users can deploy the standalone console, as explained in the Getting Started section from the readme.
-
-Alternatively, you can still access the data (Loki logs, Prometheus metrics) in different ways:
-
-- Querying Loki (or Prometheus) directly
-- Using the Prometheus console
-- Using and configuring Grafana
-
-All these options depend on how you installed these components.
 
 ### How can I make sure everything is correctly deployed?
 
@@ -109,7 +81,7 @@ If using IPFIX (ie. `spec.agent.type` is `IPFIX` in FlowCollector), wait 10 minu
 
 Else, check for any suspicious error in logs, especially in the `flowlogs-pipeline` pods and the eBPF agent pods. You may also take a look at prometheus metrics prefixed with `netobserv_`: they can give you clues if flows are processed, if errors are reported, etc.
 
-Finally, don't hesitate to [open an issue](https://github.com/netobserv/network-observability-operator/issues).
+Finally, don't hesitate to [open an issue](https://github.com/netobserv/netobserv-operator/issues).
 
 ### There is no Network Traffic menu entry in OpenShift Console
 
@@ -182,7 +154,7 @@ With Loki queries, a first thing to understand is that, while Loki allows to que
 
 Depending on what you are trying to get, you may as well **consider querying Prometheus rather than Loki**. Queries on Prometheus are much faster than on Loki, it should not struggle with large time ranges, hence should be favored whenever possible. But Prometheus metrics do not contain as much information as flow logs in Loki, so whether or not you can do that really depends on the use case. When you use the NetObserv console plugin, it will try automatically to favor Prometheus over Loki if the query is compatible; else it falls back to Loki. If your query does't run against Prometheus, changing some filters or aggregations can make the switch. In the console plugin, you can force the use of Prometheus. Incompatible queries will fail, and the error message displayed should help you figure out which labels you can try to change to make the query compatible (for instance, changing a filter or an aggregation from Resource/Pods to Owner).
 
-If the data that you need isn't available as a Prometheus metric, you may also **consider using the [FlowMetrics API](https://github.com/netobserv/network-observability-operator/blob/main/docs/Metrics.md#custom-metrics-using-the-flowmetrics-api)** to create your own metric. You need to be careful about the metrics cardinality, as explained in this link.
+If the data that you need isn't available as a Prometheus metric, you may also **consider using the [FlowMetrics API](https://github.com/netobserv/netobserv-operator/blob/main/docs/Metrics.md#custom-metrics-using-the-flowmetrics-api)** to create your own metric. You need to be careful about the metrics cardinality, as explained in this link.
 
 If the problem persists, there are ways to **configure Loki to improve the query performance**. Some options depend on the installation mode you used for Loki (using the Operator and `LokiStack`, or `Monolithic` mode, or `Microservices` mode):
 

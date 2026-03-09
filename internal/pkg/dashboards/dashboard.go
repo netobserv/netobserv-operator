@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	metricslatest "github.com/netobserv/network-observability-operator/api/flowmetrics/v1alpha1"
+	metricslatest "github.com/netobserv/netobserv-operator/api/flowmetrics/v1alpha1"
 )
 
 type chart struct {

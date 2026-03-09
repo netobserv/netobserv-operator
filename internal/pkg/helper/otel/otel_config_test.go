@@ -4,9 +4,9 @@ import (
 	"testing"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
-	flowslatest "github.com/netobserv/network-observability-operator/api/flowcollector/v1beta2"
-	"github.com/netobserv/network-observability-operator/internal/pkg/metrics"
-	"github.com/netobserv/network-observability-operator/internal/pkg/test/util"
+	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
+	"github.com/netobserv/netobserv-operator/internal/pkg/metrics"
+	"github.com/netobserv/netobserv-operator/internal/pkg/test/util"
 	"github.com/stretchr/testify/assert"
 )
 

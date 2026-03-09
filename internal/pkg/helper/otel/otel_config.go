@@ -6,7 +6,7 @@ import (
 	"sort"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
-	flowslatest "github.com/netobserv/network-observability-operator/api/flowcollector/v1beta2"
+	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
 )
 
 // openTelemetryDefaultTransformRules defined the default Open Telemetry format
