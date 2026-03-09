@@ -90,8 +90,6 @@ func (r *monolithReconciler) reconcile(ctx context.Context, desired *flowslatest
 		return nil
 	}
 
-	r.Status.SetReady() // will be overidden if necessary, as error or pending
-
 	builder, err := newMonolithBuilder(r.Instance, &desired.Spec, flowMetrics, fcSlices, detectedSubnets)
 	if err != nil {
 		return err

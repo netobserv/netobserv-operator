@@ -280,14 +280,14 @@ func TestHasAPI(t *testing.T) {
 func TestIsOpenShift(t *testing.T) {
 	// Test OpenShift detection
 	info := &Info{
-		apisMap: map[string]bool{
-			ocpSecurity: true,
+		apisMap: map[APIName]bool{
+			OCPSecurity: true,
 		},
 	}
 	assert.True(t, info.IsOpenShift())
 
 	// Test non-OpenShift
-	info.apisMap[ocpSecurity] = false
+	info.apisMap[OCPSecurity] = false
 	assert.False(t, info.IsOpenShift())
 }
 
@@ -574,8 +574,8 @@ func (m *mockLiveClient) getCRD(_ context.Context, name string) (*apix.CustomRes
 
 func stubOpenShiftInfo(version string) (*Info, *configv1.ClusterVersion) {
 	return &Info{
-			apisMap: map[string]bool{
-				ocpSecurity: true,
+			apisMap: map[APIName]bool{
+				OCPSecurity: true,
 			},
 		},
 		&configv1.ClusterVersion{

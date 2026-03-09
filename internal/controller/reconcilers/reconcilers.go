@@ -122,6 +122,7 @@ func ReconcileConfigMap(ctx context.Context, cl *helper.Client, current, desired
 	return cl.UpdateIfOwned(ctx, current, desired)
 }
 
+// returns true if ready, false if still in progress
 func ReconcileDaemonSet(ctx context.Context, ci *Instance, old, n *appsv1.DaemonSet, containerName string, report *helper.ChangeReport) error {
 	if !ci.Managed.Exists(old) {
 		ci.Status.SetCreatingDaemonSet(n)
