@@ -31,16 +31,16 @@ func NewReconciler(cmn *reconcilers.Instance) Reconciler {
 	return Reconciler{Instance: cmn}
 }
 
-func (c *Reconciler) Reconcile(ctx context.Context, desired *flowslatest.FlowCollectorEBPF) error {
+func (c *Reconciler) Reconcile(ctx context.Context, desired *flowslatest.FlowCollector) error {
 	log.IntoContext(ctx, log.FromContext(ctx).WithName("permissions"))
 
 	if err := c.reconcileNamespace(ctx); err != nil {
 		return fmt.Errorf("reconciling namespace: %w", err)
 	}
-	if err := c.reconcileServiceAccount(ctx); err != nil {
+	if err := c.reconcileServiceAccount(ctx, desired); err != nil {
 		return fmt.Errorf("reconciling service account: %w", err)
 	}
-	if err := c.reconcileVendorPermissions(ctx, desired); err != nil {
+	if err := c.reconcileVendorPermissions(ctx, &desired.Spec.Agent.EBPF); err != nil {
 		return fmt.Errorf("reconciling vendor permissions: %w", err)
 	}
 	return nil
@@ -99,7 +99,7 @@ func namespaceLabels(includeAudit, isDownstream bool) map[string]string {
 	return l
 }
 
-func (c *Reconciler) reconcileServiceAccount(ctx context.Context) error {
+func (c *Reconciler) reconcileServiceAccount(ctx context.Context, desired *flowslatest.FlowCollector) error {
 	rlog := log.FromContext(ctx, "serviceAccount", constants.EBPFServiceAccount)
 
 	sAcc := &v1.ServiceAccount{
@@ -108,6 +108,7 @@ func (c *Reconciler) reconcileServiceAccount(ctx context.Context) error {
 			Namespace: c.PrivilegedNamespace(),
 		},
 	}
+
 	actual := &v1.ServiceAccount{}
 	if err := c.Get(ctx, client.ObjectKeyFromObject(sAcc), actual); err != nil {
 		if errors.IsNotFound(err) {
@@ -116,6 +117,11 @@ func (c *Reconciler) reconcileServiceAccount(ctx context.Context) error {
 			return fmt.Errorf("can't retrieve current namespace: %w", err)
 		}
 	}
+
+	if desired.Spec.OnHold() {
+		return c.DeleteIfOwned(ctx, actual)
+	}
+
 	if actual == nil {
 		rlog.Info("creating service account")
 		return c.CreateOwned(ctx, sAcc)

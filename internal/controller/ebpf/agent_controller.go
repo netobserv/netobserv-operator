@@ -145,7 +145,7 @@ func (c *AgentController) Reconcile(ctx context.Context, target *flowslatest.Flo
 		return err
 	}
 
-	if err := c.permissions.Reconcile(ctx, &target.Spec.Agent.EBPF); err != nil {
+	if err := c.permissions.Reconcile(ctx, target); err != nil {
 		return fmt.Errorf("reconciling permissions: %w", err)
 	}
 
