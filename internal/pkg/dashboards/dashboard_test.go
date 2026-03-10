@@ -105,6 +105,7 @@ func TestCreateFlowMetricsDashboard_DefaultList(t *testing.T) {
 		"TCP latencies",
 		"Byte and packet drops",
 		"DNS",
+		"IPsec",
 	}, d.Titles())
 
 	topRow := d.FindRow("")
@@ -115,6 +116,7 @@ func TestCreateFlowMetricsDashboard_DefaultList(t *testing.T) {
 		"Drops",
 		"DNS latency, p99",
 		"DNS error rate",
+		"IPsec encrypted traffic",
 	}, topRow.Titles())
 
 	trafficRow := d.FindRow("Traffic rates per node")

@@ -5994,6 +5994,8 @@ spec:
                           - namespace_network_policy_events_total
                           - workload_network_policy_events_total
                           - node_ipsec_flows_total
+                          - namespace_ipsec_flows_total
+                          - workload_ipsec_flows_total
                           - node_to_node_ingress_flows_total
                           type: string
                         type: array
