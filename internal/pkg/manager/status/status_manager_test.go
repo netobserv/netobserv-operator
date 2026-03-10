@@ -1,6 +1,7 @@
 package status
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -17,7 +18,7 @@ func TestStatusWorkflow(t *testing.T) {
 	sm.SetFailure("AnError", "bad one")
 
 	conds := s.getConditions()
-	assertHasConditionTypes(t, conds, []string{"Ready", "WaitingMonitoring", "WaitingFlowCollectorController"})
+	assertHasConditionTypes(t, conds, []string{"Ready", "WaitingFlowCollectorController", "WaitingMonitoring"})
 	assertHasCondition(t, conds, "Ready", "Failure", metav1.ConditionFalse)
 	assertHasCondition(t, conds, "WaitingFlowCollectorController", "CreatingDaemonSet", metav1.ConditionTrue)
 	assertHasCondition(t, conds, "WaitingMonitoring", "AnError", metav1.ConditionTrue)
@@ -29,7 +30,7 @@ func TestStatusWorkflow(t *testing.T) {
 	sm.SetUnknown()
 
 	conds = s.getConditions()
-	assertHasConditionTypes(t, conds, []string{"Ready", "WaitingMonitoring", "WaitingFlowCollectorController"})
+	assertHasConditionTypes(t, conds, []string{"Ready", "WaitingFlowCollectorController", "WaitingMonitoring"})
 	assertHasCondition(t, conds, "Ready", "Pending", metav1.ConditionFalse)
 	assertHasCondition(t, conds, "WaitingFlowCollectorController", "DaemonSetNotReady", metav1.ConditionTrue)
 	assertHasCondition(t, conds, "WaitingMonitoring", "Unused", metav1.ConditionUnknown)
@@ -41,7 +42,7 @@ func TestStatusWorkflow(t *testing.T) {
 	sm.SetUnused("message")
 
 	conds = s.getConditions()
-	assertHasConditionTypes(t, conds, []string{"Ready", "WaitingMonitoring", "WaitingFlowCollectorController"})
+	assertHasConditionTypes(t, conds, []string{"Ready", "WaitingFlowCollectorController", "WaitingMonitoring"})
 	assertHasCondition(t, conds, "Ready", "Ready", metav1.ConditionTrue)
 	assertHasCondition(t, conds, "WaitingFlowCollectorController", "Ready", metav1.ConditionFalse)
 	assertHasCondition(t, conds, "WaitingMonitoring", "ComponentUnused", metav1.ConditionUnknown)
@@ -53,7 +54,7 @@ func TestStatusWorkflow(t *testing.T) {
 	sm.SetReady()
 
 	conds = s.getConditions()
-	assertHasConditionTypes(t, conds, []string{"Ready", "WaitingMonitoring", "WaitingFlowCollectorController"})
+	assertHasConditionTypes(t, conds, []string{"Ready", "WaitingFlowCollectorController", "WaitingMonitoring"})
 	assertHasCondition(t, conds, "Ready", "Ready", metav1.ConditionTrue)
 	assertHasCondition(t, conds, "WaitingFlowCollectorController", "Ready", metav1.ConditionFalse)
 	assertHasCondition(t, conds, "WaitingMonitoring", "Ready", metav1.ConditionFalse)
@@ -75,5 +76,6 @@ func assertHasConditionTypes(t *testing.T, conditions []metav1.Condition, expect
 	for _, c := range conditions {
 		types = append(types, c.Type)
 	}
+	slices.Sort(types)
 	assert.Equal(t, expectedTypes, types)
 }
