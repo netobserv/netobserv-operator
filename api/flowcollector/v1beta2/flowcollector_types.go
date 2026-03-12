@@ -1538,10 +1538,11 @@ type SubnetLabel struct {
 
 type ProcessorServiceConfig struct {
 	// Select the type of TLS configuration:<br>
-	// - `Disabled` to not configure TLS for the endpoint.
-	// - `Provided` to manually provide cert file and a key file. [Unsupported (*)].
-	// - `Auto` (default) to try to determine if TLS can be enabled based on the running environment.
-	// - `Auto-mTLS` to preconfigure mTLS. [Unsupported (*)].
+	// - `Disabled` to not configure TLS for the endpoint. Disabling TLS results in a less secure deployment model.<br>
+	// - `Provided` to manually provide the key and certificate references.<br>
+	// - `Auto` (default) to enable automatically based on the running environment.<br>
+	// - `Auto-mTLS` to preconfigure mTLS. [Unsupported (*)].<br>
+	// See also: https://github.com/netobserv/netobserv-operator/blob/main/docs/TLS.md.
 	// +kubebuilder:validation:Enum:="Disabled";"Provided";"Auto";"Auto-mTLS"
 	// +kubebuilder:validation:Required
 	// +kubebuilder:default:="Auto"

@@ -12126,10 +12126,11 @@ Service configuration, only used when `spec.deploymentModel` is `Service`.
         <td>enum</td>
         <td>
           Select the type of TLS configuration:<br>
-- `Disabled` to not configure TLS for the endpoint.
-- `Provided` to manually provide cert file and a key file. [Unsupported (*)].
-- `Auto` (default) to try to determine if TLS can be enabled based on the running environment.
-- `Auto-mTLS` to preconfigure mTLS. [Unsupported (*)].<br/>
+- `Disabled` to not configure TLS for the endpoint. Disabling TLS results in a less secure deployment model.<br>
+- `Provided` to manually provide the key and certificate references.<br>
+- `Auto` (default) to enable automatically based on the running environment.<br>
+- `Auto-mTLS` to preconfigure mTLS. [Unsupported (*)].<br>
+See also: https://github.com/netobserv/netobserv-operator/blob/main/docs/TLS.md.<br/>
           <br/>
             <i>Enum</i>: Disabled, Provided, Auto, Auto-mTLS<br/>
             <i>Default</i>: Auto<br/>
