@@ -414,15 +414,11 @@ run: fmt lint ## Run a controller from your host.
 
 ##@ OLM
 
-.PHONY: bundle-prepare
-bundle-prepare: OPSDK generate kustomize set-manager-images ## Generate bundle manifests and metadata, then validate generated files.
-# $(OPSDK) generate kustomize manifests -q --input-dir $(BUNDLE_CONFIG) --output-dir $(BUNDLE_CONFIG)
-	$(SED) -i -r 's~network-observability-operator/blob/[^/]+/~network-observability-operator/blob/$(VERSION)/~g' ./config/csv/bases/netobserv-operator.clusterserviceversion.yaml
-	$(SED) -i -r 's~network-observability-operator/blob/[^/]+/~network-observability-operator/blob/$(VERSION)/~g' ./config/descriptions/upstream.md
-	$(SED) -i -r 's~network-observability-operator/blob/[^/]+/~network-observability-operator/blob/$(VERSION)/~g' ./config/descriptions/ocp.md
-
-.PHONY: bundle
-bundle: bundle-prepare ## Generate final bundle files.
+.PHONY: bundle-nogen
+bundle-nogen: OPSDK kustomize set-manager-images ## Generate final bundle files, without prior code/doc generation.
+	$(SED) -i -r 's~netobserv-operator/blob/[^/]+/~netobserv-operator/blob/$(VERSION)/~g' ./config/csv/bases/netobserv-operator.clusterserviceversion.yaml
+	$(SED) -i -r 's~netobserv-operator/blob/[^/]+/~netobserv-operator/blob/$(VERSION)/~g' ./config/descriptions/upstream.md
+	$(SED) -i -r 's~netobserv-operator/blob/[^/]+/~netobserv-operator/blob/$(VERSION)/~g' ./config/descriptions/ocp.md
 	rm -r bundle/manifests || true
 	rm -r bundle/metadata || true
 	cp ./config/csv/bases/netobserv-operator.clusterserviceversion.yaml tmp-csv
@@ -444,6 +440,9 @@ endif
 	echo $${VALIDATION_OUTPUT}; \
 	if [ $$(echo $${VALIDATION_OUTPUT} | grep -i 'warning' | wc -c) -gt 0 ]; then echo "please correct warnings and errors first"; exit -1 ; fi \
 	'
+
+.PHONY: bundle
+bundle: generate bundle-nogen ## Generate final bundle files, including prior code/doc generation.
 
 .PHONY: update-bundle
 update-bundle: VERSION=$(BUNDLE_VERSION)

@@ -26,7 +26,7 @@ jobs:
         if: startsWith(github.ref_name, 'release-')
         run: echo "WF_RELIMG_VERSION=${{ github.ref_name }}" >> $GITHUB_ENV
       - name: build and save bundle image
-        run: OCI_BUILD_OPTS="--label quay.expires-after=2w" IMAGE_ORG=${{ env.WF_ORG }} VERSION=${{ env.short_sha }} PLG_VERSION=${{ env.WF_RELIMG_VERSION }} FLP_VERSION=${{ env.WF_RELIMG_VERSION }} BPF_VERSION=${{ env.WF_RELIMG_VERSION }} BUNDLE_VERSION=0.0.0-sha-${{ env.short_sha }} CLEAN_BUILD=1 BUNDLE_SET_DATE=true make bundle bundle-tar
+        run: OCI_BUILD_OPTS="--label quay.expires-after=2w" IMAGE_ORG=${{ env.WF_ORG }} VERSION=${{ env.short_sha }} PLG_VERSION=${{ env.WF_RELIMG_VERSION }} FLP_VERSION=${{ env.WF_RELIMG_VERSION }} BPF_VERSION=${{ env.WF_RELIMG_VERSION }} BUNDLE_VERSION=0.0.0-sha-${{ env.short_sha }} CLEAN_BUILD=1 BUNDLE_SET_DATE=true make bundle-nogen bundle-tar
       - name: build and save catalog image
         run: IMAGE_ORG=${{ env.WF_ORG }} BUNDLE_VERSION=0.0.0-sha-${{ env.short_sha }} CLEAN_BUILD=1 make catalog-tar
       - name: save PR number
