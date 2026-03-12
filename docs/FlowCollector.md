@@ -45,7 +45,7 @@ Resource Types:
       <td>true</td>
       </tr>
       <tr>
-      <td><b><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#objectmeta-v1-meta">metadata</a></b></td>
+      <td><b><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#objectmeta-v1-meta">metadata</a></b></td>
       <td>object</td>
       <td>Refer to the Kubernetes API documentation for the fields of the `metadata` field.</td>
       <td>true</td>
@@ -156,6 +156,7 @@ Kafka can provide better scalability, resiliency, and high availability (for mor
         <td>
           Namespace where NetObserv pods are deployed.<br/>
           <br/>
+            <i>Validations</i>:<li>self == oldSelf: Namespace is immutable. If you need to change it, delete and recreate the resource.</li>
             <i>Default</i>: netobserv<br/>
         </td>
         <td>false</td>
@@ -313,6 +314,8 @@ IMPORTANT: This feature is available as a Technology Preview.<br>
 This feature requires mounting the kernel debug filesystem, so the eBPF agent pods must run as privileged via `spec.agent.ebpf.privileged`.
 It requires using the OVN-Kubernetes network plugin with the Observability feature. <br>
 - `IPSec`, to track flows between nodes with IPsec encryption. <br><br/>
+          <br/>
+            <i>Enum</i>: PacketDrop, DNSTracking, FlowRTT, NetworkEvents, PacketTranslation, EbpfManager, UDNMapping, IPSec<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -2510,6 +2513,8 @@ In addition to the standard flags (RFC-9293), you can also filter by one of the 
           `disableAlerts` is a list of alerts that should be disabled.
 Possible values are:<br>
 `NetObservDroppedFlows`, which is triggered when the eBPF agent is missing packets or flows, such as when the BPF hashmap is busy or full, or the capacity limiter is being triggered.<br><br/>
+          <br/>
+            <i>Enum</i>: NetObservDroppedFlows<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -10545,6 +10550,8 @@ If the operator is Exists, the value should be empty, otherwise just a regular s
           `index` is a list of fields to use for indexing the pods. They should form a unique Pod identifier across the cluster.
 Can be any of: `MAC`, `IP`, `Interface`.
 Fields absent from the 'k8s.v1.cni.cncf.io/network-status' annotation must not be added to the index.<br/>
+          <br/>
+            <i>Enum</i>: MAC, IP, Interface<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -11625,6 +11632,8 @@ Metrics enabled by default are:
 `namespace_rtt_seconds` (when `FlowRTT` feature is enabled), `namespace_dns_latency_seconds` (when `DNSTracking` feature is enabled),
 `namespace_network_policy_events_total` (when `NetworkEvents` feature is enabled).
 More information, with full list of available metrics: https://github.com/netobserv/netobserv-operator/blob/main/docs/Metrics.md<br/>
+          <br/>
+            <i>Enum</i>: namespace_egress_bytes_total, namespace_egress_packets_total, namespace_ingress_bytes_total, namespace_ingress_packets_total, namespace_flows_total, node_egress_bytes_total, node_egress_packets_total, node_ingress_bytes_total, node_ingress_packets_total, node_flows_total, workload_egress_bytes_total, workload_egress_packets_total, workload_ingress_bytes_total, workload_ingress_packets_total, workload_flows_total, namespace_drop_bytes_total, namespace_drop_packets_total, node_drop_bytes_total, node_drop_packets_total, workload_drop_bytes_total, workload_drop_packets_total, namespace_rtt_seconds, node_rtt_seconds, workload_rtt_seconds, namespace_dns_latency_seconds, node_dns_latency_seconds, workload_dns_latency_seconds, node_network_policy_events_total, namespace_network_policy_events_total, workload_network_policy_events_total, node_ipsec_flows_total, namespace_ipsec_flows_total, workload_ipsec_flows_total, node_to_node_ingress_flows_total<br/>
         </td>
         <td>false</td>
       </tr><tr>

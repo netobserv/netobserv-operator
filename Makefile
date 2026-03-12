@@ -78,6 +78,7 @@ IMAGE ?= $(IMAGE_TAG_BASE):$(VERSION)
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.23
 GOLANGCI_LINT_VERSION = v2.8.0
+CRDOC_VERSION = 0.6.4
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -220,10 +221,6 @@ ENVTEST = $(shell pwd)/bin/setup-envtest
 envtest: ## Download envtest-setup locally if necessary.
 	$(call go-install-tool,$(ENVTEST),sigs.k8s.io/controller-runtime/tools/setup-envtest@latest)
 
-CRDOC = $(shell pwd)/bin/crdoc
-crdoc: ## Download crdoc locally if necessary.
-	$(call go-install-tool,$(CRDOC),fybrik.io/crdoc@v0.5.2)
-
 # go-install-tool will 'go install' any package $2 and install it to $1.
 PROJECT_DIR := $(shell dirname $(abspath $(firstword $(MAKEFILE_LIST))))
 define go-install-tool
@@ -266,6 +263,22 @@ ifeq (,$(shell which $(YQ) 2>/dev/null))
 	}
 endif
 
+.PHONY: CRDOC
+CRDOC = ./bin/crdoc
+CRDOC: ## Download crdoc locally if necessary.
+ifeq (,$(shell ($(CRDOC) --version | grep $(CRDOC_VERSION)) 2>/dev/null))
+	@{ \
+	echo "### Downloading crdoc"; \
+	set -e ;\
+	TMP_DIR=$$(mktemp -d) ;\
+	OS=$(shell go env GOOS) && ARCH=$(shell go env GOARCH | sed 's/amd64/x86_64/') && \
+	curl -sSLo $$TMP_DIR/crdoc.tar.gz https://github.com/fybrik/crdoc/releases/download/v$(CRDOC_VERSION)/crdoc_$${OS^}_$${ARCH}.tar.gz && \
+	tar -zxf $$TMP_DIR/crdoc.tar.gz --directory $$TMP_DIR/ ;\
+	mkdir -p $(dir $(CRDOC)) && mv $$TMP_DIR/crdoc $(CRDOC) ;\
+	rm -rf $$TMP_DIR ;\
+	}
+endif
+
 ##@ Code / files generation
 manifests: YQ controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	$(CONTROLLER_GEN) \
@@ -286,7 +299,7 @@ ifndef SKIP_CODE_GEN
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 endif
 
-doc: crdoc ## Generate markdown documentation
+doc: CRDOC ## Generate markdown documentation
 	$(CRDOC) --resources config/crd/bases/flows.netobserv.io_flowcollectors.yaml --output docs/FlowCollector.md
 	$(CRDOC) --resources config/crd/bases/flows.netobserv.io_flowmetrics.yaml --output docs/FlowMetric.md
 	$(CRDOC) --resources config/crd/bases/flows.netobserv.io_flowcollectorslices.yaml --output docs/FlowCollectorSlice.md
