@@ -1120,7 +1120,7 @@ type FlowCollectorConsolePlugin struct {
 	// Deploy as a standalone console, instead of a plugin of the OpenShift Console.
 	// This is not recommended when using with OpenShift, as it doesn't provide an integrated experience.
 	// [Unsupported (*)].
-	Standalone bool `json:"standalone,omitempty"`
+	Standalone *bool `json:"standalone,omitempty"`
 
 	//+kubebuilder:validation:Minimum=0
 	//+kubebuilder:default:=1

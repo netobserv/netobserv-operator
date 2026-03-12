@@ -589,6 +589,11 @@ func (in *FlowCollectorConsolePlugin) DeepCopyInto(out *FlowCollectorConsolePlug
 		*out = new(bool)
 		**out = **in
 	}
+	if in.Standalone != nil {
+		in, out := &in.Standalone, &out.Standalone
+		*out = new(bool)
+		**out = **in
+	}
 	if in.Replicas != nil {
 		in, out := &in.Replicas, &out.Replicas
 		*out = new(int32)

@@ -44,13 +44,14 @@ const metricsPort = 9002
 const metricsPortName = "metrics"
 
 type builder struct {
-	info     *reconcilers.Instance
-	imageRef reconcilers.ImageRef
-	labels   map[string]string
-	selector map[string]string
-	desired  *flowslatest.FlowCollectorSpec
-	advanced *flowslatest.AdvancedPluginConfig
-	volumes  volumes.Builder
+	info          *reconcilers.Instance
+	imageRef      reconcilers.ImageRef
+	labels        map[string]string
+	selector      map[string]string
+	desired       *flowslatest.FlowCollectorSpec
+	advanced      *flowslatest.AdvancedPluginConfig
+	volumes       volumes.Builder
+	useStandalone bool
 }
 
 func newBuilder(info *reconcilers.Instance, desired *flowslatest.FlowCollectorSpec, name string) builder {
@@ -73,8 +74,9 @@ func newBuilder(info *reconcilers.Instance, desired *flowslatest.FlowCollectorSp
 		selector: map[string]string{
 			"app": name,
 		},
-		desired:  desired,
-		advanced: &advanced,
+		desired:       desired,
+		advanced:      &advanced,
+		useStandalone: desired.UseStandaloneConsole(info.ClusterInfo.HasConsolePlugin()),
 	}
 }
 
@@ -219,7 +221,7 @@ func (b *builder) podTemplate(name, cmDigest string) *corev1.PodTemplateSpec {
 		})
 	}
 
-	if !b.desired.ConsolePlugin.Standalone {
+	if !b.useStandalone {
 		volumes = append(volumes, corev1.Volume{
 			Name: fmt.Sprintf("%s-cert", name),
 			VolumeSource: corev1.VolumeSource{
@@ -545,7 +547,7 @@ func (b *builder) configMap(ctx context.Context, lokiStack *lokiv1.LokiStack) (*
 			Port: int(*b.advanced.Port),
 		},
 	}
-	if b.desired.ConsolePlugin.Standalone {
+	if b.useStandalone {
 		config.Server.AuthCheck = "none"
 	} else {
 		config.Server.CertPath = "/var/serving-cert/tls.crt"

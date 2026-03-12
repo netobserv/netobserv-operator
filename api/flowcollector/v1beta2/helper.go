@@ -55,10 +55,16 @@ func (spec *FlowCollectorSpec) UsePrometheus() bool {
 	return spec.Prometheus.Querier.Enable == nil || *spec.Prometheus.Querier.Enable
 }
 
-func (spec *FlowCollectorSpec) UseConsolePlugin() bool {
+func (spec *FlowCollectorSpec) UseWebConsole() bool {
 	return (spec.UseLoki() || spec.UsePrometheus()) &&
 		// nil should fallback to default value, which is "true"
 		(spec.ConsolePlugin.Enable == nil || *spec.ConsolePlugin.Enable)
+}
+
+func (spec *FlowCollectorSpec) UseStandaloneConsole(hasPluginAPI bool) bool {
+	// defaults to true if there's no plugin API, false otherwise
+	return (spec.ConsolePlugin.Standalone != nil && *spec.ConsolePlugin.Standalone ||
+		spec.ConsolePlugin.Standalone == nil && !hasPluginAPI)
 }
 
 func (spec *FlowCollectorSpec) UseHostNetwork() bool {

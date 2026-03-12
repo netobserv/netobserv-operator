@@ -64,13 +64,14 @@ func (r *CPReconciler) Reconcile(ctx context.Context, desired *flowslatest.FlowC
 		return err
 	}
 
-	if r.ClusterInfo.HasConsolePlugin() {
+	hasPluginAPI := r.ClusterInfo.HasConsolePlugin()
+	if hasPluginAPI {
 		if err = r.checkAutoPatch(ctx, desired, constants.PluginName); err != nil {
 			return err
 		}
 	}
 
-	if desired.Spec.UseConsolePlugin() && (r.ClusterInfo.HasConsolePlugin() || desired.Spec.ConsolePlugin.Standalone) && !desired.Spec.OnHold() {
+	if desired.Spec.UseWebConsole() && (hasPluginAPI || desired.Spec.UseStandaloneConsole(hasPluginAPI)) && !desired.Spec.OnHold() {
 		// Create object builder
 		builder := newBuilder(r.Instance, &desired.Spec, constants.PluginName)
 
@@ -78,7 +79,7 @@ func (r *CPReconciler) Reconcile(ctx context.Context, desired *flowslatest.FlowC
 			return err
 		}
 
-		if r.ClusterInfo.HasConsolePlugin() {
+		if hasPluginAPI {
 			if err = r.reconcilePlugin(ctx, &builder, &desired.Spec, constants.PluginName, "NetObserv plugin"); err != nil {
 				return err
 			}
@@ -122,7 +123,7 @@ func (r *CPReconciler) Reconcile(ctx context.Context, desired *flowslatest.FlowC
 func (r *CPReconciler) checkAutoPatch(ctx context.Context, desired *flowslatest.FlowCollector, name string) error {
 	console := operatorsv1.Console{}
 	advancedConfig := helper.GetAdvancedPluginConfig(desired.Spec.ConsolePlugin.Advanced)
-	reg := desired.Spec.UseConsolePlugin() && *advancedConfig.Register
+	reg := desired.Spec.UseWebConsole() && *advancedConfig.Register
 	if err := r.Client.Get(ctx, types.NamespacedName{Name: "cluster"}, &console); err != nil {
 		// Console operator CR not found => warn but continue execution
 		if reg {
