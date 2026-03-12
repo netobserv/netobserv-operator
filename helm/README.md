@@ -38,7 +38,7 @@ helm install cert-manager -n cert-manager --create-namespace cert-manager/cert-m
 helm upgrade trust-manager oci://quay.io/jetstack/charts/trust-manager --install --namespace cert-manager --wait
 ```
 
-If you don't want to use Cert-manager and Trust-manager, you need to provide  certificates by other means: refer to [TLS.md](https://github.com/netobserv/network-observability-operator/blob/main/docs/TLS.md).
+If you don't want to use Cert-manager and Trust-manager, you need to provide certificates by other means: refer to [TLS.md](https://github.com/netobserv/netobserv-operator/blob/main/docs/TLS.md).
 
 Prometheus and Loki can be installed separately, or as dependencies of NetObserv (see below).
 
@@ -59,10 +59,37 @@ helm install netobserv -n netobserv --create-namespace --set install.loki=true -
 helm install netobserv -n netobserv --create-namespace netobserv/netobserv-operator
 ```
 
-You can then create a `FlowCollector` resource ([full API reference](https://github.com/netobserv/network-observability-operator/blob/main/docs/FlowCollector.md#flowsnetobserviov1beta2)). A short `FlowCollector` should work; an example is provided in the post-install welcome message.
+To start generating network flows, you must then create a `FlowCollector` resource ([full API reference](https://github.com/netobserv/netobserv-operator/blob/main/docs/FlowCollector.md#flowsnetobserviov1beta2)) named `cluster`. A short `FlowCollector` should work:
+
+```bash
+cat <<EOF | kubectl apply -f -
+apiVersion: flows.netobserv.io/v1beta2
+kind: FlowCollector
+metadata:
+  name: cluster
+spec:
+  namespace: netobserv
+  networkPolicy:
+    enable: false
+  processor:
+    service:
+      tlsType: Auto-mTLS
+  loki:
+    mode: Monolithic
+    monolithic:
+      url: 'http://netobserv-loki.netobserv.svc.cluster.local.:3100/'
+  prometheus:
+    querier:
+      mode: Manual
+      manual:
+        url: http://netobserv-prom-stack-prometheus.netobserv.svc.cluster.local.:9090/
+        alertManager:
+          url: http://netobserv-prom-stack-alertmanager.netobserv.svc.cluster.local.:9093/
+EOF
+```
 
 A few remarks:
-- You can change the Prometheus and Loki URLs depending on your installation. The `FlowCollector` example works if you use the "standalone" installation described above, with `install.loki=true` and `install.prom-stack=true`. Check more configuration options for [Prometheus](https://github.com/netobserv/netobserv-operator/blob/main/docs/FlowCollector.md#flowcollectorspecprometheus-1) and [Loki](https://github.com/netobserv/netobserv-operator/blob/main/docs/FlowCollector.md#flowcollectorspecloki-1).
+- You can change the Prometheus and Loki URLs depending on your installation. This example works if you use the "standalone" installation described above, with `install.loki=true` and `install.prom-stack=true`. Check more configuration options for [Prometheus](https://github.com/netobserv/netobserv-operator/blob/main/docs/FlowCollector.md#flowcollectorspecprometheus-1) and [Loki](https://github.com/netobserv/netobserv-operator/blob/main/docs/FlowCollector.md#flowcollectorspecloki-1).
 - Depending on the Kubernetes distribution and CNI, NetObserv may come secured by default with a built-in network policy. You can force installing it or not by setting `spec.networkPolicy.enable` in `FlowCollector`. If the built-in policy does not work as intended, it is recommended to turn it off and create your own instead. NetObserv runs some highly privileged workloads, thus it is important to keep it as much isolated as possible. See [NetworkPolicy.md](https://github.com/netobserv/netobserv-operator/blob/main/docs/NetworkPolicy.md) for more details on how to create a policy.
 
 To view the test console, you can port-forward 9001:

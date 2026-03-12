@@ -6219,7 +6219,8 @@ spec:
                                 type: string
                             type: object
                           clientCert:
-                            description: TLS client certificate reference.
+                            description: TLS client certificate reference, used for
+                              mTLS. Leave unset for simple TLS.
                             properties:
                               certFile:
                                 description: '`certFile` defines the path to the certificate

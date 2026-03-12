@@ -12173,7 +12173,7 @@ TLS or mTLS configuration when `type` is set to `Provided`.
         <td><b><a href="#flowcollectorspecprocessorserviceprovidedcertificatesclientcert">clientCert</a></b></td>
         <td>object</td>
         <td>
-          TLS client certificate reference.<br/>
+          TLS client certificate reference, used for mTLS. Leave unset for simple TLS.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -12245,7 +12245,7 @@ If the namespace is different, the config map or the secret is copied so that it
 
 
 
-TLS client certificate reference.
+TLS client certificate reference, used for mTLS. Leave unset for simple TLS.
 
 <table>
     <thead>

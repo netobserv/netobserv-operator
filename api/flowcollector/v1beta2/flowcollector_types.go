@@ -559,7 +559,7 @@ type ServerTLS struct {
 
 // `ClientServerTLS` define the TLS configuration for both client and server sides
 type ClientServerTLS struct {
-	// TLS client certificate reference.
+	// TLS client certificate reference, used for mTLS. Leave unset for simple TLS.
 	// +optional
 	ClientCert *CertificateReference `json:"clientCert,omitempty"`
 

@@ -13,8 +13,6 @@ spec:
   namespace: {{ .Release.Namespace }}
   networkPolicy:
     enable: false
-  consolePlugin:
-    standalone: true
   processor:
     service:
       tlsType: Auto-mTLS

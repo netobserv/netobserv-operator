@@ -63,7 +63,7 @@ helm install netobserv -n netobserv --create-namespace --set install.loki=true -
 helm install netobserv -n netobserv --create-namespace netobserv/netobserv-operator
 ```
 
-You can then create a `FlowCollector` resource ([full API reference](https://github.com/netobserv/network-observability-operator/blob/main/docs/FlowCollector.md#flowsnetobserviov1beta2)). A short `FlowCollector` should work:
+To start generating network flows, you must then create a `FlowCollector` resource ([full API reference](https://github.com/netobserv/netobserv-operator/blob/main/docs/FlowCollector.md#flowsnetobserviov1beta2)) named `cluster`. A short `FlowCollector` should work:
 
 ```bash
 cat <<EOF | kubectl apply -f -
@@ -75,8 +75,6 @@ spec:
   namespace: netobserv
   networkPolicy:
     enable: false
-  consolePlugin:
-    standalone: true
   processor:
     service:
       tlsType: Auto-mTLS
@@ -95,9 +93,8 @@ EOF
 ```
 
 A few remarks:
-- You can change the Prometheus and Loki URLs depending on your installation. The `FlowCollector` example works if you use the "standalone" installation described above, with `install.loki=true` and `install.prom-stack=true`. Check more configuration options for [Prometheus](https://github.com/netobserv/netobserv-operator/blob/main/docs/FlowCollector.md#flowcollectorspecprometheus-1) and [Loki](https://github.com/netobserv/netobserv-operator/blob/main/docs/FlowCollector.md#flowcollectorspecloki-1).
+- You can change the Prometheus and Loki URLs depending on your installation. This example works if you use the "standalone" installation described above, with `install.loki=true` and `install.prom-stack=true`. Check more configuration options for [Prometheus](https://github.com/netobserv/netobserv-operator/blob/main/docs/FlowCollector.md#flowcollectorspecprometheus-1) and [Loki](https://github.com/netobserv/netobserv-operator/blob/main/docs/FlowCollector.md#flowcollectorspecloki-1).
 - Depending on the Kubernetes distribution and CNI, NetObserv may come secured by default with a built-in network policy. You can force installing it or not by setting `spec.networkPolicy.enable` in `FlowCollector`. If the built-in policy does not work as intended, it is recommended to turn it off and create your own instead. NetObserv runs some highly privileged workloads, thus it is important to keep it as much isolated as possible. See [NetworkPolicy.md](./docs/NetworkPolicy.md) for more details on how to create a policy.
-- The processor env `SERVER_NOTLS` means that the communication between eBPF agents and Flowlogs-pipeline won't be encrypted. To enable TLS, you need to supply the TLS certificates to Flowlogs-pipeline (a Secret named `flowlogs-pipeline-cert`), and the CA to the eBPF agents (a ConfigMap named `flowlogs-pipeline-ca` in the privileged namespace).
 
 To view the test console, you can port-forward 9001:
 
