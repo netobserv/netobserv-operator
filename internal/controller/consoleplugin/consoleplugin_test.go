@@ -111,7 +111,7 @@ func getAutoScalerSpecs() (ascv2.HorizontalPodAutoscaler, flowslatest.FlowCollec
 func getBuilder(spec *flowslatest.FlowCollectorSpec, lk *helper.LokiConfig) builder {
 	info := reconcilers.Common{Namespace: testNamespace, Loki: lk, ClusterInfo: &cluster.Info{}}
 	b := newBuilder(info.NewInstance(map[reconcilers.ImageRef]string{reconcilers.MainImage: testImage}, status.Instance{}), spec, constants.PluginName)
-	_, _, _ = b.configMap(context.Background(), nil) // build configmap to update builder's volumes
+	_, _, _ = b.configMap(context.Background(), nil, nil) // build configmap to update builder's volumes
 	return b
 }
 
@@ -224,8 +224,8 @@ func TestConfigMapUpdateCheck(t *testing.T) {
 	}
 	spec := flowslatest.FlowCollectorSpec{ConsolePlugin: plugin}
 	builder := getBuilder(&spec, &loki)
-	old, _, _ := builder.configMap(context.Background(), nil)
-	nEw, _, _ := builder.configMap(context.Background(), nil)
+	old, _, _ := builder.configMap(context.Background(), nil, nil)
+	nEw, _, _ := builder.configMap(context.Background(), nil, nil)
 	assert.Equal(old.Data, nEw.Data)
 
 	// update loki
@@ -240,7 +240,7 @@ func TestConfigMapUpdateCheck(t *testing.T) {
 		}},
 	}
 	builder = getBuilder(&spec, &loki)
-	nEw, _, _ = builder.configMap(context.Background(), nil)
+	nEw, _, _ = builder.configMap(context.Background(), nil, nil)
 	assert.NotEqual(old.Data, nEw.Data)
 	old = nEw
 
@@ -248,7 +248,7 @@ func TestConfigMapUpdateCheck(t *testing.T) {
 	loki.LokiManualParams.StatusURL = "http://loki.status:3100/"
 	loki.LokiManualParams.StatusTLS.Enable = true
 	builder = getBuilder(&spec, &loki)
-	nEw, _, _ = builder.configMap(context.Background(), nil)
+	nEw, _, _ = builder.configMap(context.Background(), nil, nil)
 	assert.NotEqual(old.Data, nEw.Data)
 	old = nEw
 
@@ -259,14 +259,14 @@ func TestConfigMapUpdateCheck(t *testing.T) {
 		CertFile: "status-ca.crt",
 	}
 	builder = getBuilder(&spec, &loki)
-	nEw, _, _ = builder.configMap(context.Background(), nil)
+	nEw, _, _ = builder.configMap(context.Background(), nil, nil)
 	assert.NotEqual(old.Data, nEw.Data)
 	old = nEw
 
 	// update status user cert
 	loki.LokiManualParams.StatusTLS.UserCert = ptr.Deref(helper.DefaultCertificateReference("sec-name", ""), flowslatest.CertificateReference{})
 	builder = getBuilder(&spec, &loki)
-	nEw, _, _ = builder.configMap(context.Background(), nil)
+	nEw, _, _ = builder.configMap(context.Background(), nil, nil)
 	assert.NotEqual(old.Data, nEw.Data)
 }
 
@@ -282,8 +282,8 @@ func TestConfigMapUpdateWithLokistackMode(t *testing.T) {
 	loki := helper.NewLokiConfig(&lokiSpec, "any")
 	spec := flowslatest.FlowCollectorSpec{ConsolePlugin: plugin, Loki: lokiSpec}
 	builder := getBuilder(&spec, &loki)
-	old, _, _ := builder.configMap(context.Background(), nil)
-	nEw, _, _ := builder.configMap(context.Background(), nil)
+	old, _, _ := builder.configMap(context.Background(), nil, nil)
+	nEw, _, _ := builder.configMap(context.Background(), nil, nil)
 	assert.Equal(old.Data, nEw.Data)
 
 	// update lokistack name
@@ -292,7 +292,7 @@ func TestConfigMapUpdateWithLokistackMode(t *testing.T) {
 
 	spec = flowslatest.FlowCollectorSpec{ConsolePlugin: plugin, Loki: lokiSpec}
 	builder = getBuilder(&spec, &loki)
-	nEw, _, _ = builder.configMap(context.Background(), nil)
+	nEw, _, _ = builder.configMap(context.Background(), nil, nil)
 	assert.NotEqual(old.Data, nEw.Data)
 	old = nEw
 
@@ -302,7 +302,7 @@ func TestConfigMapUpdateWithLokistackMode(t *testing.T) {
 
 	spec = flowslatest.FlowCollectorSpec{ConsolePlugin: plugin, Loki: lokiSpec}
 	builder = getBuilder(&spec, &loki)
-	nEw, _, _ = builder.configMap(context.Background(), nil)
+	nEw, _, _ = builder.configMap(context.Background(), nil, nil)
 	assert.NotEqual(old.Data, nEw.Data)
 }
 
@@ -327,7 +327,7 @@ func TestConfigMapContent(t *testing.T) {
 		Processor:     flowslatest.FlowCollectorFLP{SubnetLabels: flowslatest.SubnetLabels{OpenShiftAutoDetect: ptr.To(false)}},
 	}
 	builder := getBuilder(&spec, &loki)
-	cm, _, err := builder.configMap(context.Background(), nil)
+	cm, _, err := builder.configMap(context.Background(), nil, nil)
 	assert.NotNil(cm)
 	assert.Nil(err)
 
@@ -347,6 +347,38 @@ func TestConfigMapContent(t *testing.T) {
 	assert.NotEmpty(config.Frontend.Filters)
 	assert.NotEmpty(config.Frontend.Scopes)
 	assert.Equal(config.Frontend.Sampling, 1)
+}
+
+func TestConfigMapExternalRecordingAnnotations(t *testing.T) {
+	assert := assert.New(t)
+	lokiSpec := flowslatest.FlowCollectorLoki{
+		Mode:      flowslatest.LokiModeLokiStack,
+		LokiStack: flowslatest.LokiStackRef{Name: "lokistack", Namespace: "ls-namespace"},
+	}
+	loki := helper.NewLokiConfig(&lokiSpec, "any")
+	spec := flowslatest.FlowCollectorSpec{
+		ConsolePlugin: getPluginConfig(),
+		Loki:          lokiSpec,
+		Processor:     flowslatest.FlowCollectorFLP{SubnetLabels: flowslatest.SubnetLabels{OpenShiftAutoDetect: ptr.To(false)}},
+	}
+	builder := getBuilder(&spec, &loki)
+
+	external := map[string]map[string]string{
+		"my_custom_metric": {
+			"summary":                     "Custom metric",
+			"netobserv_io_network_health": `{"recordingThresholds":{"info":"10"}}`,
+		},
+	}
+	cm, _, err := builder.configMap(context.Background(), external, nil)
+	assert.NotNil(cm)
+	assert.NoError(err)
+
+	var pluginConfig config.PluginConfig
+	err = yaml.Unmarshal([]byte(cm.Data["config.yaml"]), &pluginConfig)
+	assert.NoError(err)
+	assert.Contains(pluginConfig.Frontend.RecordingAnnotations, "my_custom_metric")
+	assert.Equal("Custom metric", pluginConfig.Frontend.RecordingAnnotations["my_custom_metric"]["summary"])
+	assert.Equal(`{"recordingThresholds":{"info":"10"}}`, pluginConfig.Frontend.RecordingAnnotations["my_custom_metric"]["netobserv_io_network_health"])
 }
 
 func TestServiceUpdateCheck(t *testing.T) {
@@ -505,7 +537,7 @@ func TestLokiStackStatusEmbedding(t *testing.T) {
 			},
 		},
 	}
-	cm, _, err := builder.configMap(context.Background(), lokiStackReady)
+	cm, _, err := builder.configMap(context.Background(), nil, lokiStackReady)
 	assert.Nil(err)
 	assert.NotNil(cm)
 
@@ -531,7 +563,7 @@ func TestLokiStackStatusEmbedding(t *testing.T) {
 			},
 		},
 	}
-	cm, _, err = builder.configMap(context.Background(), lokiStackPending)
+	cm, _, err = builder.configMap(context.Background(), nil, lokiStackPending)
 	assert.Nil(err)
 	assert.NotNil(cm)
 
@@ -556,7 +588,7 @@ func TestLokiStackStatusEmbedding(t *testing.T) {
 			},
 		},
 	}
-	cm, _, err = builder.configMap(context.Background(), lokiStackNotReady)
+	cm, _, err = builder.configMap(context.Background(), nil, lokiStackNotReady)
 	assert.Nil(err)
 	assert.NotNil(cm)
 
@@ -566,7 +598,7 @@ func TestLokiStackStatusEmbedding(t *testing.T) {
 	assert.Empty(cfg.Loki.StatusURL)
 
 	// Test 4: No LokiStack provided (nil)
-	cm, _, err = builder.configMap(context.Background(), nil)
+	cm, _, err = builder.configMap(context.Background(), nil, nil)
 	assert.Nil(err)
 	assert.NotNil(cm)
 
@@ -689,7 +721,7 @@ func TestLokiStackNotFoundBehavior(t *testing.T) {
 
 	// Test behavior when LokiStack is not found (nil is passed)
 	// This simulates the reconciler behavior when Get() returns NotFound
-	cm, digest, err := builder.configMap(context.Background(), nil)
+	cm, digest, err := builder.configMap(context.Background(), nil, nil)
 
 	// ConfigMap should still be created successfully
 	assert.Nil(err)
