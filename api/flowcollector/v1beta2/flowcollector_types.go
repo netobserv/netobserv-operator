@@ -1416,6 +1416,7 @@ type AdvancedProcessorConfig struct {
 	// Defines secondary networks to be checked for resources identification.
 	// To guarantee a correct identification, indexed values must form an unique identifier across the cluster.
 	// If the same index is used by several resources, those resources might be incorrectly labeled.
+	// If not provided and `spec.agent.ebpf.privileged` is `true`, secondary networks are detected automatically.
 	// +optional
 	SecondaryNetworks []SecondaryNetwork `json:"secondaryNetworks,omitempty"`
 }
@@ -1431,8 +1432,8 @@ const (
 )
 
 type SecondaryNetwork struct {
-	// `name` should match the network name as visible in the pods annotation 'k8s.v1.cni.cncf.io/network-status'.
-	// +kubebuilder:validation:Required
+	// Deprecated: `name` is unused.
+	// +optional
 	Name string `json:"name,omitempty"`
 
 	// `index` is a list of fields to use for indexing the pods. They should form a unique Pod identifier across the cluster.
