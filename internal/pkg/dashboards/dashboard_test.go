@@ -78,13 +78,16 @@ func TestCreateFlowMetricsDashboard_OnlyNodeIngressBytes(t *testing.T) {
 	assert.NoError(err)
 
 	assert.Equal("NetObserv / Main", d.Title)
-	assert.Equal([]string{"", "Traffic rates per node"}, d.Titles())
+	titles := d.Titles()
+	assert.Contains(titles, "")
+	assert.Contains(titles, "Traffic rates per node")
 
 	topRow := d.FindRow("")
-	assert.Equal([]string{"Total ingress traffic"}, topRow.Titles())
+	assert.Contains(topRow.Titles(), "Total ingress traffic")
 
 	trafficRow := d.FindRow("Traffic rates per node")
-	assert.Equal([]string{"Top ingress traffic per node (Bps)"}, trafficRow.Titles())
+	assert.Contains(trafficRow.Titles(), "Top ingress traffic per node (Bps)")
+	assert.Contains(trafficRow.Titles(), "Top egress traffic per node (Bps)")
 }
 
 func TestCreateFlowMetricsDashboard_DefaultList(t *testing.T) {

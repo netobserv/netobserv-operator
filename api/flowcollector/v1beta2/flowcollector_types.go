@@ -595,7 +595,8 @@ type FLPMetrics struct {
 	// +optional
 	Server MetricsServerConfig `json:"server,omitempty"`
 
-	// `includeList` is a list of metric names to specify which ones to generate.
+	// `includeList` is a list of additional metric names to include beyond the defaults.
+	// These metrics will be appended to the default metrics list.
 	// The names correspond to the names in Prometheus without the prefix. For example,
 	// `namespace_egress_packets_total` shows up as `netobserv_namespace_egress_packets_total` in Prometheus.
 	// Note that the more metrics you add, the bigger is the impact on Prometheus workload resources.

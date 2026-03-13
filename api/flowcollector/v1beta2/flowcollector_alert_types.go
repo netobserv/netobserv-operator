@@ -113,18 +113,23 @@ type HealthRuleThresholds struct {
 
 func (s *FlowCollectorSpec) GetIncludeList() []string {
 	var list []string
-	if s.Processor.Metrics.IncludeList == nil {
-		if s.UseLoki() {
-			list = DefaultIncludeList
-		} else {
-			// When loki is disabled, increase what's available through metrics by default, to minimize the loss of information
-			list = DefaultIncludeListLokiDisabled
-		}
+
+	if s.UseLoki() {
+		list = append(list, DefaultIncludeList...)
 	} else {
+		// When loki is disabled, increase what's available through metrics by default, to minimize the loss of information
+		list = append(list, DefaultIncludeListLokiDisabled...)
+	}
+
+	if s.Processor.Metrics.IncludeList != nil {
 		for _, m := range *s.Processor.Metrics.IncludeList {
-			list = append(list, string(m))
+			metricName := string(m)
+			if !containsMetric(list, metricName) {
+				list = append(list, metricName)
+			}
 		}
 	}
+
 	if !s.Agent.EBPF.IsPktDropEnabled() {
 		list = removeMetricsByPattern(list, "_drop_")
 	}
@@ -154,6 +159,15 @@ func removeMetricsByPattern(list []string, search string) []string {
 		}
 	}
 	return filtered
+}
+
+func containsMetric(list []string, metric string) bool {
+	for _, m := range list {
+		if m == metric {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *FlowCollectorSpec) GetFLPHealthRules() []FLPHealthRule {
