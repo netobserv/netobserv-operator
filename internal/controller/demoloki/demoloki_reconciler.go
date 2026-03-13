@@ -1,4 +1,4 @@
-package loki
+package demoloki
 
 import (
 	"context"
@@ -15,7 +15,7 @@ import (
 	"github.com/netobserv/netobserv-operator/internal/pkg/helper"
 )
 
-// LReconciler reconciles the current console plugin state with the desired configuration
+// LReconciler reconciles the current loki state with the desired configuration
 type LReconciler struct {
 	*reconcilers.Instance
 	configMap  *corev1.ConfigMap
@@ -35,11 +35,27 @@ func NewReconciler(cmn *reconcilers.Instance) LReconciler {
 	return rec
 }
 
-// Reconcile is the reconciler entry point to reconcile the current plugin state with the desired configuration
+// Reconcile is the reconciler entry point to reconcile the current loki state with the desired configuration
 func (r *LReconciler) Reconcile(ctx context.Context, desired *flowslatest.FlowCollector) error {
-	l := log.FromContext(ctx).WithName("loki")
+	l := log.FromContext(ctx).WithName("demo-loki")
 	ctx = log.IntoContext(ctx, l)
 
+	defer r.Status.Commit(ctx, r.Client)
+
+	err := r.reconcile(ctx, desired)
+	if err != nil {
+		l.Error(err, "Demo Loki reconcile failure")
+		// Set status failure unless it was already set
+		if !r.Status.HasFailure() {
+			r.Status.SetFailure("DemoLokiError", err.Error())
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (r *LReconciler) reconcile(ctx context.Context, desired *flowslatest.FlowCollector) error {
 	// Retrieve current owned objects
 	err := r.Managed.FetchAll(ctx)
 	if err != nil {
@@ -80,6 +96,7 @@ func (r *LReconciler) Reconcile(ctx context.Context, desired *flowslatest.FlowCo
 		if err := r.DeleteIfOwned(ctx, r.service); err != nil {
 			return err
 		}
+		r.Status.SetUnused("Demo mode not enabled")
 	}
 
 	return nil

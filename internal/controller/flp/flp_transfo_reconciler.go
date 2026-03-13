@@ -87,8 +87,6 @@ func (r *transformerReconciler) reconcile(ctx context.Context, desired *flowslat
 		return nil
 	}
 
-	r.Status.SetReady() // will be overidden if necessary, as error or pending
-
 	builder, err := newTransfoBuilder(r.Instance, &desired.Spec, flowMetrics, fcSlices, detectedSubnets)
 	if err != nil {
 		return err

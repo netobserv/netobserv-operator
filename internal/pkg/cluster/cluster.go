@@ -30,7 +30,7 @@ type discoveryClient interface {
 }
 
 type Info struct {
-	apisMap                     map[string]bool
+	apisMap                     map[APIName]bool
 	apisMapLock                 sync.RWMutex
 	id                          string
 	openShiftVersion            *semver.Version
@@ -44,14 +44,16 @@ type Info struct {
 	onRefresh                   func()
 }
 
+type APIName string
+
 var (
-	consolePlugin  = "consoleplugins." + osv1.GroupVersion.String()
-	cno            = "networks." + operatorv1.GroupVersion.String()
-	svcMonitor     = "servicemonitors." + monv1.SchemeGroupVersion.String()
-	promRule       = "prometheusrules." + monv1.SchemeGroupVersion.String()
-	ocpSecurity    = "securitycontextconstraints." + securityv1.SchemeGroupVersion.String()
-	endpointSlices = "endpointslices." + discoveryv1.SchemeGroupVersion.String()
-	lokistacks     = "lokistacks." + lokiv1.GroupVersion.String()
+	ConsolePlugin  APIName = APIName("consoleplugins." + osv1.GroupVersion.String())
+	CNO            APIName = APIName("networks." + operatorv1.GroupVersion.String())
+	SvcMonitor     APIName = APIName("servicemonitors." + monv1.SchemeGroupVersion.String())
+	PromRule       APIName = APIName("prometheusrules." + monv1.SchemeGroupVersion.String())
+	OCPSecurity    APIName = APIName("securitycontextconstraints." + securityv1.SchemeGroupVersion.String())
+	EndpointSlices APIName = APIName("endpointslices." + discoveryv1.SchemeGroupVersion.String())
+	LokiStack      APIName = APIName("lokistacks." + lokiv1.GroupVersion.String())
 )
 
 func NewInfo(ctx context.Context, cfg *rest.Config, dcl *discovery.DiscoveryClient, onRefresh func()) (*Info, func(ctx context.Context) error, error) {
@@ -100,14 +102,14 @@ func (c *Info) fetchAvailableAPIsInternal(ctx context.Context, allowCriticalFail
 	c.apisMapLock.Lock()
 	defer c.apisMapLock.Unlock()
 	if c.apisMap == nil {
-		c.apisMap = map[string]bool{
-			consolePlugin:  false,
-			cno:            false,
-			svcMonitor:     false,
-			promRule:       false,
-			ocpSecurity:    false,
-			endpointSlices: false,
-			lokistacks:     false,
+		c.apisMap = map[APIName]bool{
+			ConsolePlugin:  false,
+			CNO:            false,
+			SvcMonitor:     false,
+			PromRule:       false,
+			OCPSecurity:    false,
+			EndpointSlices: false,
+			LokiStack:      false,
 		}
 		firstRun = true
 	}
@@ -123,11 +125,11 @@ func (c *Info) fetchAvailableAPIsInternal(ctx context.Context, allowCriticalFail
 			} else if hasDiscoveryError {
 				// Check if the wanted API is in error
 				for gv, gvErr := range discErr.Groups {
-					if strings.Contains(apiName, gv.String()) {
+					if strings.Contains(string(apiName), gv.String()) {
 						log.Error(gvErr, "some API-related features are unavailable; you can check for stale APIs with 'kubectl get apiservice'", "GroupVersion", gv.String(), "api", apiName)
 						// OCP Security API is critical - we MUST know if we're on OpenShift
 						// to avoid wrong security context configurations
-						if apiName == ocpSecurity {
+						if apiName == OCPSecurity {
 							criticalAPIFailed = true
 						}
 					}
@@ -156,11 +158,11 @@ func (c *Info) fetchAvailableAPIsInternal(ctx context.Context, allowCriticalFail
 	return nil
 }
 
-func hasAPI(apiName string, resources []*metav1.APIResourceList) bool {
+func hasAPI(apiName APIName, resources []*metav1.APIResourceList) bool {
 	for i := range resources {
 		for j := range resources[i].APIResources {
 			gvk := resources[i].APIResources[j].Name + "." + resources[i].GroupVersion
-			if apiName == gvk {
+			if string(apiName) == gvk {
 				return true
 			}
 		}
@@ -271,17 +273,20 @@ func (c *Info) setInfo(id string, openShiftVersion *semver.Version, cni flowslat
 }
 
 // Mock shouldn't be used except for testing
-func (c *Info) Mock(v string, cni flowslatest.NetworkType) {
+func (c *Info) Mock(v string, cni flowslatest.NetworkType, apis ...APIName) {
 	if c.apisMap == nil {
-		c.apisMap = make(map[string]bool)
+		c.apisMap = make(map[APIName]bool)
 	}
 	if v == "" {
 		// No OpenShift
-		c.apisMap[ocpSecurity] = false
+		c.apisMap[OCPSecurity] = false
 		c.openShiftVersion = nil
 	} else {
-		c.apisMap[ocpSecurity] = true
+		c.apisMap[OCPSecurity] = true
 		c.openShiftVersion = semver.New(v)
+	}
+	for _, api := range apis {
+		c.apisMap[api] = true
 	}
 	c.cni = cni
 	c.ready = true
@@ -360,41 +365,41 @@ func (c *Info) IsOpenShift() bool {
 func (c *Info) HasConsolePlugin() bool {
 	c.apisMapLock.RLock()
 	defer c.apisMapLock.RUnlock()
-	return c.apisMap[consolePlugin]
+	return c.apisMap[ConsolePlugin]
 }
 
 // HasOCPSecurity returns true if "consoles.config.openshift.io" API was found
 func (c *Info) HasOCPSecurity() bool {
 	c.apisMapLock.RLock()
 	defer c.apisMapLock.RUnlock()
-	return c.apisMap[ocpSecurity]
+	return c.apisMap[OCPSecurity]
 }
 
 // HasCNO returns true if "networks.operator.openshift.io" API was found
 func (c *Info) HasCNO() bool {
 	c.apisMapLock.RLock()
 	defer c.apisMapLock.RUnlock()
-	return c.apisMap[cno]
+	return c.apisMap[CNO]
 }
 
 // HasSvcMonitor returns true if "servicemonitors.monitoring.coreos.com" API was found
 func (c *Info) HasSvcMonitor() bool {
 	c.apisMapLock.RLock()
 	defer c.apisMapLock.RUnlock()
-	return c.apisMap[svcMonitor]
+	return c.apisMap[SvcMonitor]
 }
 
 // HasPromRule returns true if "prometheusrules.monitoring.coreos.com" API was found
 func (c *Info) HasPromRule() bool {
 	c.apisMapLock.RLock()
 	defer c.apisMapLock.RUnlock()
-	return c.apisMap[promRule]
+	return c.apisMap[PromRule]
 }
 
 func (c *Info) HasEndpointSlices() bool {
 	c.apisMapLock.RLock()
 	defer c.apisMapLock.RUnlock()
-	return c.apisMap[endpointSlices]
+	return c.apisMap[EndpointSlices]
 }
 
 // hasCRDProperty returns property presence for any CRD, given a dot-separated path such as "spec.foo.bar"
@@ -434,7 +439,7 @@ func getCRDPropertyInVersion(v *apix.CustomResourceDefinitionVersion, parts []st
 
 // HasLokiStack returns true if "lokistack" API was found
 func (c *Info) HasLokiStack(ctx context.Context) bool {
-	if !c.apisMap[lokistacks] {
+	if !c.apisMap[LokiStack] {
 		err := c.fetchAvailableAPIsInternal(ctx, true)
 		if err != nil {
 			return false
@@ -442,5 +447,5 @@ func (c *Info) HasLokiStack(ctx context.Context) bool {
 	}
 	c.apisMapLock.RLock()
 	defer c.apisMapLock.RUnlock()
-	return c.apisMap[lokistacks]
+	return c.apisMap[LokiStack]
 }

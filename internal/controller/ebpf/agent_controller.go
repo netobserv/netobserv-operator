@@ -136,6 +136,24 @@ func NewAgentController(common *reconcilers.Instance) *AgentController {
 func (c *AgentController) Reconcile(ctx context.Context, target *flowslatest.FlowCollector) error {
 	rlog := log.FromContext(ctx).WithName("ebpf")
 	ctx = log.IntoContext(ctx, rlog)
+
+	defer c.Status.Commit(ctx, c.Client)
+
+	err := c.reconcile(ctx, target)
+	if err != nil {
+		rlog.Error(err, "AgentController reconcile failure")
+		// Set status failure unless it was already set
+		if !c.Status.HasFailure() {
+			c.Status.SetFailure("AgentControllerError", err.Error())
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (c *AgentController) reconcile(ctx context.Context, target *flowslatest.FlowCollector) error {
+	rlog := log.FromContext(ctx)
 	current, err := c.current(ctx)
 	if err != nil {
 		return fmt.Errorf("fetching current eBPF agent: %w", err)

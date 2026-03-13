@@ -13,11 +13,11 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	lokiv1 "github.com/grafana/loki/operator/apis/loki/v1"
 	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
 	"github.com/netobserv/netobserv-operator/internal/controller/constants"
 	"github.com/netobserv/netobserv-operator/internal/controller/reconcilers"
 	"github.com/netobserv/netobserv-operator/internal/pkg/helper"
+	"github.com/netobserv/netobserv-operator/internal/pkg/manager/status"
 	"github.com/netobserv/netobserv-operator/internal/pkg/resources"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
@@ -54,10 +54,26 @@ func NewReconciler(cmn *reconcilers.Instance) CPReconciler {
 }
 
 // Reconcile is the reconciler entry point to reconcile the current plugin state with the desired configuration
-func (r *CPReconciler) Reconcile(ctx context.Context, desired *flowslatest.FlowCollector) error {
-	l := log.FromContext(ctx).WithName("console-plugin")
+func (r *CPReconciler) Reconcile(ctx context.Context, desired *flowslatest.FlowCollector, lokiStatus status.ComponentStatus) error {
+	l := log.FromContext(ctx).WithName("web-console")
 	ctx = log.IntoContext(ctx, l)
 
+	defer r.Status.Commit(ctx, r.Client)
+
+	err := r.reconcile(ctx, desired, lokiStatus)
+	if err != nil {
+		l.Error(err, "Web Console reconcile failure")
+		// Set status failure unless it was already set
+		if !r.Status.HasFailure() {
+			r.Status.SetFailure("WebConsoleError", err.Error())
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (r *CPReconciler) reconcile(ctx context.Context, desired *flowslatest.FlowCollector, lokiStatus status.ComponentStatus) error {
 	// Retrieve current owned objects
 	err := r.Managed.FetchAll(ctx)
 	if err != nil {
@@ -85,7 +101,7 @@ func (r *CPReconciler) Reconcile(ctx context.Context, desired *flowslatest.FlowC
 			}
 		}
 
-		cmDigest, err := r.reconcileConfigMap(ctx, &builder, &desired.Spec)
+		cmDigest, err := r.reconcileConfigMap(ctx, &builder, lokiStatus)
 		if err != nil {
 			return err
 		}
@@ -115,6 +131,11 @@ func (r *CPReconciler) Reconcile(ctx context.Context, desired *flowslatest.FlowC
 	} else {
 		// delete any existing owned object
 		r.Managed.TryDeleteAll(ctx)
+		if desired.Spec.OnHold() {
+			r.Status.SetUnused("FlowCollector is on hold")
+		} else {
+			r.Status.SetUnused("Web console not enabled")
+		}
 	}
 
 	return nil
@@ -181,29 +202,8 @@ func (r *CPReconciler) reconcilePlugin(ctx context.Context, builder *builder, de
 	return nil
 }
 
-func (r *CPReconciler) reconcileConfigMap(ctx context.Context, builder *builder, desired *flowslatest.FlowCollectorSpec) (string, error) {
-	var lokiStack *lokiv1.LokiStack
-	if desired.Loki.Mode == flowslatest.LokiModeLokiStack {
-		lokiStack = &lokiv1.LokiStack{}
-		ns := desired.Loki.LokiStack.Namespace
-		if ns == "" {
-			ns = desired.Namespace
-		}
-		if err := r.Client.Get(ctx, types.NamespacedName{Name: desired.Loki.LokiStack.Name, Namespace: ns}, lokiStack); err != nil {
-			lokiStack = nil
-			if apierrors.IsNotFound(err) {
-				log.FromContext(ctx).Info("LokiStack resource not found, status will not be available",
-					"name", desired.Loki.LokiStack.Name,
-					"namespace", ns)
-			} else {
-				log.FromContext(ctx).Error(err, "Failed to get LokiStack resource",
-					"name", desired.Loki.LokiStack.Name,
-					"namespace", ns)
-			}
-		}
-	}
-
-	newCM, configDigest, err := builder.configMap(ctx, lokiStack)
+func (r *CPReconciler) reconcileConfigMap(ctx context.Context, builder *builder, lokiStatus status.ComponentStatus) (string, error) {
+	newCM, configDigest, err := builder.configMap(ctx, lokiStatus)
 	if err != nil {
 		return "", err
 	}
