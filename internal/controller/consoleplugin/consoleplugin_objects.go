@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	lokiv1 "github.com/grafana/loki/operator/apis/loki/v1"
@@ -455,7 +456,7 @@ func (b *builder) getPromConfig(ctx context.Context) cfg.PrometheusConfig {
 	return config
 }
 
-func (b *builder) setFrontendConfig(fconf *cfg.FrontendConfig) error {
+func (b *builder) setFrontendConfig(fconf *cfg.FrontendConfig, metrics []cfg.MetricInfo) (string, error) {
 	if b.desired.Agent.EBPF.IsPktDropEnabled() {
 		fconf.Features = append(fconf.Features, "pktDrop")
 	}
@@ -506,7 +507,62 @@ func (b *builder) setFrontendConfig(fconf *cfg.FrontendConfig) error {
 	// Add health rules metadata for frontend
 	fconf.RecordingAnnotations = b.getHealthRecordingAnnotations()
 
-	return nil
+	// Filter-out disabled scopes
+	var scopes []cfg.ScopeConfig
+	var warnings []string
+	for i := range fconf.Scopes {
+		scope := &fconf.Scopes[i]
+		if len(scope.Feature) == 0 || slices.Contains(fconf.Features, scope.Feature) {
+			if b.desired.UseLoki() {
+				scopes = append(scopes, *scope)
+			} else if valid, warning := isScopeValidForMetrics(scope, metrics); valid {
+				scopes = append(scopes, *scope)
+			} else if scope.ID != "resource" { // don't trigger warning for "resource" scope, it's a known fact it won't be available
+				warnings = append(warnings, warning)
+			}
+		}
+	}
+	fconf.Scopes = scopes
+
+	return strings.Join(warnings, "; "), nil
+}
+
+func isScopeValidForMetrics(scope *cfg.ScopeConfig, metrics []cfg.MetricInfo) (bool, string) {
+	var bestMatch *cfg.MetricInfo
+	var bestMatchMissingLabels []string
+	var candidates []string
+	for i := range metrics {
+		if metrics[i].ValueField == "Bytes" || metrics[i].ValueField == "Packets" {
+			missing := missingLabels(scope, &metrics[i])
+			if len(missing) == 0 {
+				if !metrics[i].Enabled {
+					candidates = append(candidates, metrics[i].Name)
+				} else {
+					return true, ""
+				}
+			} else if bestMatch == nil {
+				bestMatch = &metrics[i]
+				bestMatchMissingLabels = missing
+			}
+		}
+	}
+	if len(candidates) > 0 {
+		return false, fmt.Sprintf("Scope %s invalid for metrics (candidates: %s)", scope.ID, strings.Join(candidates, ", "))
+	}
+	if bestMatch == nil {
+		return false, fmt.Sprintf("Scope %s invalid for metrics (no best match)", scope.ID)
+	}
+	return false, fmt.Sprintf("Scope %s invalid for metrics (best match: %s; missing labels: %s)", scope.ID, bestMatch.Name, strings.Join(bestMatchMissingLabels, ", "))
+}
+
+func missingLabels(scope *cfg.ScopeConfig, metric *cfg.MetricInfo) []string {
+	var missing []string
+	for _, label := range scope.Labels {
+		if !slices.Contains(metric.Labels, label) {
+			missing = append(missing, label)
+		}
+	}
+	return missing
 }
 
 func (b *builder) getHealthRecordingAnnotations() map[string]map[string]string {
@@ -573,9 +629,13 @@ func (b *builder) configMap(ctx context.Context, lokiStack *lokiv1.LokiStack) (*
 	if err != nil {
 		return nil, "", err
 	}
-	err = b.setFrontendConfig(&config.Frontend)
+	warning, err := b.setFrontendConfig(&config.Frontend, config.Prometheus.Metrics)
 	if err != nil {
 		return nil, "", err
+	}
+	// TODO: with NETOBSERV-2375 => add DEGRADED to console status instead of this log
+	if warning != "" {
+		log.FromContext(ctx).Info("Frontend config DEGRADED", "message", warning)
 	}
 
 	var configStr string
