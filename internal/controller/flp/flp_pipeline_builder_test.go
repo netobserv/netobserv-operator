@@ -173,9 +173,8 @@ func TestMergeMetricsConfiguration_WithList(t *testing.T) {
 	assert.NoError(err)
 	cfs, _ := validatePipelineConfig(t, scm, dcm)
 	names := getSortedMetricsNames(cfs.Parameters[5].Encode.Prom.Metrics)
-	assert.Len(names, 2)
-	assert.Equal("namespace_egress_bytes_total", names[0])
-	assert.Equal("namespace_ingress_bytes_total", names[1])
+	assert.Contains(names, "namespace_egress_bytes_total")
+	assert.Contains(names, "namespace_ingress_bytes_total")
 	assert.Equal("netobserv_", cfs.Parameters[5].Encode.Prom.Prefix)
 }
 
@@ -200,7 +199,8 @@ func TestMergeMetricsConfiguration_WithFlowMetrics(t *testing.T) {
 	assert.NoError(err)
 	cfs, _ := validatePipelineConfig(t, scm, dcm)
 	names := getSortedMetricsNames(cfs.Parameters[5].Encode.Prom.Metrics)
-	assert.Equal([]string{"namespace_ingress_bytes_total", "te_st"}, names)
+	assert.Contains(names, "namespace_ingress_bytes_total")
+	assert.Contains(names, "te_st")
 	assert.Equal("netobserv_te_st", metrics.Items[0].Status.PrometheusName)
 }
 
@@ -214,7 +214,7 @@ func TestMergeMetricsConfiguration_EmptyList(t *testing.T) {
 	scm, _, dcm, err := b.configMaps()
 	assert.NoError(err)
 	cfs, _ := validatePipelineConfig(t, scm, dcm)
-	assert.Len(cfs.Parameters, 5)
+	assert.Len(cfs.Parameters, 6)
 }
 
 func TestPipelineWithExporter(t *testing.T) {

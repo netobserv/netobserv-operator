@@ -112,13 +112,13 @@ func ControllerSpecs() {
 				}
 			})
 
-			By("Expecting the flow dashboards configmap to be deleted")
+			By("Expecting the flow dashboards configmap to remain with default metrics")
 			Eventually(func() interface{} {
 				return k8sClient.Get(ctx, types.NamespacedName{
 					Name:      "netobserv-main",
 					Namespace: "openshift-config-managed",
 				}, &v1.ConfigMap{})
-			}, timeout, interval).Should(MatchError(`configmaps "netobserv-main" not found`))
+			}, timeout, interval).Should(Succeed())
 
 			By("Expecting the health dashboard to remain")
 			Eventually(func() interface{} {

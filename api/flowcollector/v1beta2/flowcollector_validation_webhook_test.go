@@ -667,7 +667,7 @@ func TestValidateFLP(t *testing.T) {
 			},
 		},
 		{
-			name:       "Missing metrics for alerts",
+			name:       "Missing metrics for alerts (defaults provide required metrics)",
 			ocpVersion: "4.18.0",
 			fc: &FlowCollector{
 				Spec: FlowCollectorSpec{
@@ -696,10 +696,7 @@ func TestValidateFLP(t *testing.T) {
 					},
 				},
 			},
-			expectedWarnings: admission.Warnings{
-				"HealthRule PacketDropsByKernel/Node requires enabling at least one metric from this list: node_drop_packets_total",
-				"HealthRule PacketDropsByKernel/Node requires enabling at least one metric from this list: node_ingress_packets_total, node_egress_packets_total",
-			},
+			expectedWarnings: nil,
 		},
 		{
 			name:       "Invalid alert threshold",
