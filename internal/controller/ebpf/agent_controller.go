@@ -73,6 +73,8 @@ const (
 	envEnableEbpfMgr              = "EBPF_PROGRAM_MANAGER_MODE"
 	envEnableUDNMapping           = "ENABLE_UDN_MAPPING"
 	envEnableIPsec                = "ENABLE_IPSEC_TRACKING"
+	envEnableOpenSSLTracking      = "ENABLE_OPENSSL_TRACKING"
+	envOpenSSLPath                = "OPENSSL_PATH"
 	envDNSTrackingPort            = "DNS_TRACKING_PORT"
 	envPreferredInterface         = "PREFERRED_INTERFACE_FOR_MAC_PREFIX"
 	envAttachMode                 = "TC_ATTACH_MODE"
@@ -101,6 +103,7 @@ const (
 
 const (
 	defaultDNSTrackingPort = "53"
+	defaultOpenSSLPath     = "/usr/lib64/libssl.so.3"
 	bpfmanMapsVolumeName   = "bpfman-maps"
 	bpfManBpfFSPath        = "/run/netobserv/maps"
 )
@@ -764,6 +767,13 @@ func getEnvConfig(coll *flowslatest.FlowCollector, cinfo *cluster.Info) []corev1
 		})
 	}
 
+	if coll.Spec.Agent.EBPF.IsOpenSSLTrackingEnabled() {
+		config = append(config, corev1.EnvVar{
+			Name:  envEnableOpenSSLTracking,
+			Value: "true",
+		})
+	}
+
 	if coll.Spec.Agent.EBPF.IsEBPFMetricsEnabled() {
 		config = append(config, corev1.EnvVar{
 			Name:  envEnableMetrics,
@@ -812,6 +822,7 @@ func getEnvConfig(coll *flowslatest.FlowCollector, cinfo *cluster.Info) []corev1
 		envNetworkEventsGroupID: defaultNetworkEventsGroupID,
 		envPreferredInterface:   defaultPreferredInterface,
 		envAttachMode:           defaultAttach,
+		envOpenSSLPath:          defaultOpenSSLPath,
 	}
 	advancedConfig := helper.GetAdvancedAgentConfig(coll.Spec.Agent.EBPF.Advanced)
 	moreConfig := helper.BuildEnvFromDefaults(advancedConfig.Env, defaults)

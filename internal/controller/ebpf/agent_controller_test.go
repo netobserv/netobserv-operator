@@ -111,6 +111,7 @@ func TestGetEnvConfig_Default(t *testing.T) {
 			}},
 		{Name: "DNS_TRACKING_PORT", Value: "53"},
 		{Name: "NETWORK_EVENTS_MONITORING_GROUP_ID", Value: "10"},
+		{Name: "OPENSSL_PATH", Value: "/usr/lib64/libssl.so.3"},
 		{Name: "PREFERRED_INTERFACE_FOR_MAC_PREFIX", Value: "0a:58=eth0"},
 		{Name: "TC_ATTACH_MODE", Value: "tcx"},
 	}, env)
@@ -162,6 +163,7 @@ func TestGetEnvConfig_WithOverrides(t *testing.T) {
 			}},
 		{Name: "DNS_TRACKING_PORT", Value: "5353"},
 		{Name: "NETWORK_EVENTS_MONITORING_GROUP_ID", Value: "any"},
+		{Name: "OPENSSL_PATH", Value: "/usr/lib64/libssl.so.3"},
 		{Name: "PREFERRED_INTERFACE_FOR_MAC_PREFIX", Value: "0a:58=ens5"},
 		{Name: "TC_ATTACH_MODE", Value: "any"},
 	}, env)
@@ -192,6 +194,7 @@ func TestGetEnvConfig_OCP4_14(t *testing.T) {
 			}},
 		{Name: "DNS_TRACKING_PORT", Value: "53"},
 		{Name: "NETWORK_EVENTS_MONITORING_GROUP_ID", Value: "10"},
+		{Name: "OPENSSL_PATH", Value: "/usr/lib64/libssl.so.3"},
 		{Name: "PREFERRED_INTERFACE_FOR_MAC_PREFIX", Value: "0a:58=eth0"},
 		{Name: "TC_ATTACH_MODE", Value: "tc"},
 	}, env)

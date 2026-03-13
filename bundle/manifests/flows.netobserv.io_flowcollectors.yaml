@@ -1152,6 +1152,7 @@ spec:
                             - `EbpfManager`, to enable using eBPF Manager to manage NetObserv eBPF programs. [Unsupported (*)].<br>
                             - `UDNMapping`, to enable interfaces mapping to UDN.<br>
                             - `IPSec`, to track flows between nodes with IPsec encryption.<br>
+                            - `OpenSSLTracking`, to track SSL/TLS encrypted traffic using OpenSSL uprobes [Technology Preview].<br>
                           enum:
                           - PacketDrop
                           - DNSTracking
@@ -1161,6 +1162,7 @@ spec:
                           - EbpfManager
                           - UDNMapping
                           - IPSec
+                          - OpenSSLTracking
                           type: string
                         type: array
                       flowFilter:
