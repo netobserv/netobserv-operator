@@ -176,7 +176,7 @@ func (b *monolithBuilder) service() *corev1.Service {
 			}},
 		},
 	}
-	if b.info.ClusterInfo.IsOpenShift() {
+	if b.info.ClusterInfo.IsOpenShift() && (b.desired.Processor.Service == nil || b.desired.Processor.Service.TLSType == flowslatest.TLSAuto) {
 		svc.Annotations[constants.OpenShiftCertificateAnnotation] = monoCertSecretName
 	}
 	return &svc

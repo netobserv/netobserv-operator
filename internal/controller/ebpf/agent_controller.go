@@ -529,6 +529,14 @@ func (c *AgentController) envConfig(ctx context.Context, coll *flowslatest.FlowC
 					certPath, keyPath := c.volumes.AddCertificate(clientCert, "client-certs")
 					config = append(config, corev1.EnvVar{Name: envTargetTLSUserCertPath, Value: certPath})
 					config = append(config, corev1.EnvVar{Name: envTargetTLSUserKeyPath, Value: keyPath})
+
+					// Annotate pod with certificate reference so that it is reloaded if modified
+					caDigest, userDigest, err := c.Watcher.ProcessMTLSCertsFromRefs(ctx, c.Client, ca, clientCert, c.PrivilegedNamespace())
+					if err != nil {
+						return nil, err
+					}
+					annots[watchers.Annotation("mtls-ca")] = caDigest
+					annots[watchers.Annotation("mtls-user")] = userDigest
 				}
 			}
 			config = append(config,

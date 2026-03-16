@@ -126,6 +126,20 @@ func (w *Watcher) ProcessMTLSCerts(ctx context.Context, cl helper.Client, tls *f
 	return caDigest, userDigest, nil
 }
 
+func (w *Watcher) ProcessMTLSCertsFromRefs(ctx context.Context, cl helper.Client, ca *flowslatest.FileReference, cert *flowslatest.CertificateReference, targetNamespace string) (caDigest string, userDigest string, err error) {
+	caRef := w.refFromFile(ca)
+	caDigest, err = w.reconcile(ctx, cl, caRef, targetNamespace)
+	if err != nil {
+		return "", "", err
+	}
+	userRef := w.refFromCert(cert)
+	userDigest, err = w.reconcile(ctx, cl, userRef, targetNamespace)
+	if err != nil {
+		return "", "", err
+	}
+	return caDigest, userDigest, nil
+}
+
 func (w *Watcher) ProcessCACert(ctx context.Context, cl helper.Client, tls *flowslatest.ClientTLS, targetNamespace string) (caDigest string, err error) {
 	if tls.Enable && tls.CACert.Name != "" {
 		caRef := w.refFromCert(&tls.CACert)
