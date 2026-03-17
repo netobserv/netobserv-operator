@@ -522,7 +522,11 @@ func (b *builder) setFrontendConfig(fconf *cfg.FrontendConfig, metrics []cfg.Met
 			}
 		}
 	}
-	fconf.Scopes = scopes
+	if b.desired.UseLoki() {
+		fconf.Scopes = scopes
+	} else {
+		fconf.Scopes = filterScopeGroupsForMetrics(scopes, metrics)
+	}
 
 	return strings.Join(warnings, "; "), nil
 }
@@ -533,7 +537,7 @@ func isScopeValidForMetrics(scope *cfg.ScopeConfig, metrics []cfg.MetricInfo) (b
 	var candidates []string
 	for i := range metrics {
 		if metrics[i].ValueField == "Bytes" || metrics[i].ValueField == "Packets" {
-			missing := missingLabels(scope, &metrics[i])
+			missing := missingLabels(scope.Labels, &metrics[i])
 			if len(missing) == 0 {
 				if !metrics[i].Enabled {
 					candidates = append(candidates, metrics[i].Name)
@@ -555,14 +559,51 @@ func isScopeValidForMetrics(scope *cfg.ScopeConfig, metrics []cfg.MetricInfo) (b
 	return false, fmt.Sprintf("Scope %s invalid for metrics (best match: %s; missing labels: %s)", scope.ID, bestMatch.Name, strings.Join(bestMatchMissingLabels, ", "))
 }
 
-func missingLabels(scope *cfg.ScopeConfig, metric *cfg.MetricInfo) []string {
+func missingLabels(labels []string, metric *cfg.MetricInfo) []string {
 	var missing []string
-	for _, label := range scope.Labels {
+	for _, label := range labels {
 		if !slices.Contains(metric.Labels, label) {
 			missing = append(missing, label)
 		}
 	}
 	return missing
+}
+
+func filterScopeGroupsForMetrics(scopes []cfg.ScopeConfig, metrics []cfg.MetricInfo) []cfg.ScopeConfig {
+	labelsPerScope := make(map[string][]string)
+	for i := range scopes {
+		labelsPerScope[scopes[i].ID+"s"] = scopes[i].Labels
+	}
+	for i := range scopes {
+		scope := &scopes[i]
+		newGroups := []string{}
+	NextGroup:
+		for _, group := range scope.Groups {
+			neededLabels := scope.Labels
+			// Group is like "hosts+networks"
+			parts := strings.Split(group, "+")
+			for _, part := range parts {
+				if labels, isValid := labelsPerScope[part]; isValid {
+					neededLabels = append(neededLabels, labels...)
+				} else {
+					// Not a valid scope => reject that group
+					continue NextGroup
+				}
+			}
+			// Now, verify that all needed labels (for scope AND groups) are ok with metrics
+			for i := range metrics {
+				if metrics[i].Enabled && (metrics[i].ValueField == "Bytes" || metrics[i].ValueField == "Packets") {
+					missing := missingLabels(neededLabels, &metrics[i])
+					if len(missing) == 0 {
+						// Valid group
+						newGroups = append(newGroups, group)
+					}
+				}
+			}
+		}
+		scope.Groups = newGroups
+	}
+	return scopes
 }
 
 func (b *builder) getHealthRecordingAnnotations() map[string]map[string]string {

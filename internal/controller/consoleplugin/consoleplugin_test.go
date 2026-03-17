@@ -749,6 +749,12 @@ func TestScopeFilteringWithLoki(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, []string{"network", "host", "namespace", "owner", "resource"}, scopeIDs(frontend.Scopes))
 	assert.Equal(t, "", warning)
+
+	// Make sure scope groups aren't modified
+	assert.Contains(t, frontend.Scopes[3].Groups, "hosts")
+	assert.Contains(t, frontend.Scopes[3].Groups, "hosts+namespaces")
+	assert.Contains(t, frontend.Scopes[3].Groups, "networks+hosts")
+	assert.Contains(t, frontend.Scopes[3].Groups, "networks+namespaces")
 }
 
 func TestScopeFilteringNoLoki(t *testing.T) {
@@ -794,4 +800,9 @@ func TestScopeFilteringNoLoki(t *testing.T) {
 	assert.Contains(t, warning, "Scope network invalid for metrics")
 	assert.Contains(t, warning, "Scope owner invalid for metrics")
 	assert.Contains(t, warning, "candidates: netobserv_workload_egress_bytes_total, ")
+
+	// Make sure scope groups are tailored to metrics
+	assert.Empty(t, frontend.Scopes[0].Groups)
+	assert.Equal(t, []string{"zones"}, frontend.Scopes[1].Groups)
+	assert.Equal(t, []string{"zones"}, frontend.Scopes[2].Groups)
 }
