@@ -597,6 +597,7 @@ func filterScopeGroupsForMetrics(scopes []cfg.ScopeConfig, metrics []cfg.MetricI
 					if len(missing) == 0 {
 						// Valid group
 						newGroups = append(newGroups, group)
+						continue NextGroup
 					}
 				}
 			}
