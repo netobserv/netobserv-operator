@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	ascv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -15,7 +16,7 @@ import (
 	lokiv1 "github.com/grafana/loki/operator/apis/loki/v1"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	flowslatest "github.com/netobserv/network-observability-operator/api/flowcollector/v1beta2"
-	config "github.com/netobserv/network-observability-operator/internal/controller/consoleplugin/config"
+	"github.com/netobserv/network-observability-operator/internal/controller/consoleplugin/config"
 	"github.com/netobserv/network-observability-operator/internal/controller/constants"
 	"github.com/netobserv/network-observability-operator/internal/controller/reconcilers"
 	"github.com/netobserv/network-observability-operator/internal/pkg/cluster"
@@ -719,4 +720,94 @@ func TestLokiStackNotFoundBehavior(t *testing.T) {
 
 	// This ensures the console plugin can still function with a status URL
 	// even if the LokiStack resource is temporarily unavailable
+}
+
+func TestScopeFilteringWithLoki(t *testing.T) {
+	scopeIDs := func(scopes []config.ScopeConfig) []string {
+		var ids []string
+		for i := range scopes {
+			ids = append(ids, scopes[i].ID)
+		}
+		return ids
+	}
+	plugin := getPluginConfig()
+	lokiSpec := flowslatest.FlowCollectorLoki{
+		Enable: ptr.To(true),
+	}
+	loki := helper.NewLokiConfig(&lokiSpec, "any")
+	spec := flowslatest.FlowCollectorSpec{
+		Agent: flowslatest.FlowCollectorAgent{
+			EBPF: flowslatest.FlowCollectorEBPF{
+				Features: []flowslatest.AgentFeature{flowslatest.UDNMapping},
+			},
+		},
+		ConsolePlugin: plugin,
+		Loki:          lokiSpec,
+	}
+	builder := getBuilder(&spec, &loki)
+	frontend, err := config.GetStaticFrontendConfig()
+	require.NoError(t, err)
+	assert.Equal(t, []string{"cluster", "network", "zone", "host", "namespace", "owner", "resource"}, scopeIDs(frontend.Scopes))
+
+	prom := builder.getPromConfig(context.Background())
+	warning, err := builder.setFrontendConfig(&frontend, prom.Metrics)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"network", "host", "namespace", "owner", "resource"}, scopeIDs(frontend.Scopes))
+	assert.Equal(t, "", warning)
+
+	// Make sure scope groups aren't modified
+	assert.Contains(t, frontend.Scopes[3].Groups, "hosts")
+	assert.Contains(t, frontend.Scopes[3].Groups, "hosts+namespaces")
+	assert.Contains(t, frontend.Scopes[3].Groups, "networks+hosts")
+	assert.Contains(t, frontend.Scopes[3].Groups, "networks+namespaces")
+}
+
+func TestScopeFilteringNoLoki(t *testing.T) {
+	scopeIDs := func(scopes []config.ScopeConfig) []string {
+		var ids []string
+		for i := range scopes {
+			ids = append(ids, scopes[i].ID)
+		}
+		return ids
+	}
+	plugin := getPluginConfig()
+	lokiSpec := flowslatest.FlowCollectorLoki{
+		Enable: ptr.To(false),
+	}
+	loki := helper.NewLokiConfig(&lokiSpec, "any")
+	spec := flowslatest.FlowCollectorSpec{
+		Agent: flowslatest.FlowCollectorAgent{
+			EBPF: flowslatest.FlowCollectorEBPF{
+				Features: []flowslatest.AgentFeature{flowslatest.UDNMapping},
+			},
+		},
+		Processor: flowslatest.FlowCollectorFLP{
+			AddZone: ptr.To(true),
+			Metrics: flowslatest.FLPMetrics{
+				IncludeList: &[]flowslatest.FLPMetric{
+					"node_egress_bytes_total",
+					"namespace_egress_bytes_total",
+				},
+			},
+		},
+		ConsolePlugin: plugin,
+		Loki:          lokiSpec,
+	}
+	builder := getBuilder(&spec, &loki)
+	frontend, err := config.GetStaticFrontendConfig()
+	require.NoError(t, err)
+	assert.Equal(t, []string{"cluster", "network", "zone", "host", "namespace", "owner", "resource"}, scopeIDs(frontend.Scopes))
+
+	prom := builder.getPromConfig(context.Background())
+	warning, err := builder.setFrontendConfig(&frontend, prom.Metrics)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"zone", "host", "namespace"}, scopeIDs(frontend.Scopes))
+	assert.Contains(t, warning, "Scope network invalid for metrics")
+	assert.Contains(t, warning, "Scope owner invalid for metrics")
+	assert.Contains(t, warning, "candidates: netobserv_workload_egress_bytes_total, ")
+
+	// Make sure scope groups are tailored to metrics
+	assert.Empty(t, frontend.Scopes[0].Groups)
+	assert.Equal(t, []string{"zones"}, frontend.Scopes[1].Groups)
+	assert.Equal(t, []string{"zones"}, frontend.Scopes[2].Groups)
 }
