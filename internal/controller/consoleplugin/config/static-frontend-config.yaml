@@ -434,11 +434,34 @@ columns:
   - id: TLSVersion
     group: Protocol Info
     name: TLS Version
-    tooltip: TLS Version found in the packets header
+    tooltip: TLS version found in handshake headers
     field: TLSVersion
     filter: tls_version
     default: true
     width: 10
+    feature: tlsTracking
+  - id: TLSCipherSuite
+    group: Protocol Info
+    name: TLS Cipher Suite
+    field: TLSCipherSuite
+    filter: tls_cipher_suite
+    width: 15
+    feature: tlsTracking
+  - id: TLSCurve
+    group: Protocol Info
+    name: TLS Curve
+    field: TLSCurve
+    filter: tls_curve
+    width: 10
+    feature: tlsTracking
+  - id: TLSTypes
+    group: Protocol Info
+    name: TLS Types
+    tooltip: TLS packet types, such as ClientHello or AppData
+    field: TLSTypes
+    filter: tls_types
+    width: 15
+    feature: tlsTracking
   - id: IcmpType
     group: Protocol Info
     name: ICMP Type
@@ -1131,6 +1154,25 @@ filters:
     component: text
     placeholder: 'E.g: TLS 1.2'
     hint: Specify a version of TLS.
+    feature: tlsTracking
+  - id: tls_cipher_suite
+    name: TLS cipher suite
+    component: text
+    placeholder: 'E.g: TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256'
+    hint: Specify a TLS cipher suite.
+    feature: tlsTracking
+  - id: tls_curve
+    name: TLS curve
+    component: text
+    placeholder: 'E.g: X25519'
+    hint: Specify a TLS curve name.
+    feature: tlsTracking
+  - id: tls_types
+    name: TLS packet type
+    component: text
+    placeholder: 'E.g: ClientHello, AppData'
+    hint: Specify a TLS type of packet.
+    feature: tlsTracking
   - id: dscp
     name: DSCP
     component: autocomplete
@@ -1542,8 +1584,14 @@ fields:
     type: string
     description: TLS version
   - name: TLSTypes
-    type: number
+    type: string[]
     description: TLS message types (bitfield)
+  - name: TLSCipherSuite
+    type: string
+    description: TLS cipher suite
+  - name: TLSCurve
+    type: string
+    description: TLS curve name
   - name: Dscp
     type: number
     description: Differentiated Services Code Point (DSCP) value

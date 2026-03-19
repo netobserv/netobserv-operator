@@ -313,9 +313,10 @@ IMPORTANT: This feature is available as a Technology Preview.<br>
 - `UDNMapping`: Enable interfaces mapping to User Defined Networks (UDN). <br>
 This feature requires mounting the kernel debug filesystem, so the eBPF agent pods must run as privileged via `spec.agent.ebpf.privileged`.
 It requires using the OVN-Kubernetes network plugin with the Observability feature. <br>
-- `IPSec`, to track flows between nodes with IPsec encryption. <br><br/>
+- `IPSec`, to track flows between nodes with IPsec encryption. <br>
+- `TLSTracking`, to track TLS usage. <br><br/>
           <br/>
-            <i>Enum</i>: PacketDrop, DNSTracking, FlowRTT, NetworkEvents, PacketTranslation, EbpfManager, UDNMapping, IPSec<br/>
+            <i>Enum</i>: PacketDrop, DNSTracking, FlowRTT, NetworkEvents, PacketTranslation, EbpfManager, UDNMapping, IPSec, TLSTracking<br/>
         </td>
         <td>false</td>
       </tr><tr>

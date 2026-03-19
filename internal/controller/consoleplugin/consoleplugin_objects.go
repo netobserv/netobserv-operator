@@ -489,6 +489,10 @@ func (b *builder) setFrontendConfig(fconf *cfg.FrontendConfig, metrics []cfg.Met
 		fconf.Features = append(fconf.Features, "ipsec")
 	}
 
+	if b.desired.Agent.EBPF.IsTLSTrackingEnabled() {
+		fconf.Features = append(fconf.Features, "tlsTracking")
+	}
+
 	fconf.RecordTypes = helper.GetRecordTypes(&b.desired.Processor)
 	fconf.PortNaming = b.desired.ConsolePlugin.PortNaming
 	fconf.QuickFilters = b.desired.ConsolePlugin.QuickFilters

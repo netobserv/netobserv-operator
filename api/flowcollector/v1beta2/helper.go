@@ -119,6 +119,10 @@ func (spec *FlowCollectorEBPF) IsIPSecEnabled() bool {
 	return spec.IsAgentFeatureEnabled(IPSec)
 }
 
+func (spec *FlowCollectorEBPF) IsTLSTrackingEnabled() bool {
+	return spec.IsAgentFeatureEnabled(TLSTracking)
+}
+
 func (spec *FlowCollectorEBPF) IsEBPFMetricsEnabled() bool {
 	return spec.Metrics.Enable == nil || *spec.Metrics.Enable
 }

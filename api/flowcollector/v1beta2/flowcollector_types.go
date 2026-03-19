@@ -188,7 +188,8 @@ type FlowCollectorIPFIX struct {
 // - `EbpfManager`, to enable using eBPF Manager to manage NetObserv eBPF programs. [Unsupported (*)].<br>
 // - `UDNMapping`, to enable interfaces mapping to UDN.<br>
 // - `IPSec`, to track flows between nodes with IPsec encryption.<br>
-// +kubebuilder:validation:Enum:="PacketDrop";"DNSTracking";"FlowRTT";"NetworkEvents";"PacketTranslation";"EbpfManager";"UDNMapping";"IPSec"
+// - `TLSTracking`, to track TLS usage.<br>
+// +kubebuilder:validation:Enum:="PacketDrop";"DNSTracking";"FlowRTT";"NetworkEvents";"PacketTranslation";"EbpfManager";"UDNMapping";"IPSec";"TLSTracking"
 type AgentFeature string
 
 const (
@@ -200,6 +201,7 @@ const (
 	EbpfManager       AgentFeature = "EbpfManager"
 	UDNMapping        AgentFeature = "UDNMapping"
 	IPSec             AgentFeature = "IPSec"
+	TLSTracking       AgentFeature = "TLSTracking"
 )
 
 // Name of an eBPF agent alert.
@@ -404,6 +406,7 @@ type FlowCollectorEBPF struct {
 	// This feature requires mounting the kernel debug filesystem, so the eBPF agent pods must run as privileged via `spec.agent.ebpf.privileged`.
 	// It requires using the OVN-Kubernetes network plugin with the Observability feature. <br>
 	// - `IPSec`, to track flows between nodes with IPsec encryption. <br>
+	// - `TLSTracking`, to track TLS usage. <br>
 	// +optional
 	Features []AgentFeature `json:"features,omitempty"`
 

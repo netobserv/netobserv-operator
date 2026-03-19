@@ -73,6 +73,7 @@ const (
 	envEnableEbpfMgr              = "EBPF_PROGRAM_MANAGER_MODE"
 	envEnableUDNMapping           = "ENABLE_UDN_MAPPING"
 	envEnableIPsec                = "ENABLE_IPSEC_TRACKING"
+	envEnableTLSTracking          = "ENABLE_TLS_TRACKING"
 	envDNSTrackingPort            = "DNS_TRACKING_PORT"
 	envPreferredInterface         = "PREFERRED_INTERFACE_FOR_MAC_PREFIX"
 	envAttachMode                 = "TC_ATTACH_MODE"
@@ -778,6 +779,13 @@ func getEnvConfig(coll *flowslatest.FlowCollector, cinfo *cluster.Info) []corev1
 	if coll.Spec.Agent.EBPF.IsIPSecEnabled() {
 		config = append(config, corev1.EnvVar{
 			Name:  envEnableIPsec,
+			Value: "true",
+		})
+	}
+
+	if coll.Spec.Agent.EBPF.IsTLSTrackingEnabled() {
+		config = append(config, corev1.EnvVar{
+			Name:  envEnableTLSTracking,
 			Value: "true",
 		})
 	}

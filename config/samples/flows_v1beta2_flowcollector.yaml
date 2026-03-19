@@ -27,6 +27,7 @@ spec:
       # - "EbpfManager"
       # - "UDNMapping"
       # - "IPSec"
+      # - "TLSTracking"
       interfaces: []
       excludeInterfaces: ["lo"]
       # kafkaBatchSize: 1048576
