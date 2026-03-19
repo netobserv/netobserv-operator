@@ -1,11 +1,11 @@
 # Do not remove comment lines, they are there to reduce conflicts
 # Operator
-export OPERATOR_IMAGE_PULLSPEC='registry.redhat.io/network-observability/network-observability-rhel9-operator@sha256:70676102758e315271a3fcc62ea2f9d2d45361ec4f91b922ee5205c885fd0b26'
+export OPERATOR_IMAGE_PULLSPEC='registry.redhat.io/network-observability/network-observability-rhel9-operator@sha256:81d1a038e8a28f36dadfa50a5d6280f00b5b967c1cfa08256e607bfc79f14c33'
 # eBPF agent
-export EBPF_IMAGE_PULLSPEC='registry.redhat.io/network-observability/network-observability-ebpf-agent-rhel9@sha256:661776b120b6610ea05b5cfd3b52117bfae7655eb261e0d20e8951de3efe0702'
+export EBPF_IMAGE_PULLSPEC='registry.redhat.io/network-observability/network-observability-ebpf-agent-rhel9@sha256:840a79cbce0bd64650c8166b1ba705beb234bd7e48783e1e514bb340cabb9407'
 # Flowlogs-pipeline
-export FLP_IMAGE_PULLSPEC='registry.redhat.io/network-observability/network-observability-flowlogs-pipeline-rhel9@sha256:1b325da89485647173153171fb70ad91e21089f6147881c7ce2265b6ac504c2e'
+export FLP_IMAGE_PULLSPEC='registry.redhat.io/network-observability/network-observability-flowlogs-pipeline-rhel9@sha256:27cfe3f497c586bc2457c5aa4d56cf57dd613f560fd7db137e19b35f2cd2724b'
 # Console plugin
-export CONSOLE_IMAGE_PULLSPEC='registry.redhat.io/network-observability/network-observability-console-plugin-rhel9@sha256:49f68757bb4f9dc5cabe4db64a92e477e079843660a4068048accf8acccc3b1e'
+export CONSOLE_IMAGE_PULLSPEC='registry.redhat.io/network-observability/network-observability-console-plugin-rhel9@sha256:a8644cc8e00606910352cac029b4b91b88ab629be7be29b0429814a3582d56fb'
 # Compatibility Console plugin
-export CONSOLE_COMPAT_IMAGE_PULLSPEC='registry.redhat.io/network-observability/network-observability-console-plugin-compat-rhel9@sha256:fc474fc987cbcab7894ca2c2175b8461858516de902e37e1ba4ae9936ee13ac4'
+export CONSOLE_COMPAT_IMAGE_PULLSPEC='registry.redhat.io/network-observability/network-observability-console-plugin-compat-rhel9@sha256:ff9cca0ad5cb66e38a6b17170db2a163b380e70d8bb58714c2fbf1e6e73e2972'
