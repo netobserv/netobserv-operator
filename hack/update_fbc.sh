@@ -1,9 +1,9 @@
+#!/bin/bash
+
 # Helper tool to update the catalog artifacts and bundle artifacts
 # These genereated artifacts are used to build the catalog image
 # Pre-requisites: opm, make
 # Usage: ./hack/update_fbc.sh
-
-#!/bin/bash
 
 set -euo pipefail
 
