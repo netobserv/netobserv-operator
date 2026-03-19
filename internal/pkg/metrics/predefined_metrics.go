@@ -322,9 +322,9 @@ func GetDefinitions(fc *flowslatest.FlowCollectorSpec, allMetrics bool) []metric
 	if !fc.Agent.EBPF.IsUDNMappingEnabled() && !fc.Processor.HasSecondaryIndexes() {
 		labelsToRemove = append(labelsToRemove, "SrcK8S_NetworkName", "DstK8S_NetworkName")
 	}
-	// if !fc.Agent.EBPF.IsTLSTrackingEnabled() {
-	// 	labelsToRemove = append(labelsToRemove, "TLSVersion")
-	// }
+	if !fc.Agent.EBPF.IsTLSTrackingEnabled() {
+		labelsToRemove = append(labelsToRemove, "TLSVersion")
+	}
 
 	var filterRecordType *metricslatest.MetricFilter
 	if fc.Processor.LogTypes != nil {
