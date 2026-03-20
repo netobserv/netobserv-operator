@@ -461,7 +461,7 @@ func (b *builder) getPromConfig(ctx context.Context) cfg.PrometheusConfig {
 
 // nolint:cyclop	// no real complexity here, just long boilerplate
 func (b *builder) setFrontendConfig(fconf *cfg.FrontendConfig, metrics []cfg.MetricInfo) (string, error) {
-	if b.desired.Agent.EBPF.IsPktDropEnabled() {
+	if b.desired.Agent.EBPF.IsPktDropEnabled() || b.desired.Agent.EBPF.IsNetworkEventsEnabled() {
 		fconf.Features = append(fconf.Features, "pktDrop")
 	}
 

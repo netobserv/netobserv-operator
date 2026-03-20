@@ -125,7 +125,7 @@ func (s *FlowCollectorSpec) GetIncludeList() []string {
 			list = append(list, string(m))
 		}
 	}
-	if !s.Agent.EBPF.IsPktDropEnabled() {
+	if !s.Agent.EBPF.IsPktDropEnabled() && !s.Agent.EBPF.IsNetworkEventsEnabled() {
 		list = removeMetricsByPattern(list, "_drop_")
 	}
 	if !s.Agent.EBPF.IsFlowRTTEnabled() {
