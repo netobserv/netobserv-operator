@@ -1,11 +1,11 @@
 # Do not remove comment lines, they are there to reduce conflicts
 # Operator
-export OPERATOR_IMAGE_PULLSPEC='registry.redhat.io/network-observability/network-observability-rhel9-operator@sha256:81d1a038e8a28f36dadfa50a5d6280f00b5b967c1cfa08256e607bfc79f14c33'
+export OPERATOR_IMAGE_PULLSPEC='registry.redhat.io/network-observability/network-observability-rhel9-operator@sha256:60fc1df8b39237a05240e89fa6f1e28ad2429fae2f6ea18ff7d87ccd5ab81b62'
 # eBPF agent
-export EBPF_IMAGE_PULLSPEC='registry.redhat.io/network-observability/network-observability-ebpf-agent-rhel9@sha256:840a79cbce0bd64650c8166b1ba705beb234bd7e48783e1e514bb340cabb9407'
+export EBPF_IMAGE_PULLSPEC='registry.redhat.io/network-observability/network-observability-ebpf-agent-rhel9@sha256:6bb6e353be9a59734040f592a565c898c9d4617ba1c481acfbf733607c3409f9'
 # Flowlogs-pipeline
-export FLP_IMAGE_PULLSPEC='registry.redhat.io/network-observability/network-observability-flowlogs-pipeline-rhel9@sha256:27cfe3f497c586bc2457c5aa4d56cf57dd613f560fd7db137e19b35f2cd2724b'
+export FLP_IMAGE_PULLSPEC='registry.redhat.io/network-observability/network-observability-flowlogs-pipeline-rhel9@sha256:fd2e5c462e0c73276eecb851461d805fc22418fd0d53e804ffcdc8899f3b210b'
 # Console plugin
-export CONSOLE_IMAGE_PULLSPEC='registry.redhat.io/network-observability/network-observability-console-plugin-rhel9@sha256:a8644cc8e00606910352cac029b4b91b88ab629be7be29b0429814a3582d56fb'
+export CONSOLE_IMAGE_PULLSPEC='registry.redhat.io/network-observability/network-observability-console-plugin-rhel9@sha256:51663f5742688208556821a11cceebc42165b9a81ffe0f6b7e4613c8d590279b'
 # Compatibility Console plugin
-export CONSOLE_COMPAT_IMAGE_PULLSPEC='registry.redhat.io/network-observability/network-observability-console-plugin-compat-rhel9@sha256:ff9cca0ad5cb66e38a6b17170db2a163b380e70d8bb58714c2fbf1e6e73e2972'
+export CONSOLE_COMPAT_IMAGE_PULLSPEC='registry.redhat.io/network-observability/network-observability-console-plugin-compat-rhel9@sha256:02d33d3094edd09693c9c06f078ee9842ed7add695800e92d012aff1132cc44c'
