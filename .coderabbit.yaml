@@ -30,7 +30,7 @@ reviews:
   path_filters:
     # generated deepcopy
     - "!**/zz_generated.deepcopy.go"
-    # TODO: add more paths that we can exclude.
+    - "!vendor/"
 
   tools:
     # already run in CI (code-style workflow)
