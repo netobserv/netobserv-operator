@@ -6197,6 +6197,17 @@ Kafka configuration, such as the address and topic, to send enriched flows to.
         </td>
         <td>true</td>
       </tr><tr>
+        <td><b>compression</b></td>
+        <td>enum</td>
+        <td>
+          Compression codec to use when producing messages to Kafka.
+Accepted values are: `none`, `gzip`, `snappy`, `lz4` (default), `zstd`.<br/>
+          <br/>
+            <i>Enum</i>: none, gzip, snappy, lz4, zstd<br/>
+            <i>Default</i>: lz4<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#flowcollectorspecexportersindexkafkasasl">sasl</a></b></td>
         <td>object</td>
         <td>
@@ -6938,6 +6949,17 @@ Kafka configuration, allowing to use Kafka as a broker as part of the flow colle
             <i>Default</i>: <br/>
         </td>
         <td>true</td>
+      </tr><tr>
+        <td><b>compression</b></td>
+        <td>enum</td>
+        <td>
+          Compression codec to use when producing messages to Kafka.
+Accepted values are: `none`, `gzip`, `snappy`, `lz4` (default), `zstd`.<br/>
+          <br/>
+            <i>Enum</i>: none, gzip, snappy, lz4, zstd<br/>
+            <i>Default</i>: lz4<br/>
+        </td>
+        <td>false</td>
       </tr><tr>
         <td><b><a href="#flowcollectorspeckafkasasl">sasl</a></b></td>
         <td>object</td>

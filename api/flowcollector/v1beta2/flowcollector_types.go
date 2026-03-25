@@ -431,6 +431,13 @@ type FlowCollectorKafka struct {
 	// Kafka topic to use. It must exist. NetObserv does not create it.
 	Topic string `json:"topic"`
 
+	// +kubebuilder:validation:Enum:="none";"gzip";"snappy";"lz4";"zstd"
+	// +kubebuilder:default:="lz4"
+	// Compression codec to use when producing messages to Kafka.
+	// Accepted values are: `none`, `gzip`, `snappy`, `lz4` (default), `zstd`.
+	// +optional
+	Compression string `json:"compression,omitempty"`
+
 	// TLS and mTLS client configuration. When using TLS, verify that the address matches the Kafka port used for TLS, generally 9093.
 	// We recommend the use of mTLS for higher security standards.
 	// +optional

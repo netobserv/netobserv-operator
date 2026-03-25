@@ -685,10 +685,11 @@ func (b *PipelineBuilder) addCustomExportStages(previous config.PipelineBuilderS
 
 func (b *PipelineBuilder) createKafkaWriteStage(name string, spec *flowslatest.FlowCollectorKafka, fromStage *config.PipelineBuilderStage) config.PipelineBuilderStage {
 	return fromStage.EncodeKafka(name, api.EncodeKafka{
-		Address: spec.Address,
-		Topic:   spec.Topic,
-		TLS:     getClientTLS(&spec.TLS, name, b.volumes),
-		SASL:    getSASL(&spec.SASL, name, b.volumes),
+		Address:     spec.Address,
+		Topic:       spec.Topic,
+		Compression: spec.Compression,
+		TLS:         getClientTLS(&spec.TLS, name, b.volumes),
+		SASL:        getSASL(&spec.SASL, name, b.volumes),
 	})
 }
 
