@@ -5903,6 +5903,7 @@ spec:
                       description: Prometheus querying configuration, such as client settings, used in the Console plugin.
                       properties:
                         enable:
+                          default: true
                           description: |-
                             When `enable` is `true`, the Console plugin queries flow metrics from Prometheus instead of Loki whenever possible.
                             It is enabled by default: set it to `false` to disable this feature.

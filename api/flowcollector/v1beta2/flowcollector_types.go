@@ -1090,6 +1090,7 @@ type PrometheusQuerier struct {
 	// such as getting per-pod information or viewing raw flows.
 	// If both Prometheus and Loki are enabled, Prometheus takes precedence and Loki is used as a fallback for queries that Prometheus cannot handle.
 	// If they are both disabled, the Console plugin is not deployed.
+	//+kubebuilder:default:=true
 	Enable *bool `json:"enable,omitempty"`
 
 	// `mode` must be set according to the type of Prometheus installation that stores NetObserv metrics:<br>

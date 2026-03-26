@@ -12562,6 +12562,8 @@ Not all queries are transposable from Loki to Prometheus. Hence, if Loki is disa
 such as getting per-pod information or viewing raw flows.
 If both Prometheus and Loki are enabled, Prometheus takes precedence and Loki is used as a fallback for queries that Prometheus cannot handle.
 If they are both disabled, the Console plugin is not deployed.<br/>
+          <br/>
+            <i>Default</i>: true<br/>
         </td>
         <td>false</td>
       </tr><tr>
