@@ -7,5 +7,5 @@ packaging==26.0
 ruamel.yaml==0.19.1
 ruamel.yaml.clib==0.2.15
 setuptools==82.0.1
-setuptools-scm==9.2.2
+setuptools-scm==10.0.5
 wheel==0.46.3
