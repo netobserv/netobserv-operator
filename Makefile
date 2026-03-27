@@ -408,7 +408,8 @@ set-manager-images: kustomize ## Update image references
 	$(SED) -i -r '/RELATED_IMAGE_EBPF_AGENT$$/{ n; s~value:.+$$~value: quay.io/netobserv/netobserv-ebpf-agent:$(BPF_VERSION)~}' ./config/manager/manager.yaml
 	$(SED) -i -r '/RELATED_IMAGE_FLOWLOGS_PIPELINE$$/{ n; s~value:.+$$~value: quay.io/netobserv/flowlogs-pipeline:$(FLP_VERSION)~}' ./config/manager/manager.yaml
 	$(SED) -i -r '/RELATED_IMAGE_CONSOLE_PLUGIN$$/{ n; s~value:.+$$~value: quay.io/netobserv/network-observability-console-plugin:$(PLG_VERSION)~}' ./config/manager/manager.yaml
-	$(SED) -i -r '/RELATED_IMAGE_CONSOLE_PLUGIN_COMPAT$$/{ n; s~value:.+$$~value: quay.io/netobserv/network-observability-console-plugin:$(PLG_VERSION)-pf4~}' ./config/manager/manager.yaml
+	$(SED) -i -r '/RELATED_IMAGE_CONSOLE_PLUGIN_PF4$$/{ n; s~value:.+$$~value: quay.io/netobserv/network-observability-console-plugin:$(PLG_VERSION)-pf4~}' ./config/manager/manager.yaml
+	$(SED) -i -r '/RELATED_IMAGE_CONSOLE_PLUGIN_PF5$$/{ n; s~value:.+$$~value: quay.io/netobserv/network-observability-console-plugin:$(PLG_VERSION)-pf5~}' ./config/manager/manager.yaml
 
 deploy: BPF_VERSION=main
 deploy: FLP_VERSION=main

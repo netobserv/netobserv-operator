@@ -162,8 +162,7 @@ func (r *FlowCollectorReconciler) reconcile(ctx context.Context, clh *helper.Cli
 	// Create reconcilers
 	cpReconciler := consoleplugin.NewReconciler(reconcilersInfo.NewInstance(
 		map[reconcilers.ImageRef]string{
-			reconcilers.MainImage:                r.mgr.Config.ConsolePluginImage,
-			reconcilers.ConsolePluginCompatImage: r.mgr.Config.ConsolePluginCompatImage,
+			reconcilers.MainImage: r.mgr.Config.ResolveConsolePluginImage(r.mgr.ClusterInfo),
 		},
 		r.mgr.Status.ForComponent(status.WebConsole),
 	))

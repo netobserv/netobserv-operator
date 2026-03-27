@@ -115,7 +115,6 @@ func (r *Reconciler) newDefaultReconcilerInstance(clh *helper.Client) *reconcile
 		IsDownstream: r.mgr.Config.DownstreamDeployment,
 	}
 	return reconcilersInfo.NewInstance(map[reconcilers.ImageRef]string{
-		reconcilers.MainImage:                r.mgr.Config.ConsolePluginImage,
-		reconcilers.ConsolePluginCompatImage: r.mgr.Config.ConsolePluginCompatImage,
+		reconcilers.MainImage: r.mgr.Config.ResolveConsolePluginImage(r.mgr.ClusterInfo),
 	}, r.status)
 }

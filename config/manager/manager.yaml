@@ -26,8 +26,7 @@ spec:
         - --leader-elect
         - --ebpf-agent-image=$(RELATED_IMAGE_EBPF_AGENT)
         - --flowlogs-pipeline-image=$(RELATED_IMAGE_FLOWLOGS_PIPELINE)
-        - --console-plugin-image=$(RELATED_IMAGE_CONSOLE_PLUGIN)
-        - --console-plugin-compat-image=$(RELATED_IMAGE_CONSOLE_PLUGIN_COMPAT)
+        - --console-plugin-images=4.0.0=$(RELATED_IMAGE_CONSOLE_PLUGIN_PF4);4.15.0=$(RELATED_IMAGE_CONSOLE_PLUGIN_PF5);4.22.0=$(RELATED_IMAGE_CONSOLE_PLUGIN)
         - --demo-loki-image=$(RELATED_IMAGE_DEMO_LOKI)
         - --namespace=$(NAMESPACE)
         - --downstream-deployment=$(DOWNSTREAM_DEPLOYMENT)
@@ -39,8 +38,10 @@ spec:
             value: quay.io/netobserv/flowlogs-pipeline:v1.11.3-community
           - name: RELATED_IMAGE_CONSOLE_PLUGIN
             value: quay.io/netobserv/network-observability-console-plugin:v1.11.3-community
-          - name: RELATED_IMAGE_CONSOLE_PLUGIN_COMPAT
+          - name: RELATED_IMAGE_CONSOLE_PLUGIN_PF4
             value: quay.io/netobserv/network-observability-console-plugin:v1.11.3-community-pf4
+          - name: RELATED_IMAGE_CONSOLE_PLUGIN_PF5
+            value: quay.io/netobserv/network-observability-console-plugin:v1.11.3-community-pf5
           - name: RELATED_IMAGE_DEMO_LOKI
             value: grafana/loki:3.5.0
           - name: DOWNSTREAM_DEPLOYMENT
