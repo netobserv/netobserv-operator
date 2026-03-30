@@ -175,7 +175,7 @@ func PrepareEnvTest(controllers []manager.Registerer, namespaces []string, baseP
 			EBPFAgentImage:        "registry-proxy.engineering.redhat.com/rh-osbs/network-observability-ebpf-agent@sha256:6481481ba23375107233f8d0a4f839436e34e50c2ec550ead0a16c361ae6654e",
 			FlowlogsPipelineImage: "registry-proxy.engineering.redhat.com/rh-osbs/network-observability-flowlogs-pipeline@sha256:6481481ba23375107233f8d0a4f839436e34e50c2ec550ead0a16c361ae6654e",
 			ConsolePluginImageVariants: []manager.ConsolePluginImageVariant{
-				{Image: "registry-proxy.engineering.redhat.com/rh-osbs/network-observability-console-plugin@sha256:6481481ba23375107233f8d0a4f839436e34e50c2ec550ead0a16c361ae6654e", MinVersion: "4.0.0"},
+				{Image: "registry-proxy.engineering.redhat.com/rh-osbs/network-observability-console-plugin@sha256:6481481ba23375107233f8d0a4f839436e34e50c2ec550ead0a16c361ae6654e", MinVersion: "4.14.0"},
 			},
 			DownstreamDeployment: false,
 			Namespace:            "main-namespace",

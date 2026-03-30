@@ -114,7 +114,7 @@ func main() {
 	flag.StringVar(&config.EBPFAgentImage, "ebpf-agent-image", "quay.io/netobserv/netobserv-ebpf-agent:main", "The image of the eBPF agent")
 	flag.StringVar(&config.FlowlogsPipelineImage, "flowlogs-pipeline-image", "quay.io/netobserv/flowlogs-pipeline:main", "The image of Flowlogs Pipeline")
 	flag.StringVar(&pluginImages, "console-plugin-images",
-		"4.0.0=quay.io/netobserv/network-observability-console-plugin:main",
+		"4.14.0=quay.io/netobserv/network-observability-console-plugin:main",
 		"Semicolon-separated list of minVersion=image for console plugin version selection. "+
 			"Last entry is also the default for non-OpenShift. "+
 			"Example: 4.0.0=img:pf4;4.15.0=img:pf5;4.22.0=img:pf6")

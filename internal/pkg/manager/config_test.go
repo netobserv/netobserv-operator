@@ -14,7 +14,7 @@ const (
 	pf6Image = "quay.io/netobserv/console-plugin:test"
 )
 
-const testPluginImagesRaw = "4.0.0=" + pf4Image + ";4.15.0=" + pf5Image + ";4.22.0=" + pf6Image
+const testPluginImagesRaw = "4.14.0=" + pf4Image + ";4.15.0=" + pf5Image + ";4.22.0=" + pf6Image
 
 func testConfig(t *testing.T) *Config {
 	t.Helper()
@@ -28,7 +28,7 @@ func TestParseConsolePluginImages(t *testing.T) {
 	err := cfg.ParseConsolePluginImages(testPluginImagesRaw)
 	require.NoError(t, err)
 	require.Len(t, cfg.ConsolePluginImageVariants, 3)
-	assert.Equal(t, "4.0.0", cfg.ConsolePluginImageVariants[0].MinVersion)
+	assert.Equal(t, "4.14.0", cfg.ConsolePluginImageVariants[0].MinVersion)
 	assert.Equal(t, pf4Image, cfg.ConsolePluginImageVariants[0].Image)
 	assert.Equal(t, "4.15.0", cfg.ConsolePluginImageVariants[1].MinVersion)
 	assert.Equal(t, pf5Image, cfg.ConsolePluginImageVariants[1].Image)
@@ -38,10 +38,10 @@ func TestParseConsolePluginImages(t *testing.T) {
 
 func TestParseConsolePluginImages_SingleEntry(t *testing.T) {
 	cfg := &Config{}
-	err := cfg.ParseConsolePluginImages("4.0.0=registry/img:latest")
+	err := cfg.ParseConsolePluginImages("4.14.0=registry/img:latest")
 	require.NoError(t, err)
 	require.Len(t, cfg.ConsolePluginImageVariants, 1)
-	assert.Equal(t, "4.0.0", cfg.ConsolePluginImageVariants[0].MinVersion)
+	assert.Equal(t, "4.14.0", cfg.ConsolePluginImageVariants[0].MinVersion)
 	assert.Equal(t, "registry/img:latest", cfg.ConsolePluginImageVariants[0].Image)
 }
 
@@ -61,7 +61,7 @@ func TestParseConsolePluginImages_InvalidNoEquals(t *testing.T) {
 
 func TestParseConsolePluginImages_InvalidNoImage(t *testing.T) {
 	cfg := &Config{}
-	err := cfg.ParseConsolePluginImages("4.0.0=")
+	err := cfg.ParseConsolePluginImages("4.14.0=")
 	assert.Error(t, err)
 }
 
@@ -75,63 +75,81 @@ func TestResolveConsolePluginImage_OCP413(t *testing.T) {
 	cfg := testConfig(t)
 	info := &cluster.Info{}
 	info.Mock("4.13.0", "")
-	assert.Equal(t, pf4Image, cfg.ResolveConsolePluginImage(info))
+	_, err := cfg.ResolveConsolePluginImage(info)
+	require.Error(t, err, "below minimum variant; should error")
+	assert.Contains(t, err.Error(), "no console plugin image variant matches")
 }
 
 func TestResolveConsolePluginImage_OCP414(t *testing.T) {
 	cfg := testConfig(t)
 	info := &cluster.Info{}
 	info.Mock("4.14.9", "")
-	assert.Equal(t, pf4Image, cfg.ResolveConsolePluginImage(info))
+	img, err := cfg.ResolveConsolePluginImage(info)
+	require.NoError(t, err)
+	assert.Equal(t, pf4Image, img)
 }
 
 func TestResolveConsolePluginImage_OCP415(t *testing.T) {
 	cfg := testConfig(t)
 	info := &cluster.Info{}
 	info.Mock("4.15.0", "")
-	assert.Equal(t, pf5Image, cfg.ResolveConsolePluginImage(info))
+	img, err := cfg.ResolveConsolePluginImage(info)
+	require.NoError(t, err)
+	assert.Equal(t, pf5Image, img)
 }
 
 func TestResolveConsolePluginImage_OCP418(t *testing.T) {
 	cfg := testConfig(t)
 	info := &cluster.Info{}
 	info.Mock("4.18.3", "")
-	assert.Equal(t, pf5Image, cfg.ResolveConsolePluginImage(info))
+	img, err := cfg.ResolveConsolePluginImage(info)
+	require.NoError(t, err)
+	assert.Equal(t, pf5Image, img)
 }
 
 func TestResolveConsolePluginImage_OCP421(t *testing.T) {
 	cfg := testConfig(t)
 	info := &cluster.Info{}
 	info.Mock("4.21.0", "")
-	assert.Equal(t, pf5Image, cfg.ResolveConsolePluginImage(info))
+	img, err := cfg.ResolveConsolePluginImage(info)
+	require.NoError(t, err)
+	assert.Equal(t, pf5Image, img)
 }
 
 func TestResolveConsolePluginImage_OCP422(t *testing.T) {
 	cfg := testConfig(t)
 	info := &cluster.Info{}
 	info.Mock("4.22.0", "")
-	assert.Equal(t, pf6Image, cfg.ResolveConsolePluginImage(info))
+	img, err := cfg.ResolveConsolePluginImage(info)
+	require.NoError(t, err)
+	assert.Equal(t, pf6Image, img)
 }
 
 func TestResolveConsolePluginImage_OCP425(t *testing.T) {
 	cfg := testConfig(t)
 	info := &cluster.Info{}
 	info.Mock("4.25.0", "")
-	assert.Equal(t, pf6Image, cfg.ResolveConsolePluginImage(info))
+	img, err := cfg.ResolveConsolePluginImage(info)
+	require.NoError(t, err)
+	assert.Equal(t, pf6Image, img)
 }
 
 func TestResolveConsolePluginImage_NonOpenShift(t *testing.T) {
 	cfg := testConfig(t)
 	info := &cluster.Info{}
 	info.Mock("", "")
-	assert.Equal(t, pf6Image, cfg.ResolveConsolePluginImage(info), "should default to last entry (most current)")
+	img, err := cfg.ResolveConsolePluginImage(info)
+	require.NoError(t, err)
+	assert.Equal(t, pf6Image, img, "should default to last entry (most current)")
 }
 
 func TestResolveConsolePluginImage_NoVariants(t *testing.T) {
 	cfg := &Config{}
 	info := &cluster.Info{}
 	info.Mock("4.18.0", "")
-	assert.Equal(t, "", cfg.ResolveConsolePluginImage(info))
+	_, err := cfg.ResolveConsolePluginImage(info)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "no console plugin image variants configured")
 }
 
 func TestValidate_ValidConfig(t *testing.T) {
@@ -140,7 +158,7 @@ func TestValidate_ValidConfig(t *testing.T) {
 		FlowlogsPipelineImage: "flp:test",
 		Namespace:             "netobserv",
 	}
-	require.NoError(t, cfg.ParseConsolePluginImages("4.0.0=plugin:test"))
+	require.NoError(t, cfg.ParseConsolePluginImages("4.14.0=plugin:test"))
 	assert.NoError(t, cfg.Validate())
 }
 
@@ -152,4 +170,48 @@ func TestValidate_NoPluginImages(t *testing.T) {
 	}
 	assert.Error(t, cfg.Validate())
 	assert.Contains(t, cfg.Validate().Error(), "console plugin images can't be empty")
+}
+
+func TestValidate_InvalidMinVersion(t *testing.T) {
+	cfg := &Config{
+		EBPFAgentImage:        "agent:test",
+		FlowlogsPipelineImage: "flp:test",
+		Namespace:             "netobserv",
+		ConsolePluginImageVariants: []ConsolePluginImageVariant{
+			{MinVersion: "not-a-version", Image: "plugin:test"},
+		},
+	}
+	err := cfg.Validate()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid MinVersion")
+}
+
+func TestValidate_MisorderedMinVersions(t *testing.T) {
+	cfg := &Config{
+		EBPFAgentImage:        "agent:test",
+		FlowlogsPipelineImage: "flp:test",
+		Namespace:             "netobserv",
+		ConsolePluginImageVariants: []ConsolePluginImageVariant{
+			{MinVersion: "4.15.0", Image: "plugin:pf5"},
+			{MinVersion: "4.14.0", Image: "plugin:pf4"},
+		},
+	}
+	err := cfg.Validate()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "must be strictly greater than previous")
+}
+
+func TestValidate_DuplicateMinVersions(t *testing.T) {
+	cfg := &Config{
+		EBPFAgentImage:        "agent:test",
+		FlowlogsPipelineImage: "flp:test",
+		Namespace:             "netobserv",
+		ConsolePluginImageVariants: []ConsolePluginImageVariant{
+			{MinVersion: "4.15.0", Image: "plugin:a"},
+			{MinVersion: "4.15.0", Image: "plugin:b"},
+		},
+	}
+	err := cfg.Validate()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "must be strictly greater than previous")
 }

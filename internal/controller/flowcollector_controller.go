@@ -160,9 +160,13 @@ func (r *FlowCollectorReconciler) reconcile(ctx context.Context, clh *helper.Cli
 	lokiStatus := r.lokistackWatcher.Reconcile(ctx, desired)
 
 	// Create reconcilers
+	cpImage, err := r.mgr.Config.ResolveConsolePluginImage(r.mgr.ClusterInfo)
+	if err != nil {
+		return r.status.Error("ConsolePluginImageError", err)
+	}
 	cpReconciler := consoleplugin.NewReconciler(reconcilersInfo.NewInstance(
 		map[reconcilers.ImageRef]string{
-			reconcilers.MainImage: r.mgr.Config.ResolveConsolePluginImage(r.mgr.ClusterInfo),
+			reconcilers.MainImage: cpImage,
 		},
 		r.mgr.Status.ForComponent(status.WebConsole),
 	))
