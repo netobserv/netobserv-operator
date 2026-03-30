@@ -50,3 +50,12 @@ Flow records (protobuf-encoded) contain many repeated fields (IP addresses, name
 ## Impact on batching
 
 Compression efficiency improves with larger batches. The `spec.agent.ebpf.kafkaBatchSize` setting (default 1 MiB) controls the maximum batch size in bytes before compression. Larger batches compress better but add latency. The default batch size provides a good balance.
+
+## Sources
+
+The compression ratios and CPU cost estimates in the codec comparison table are approximate values derived from upstream benchmarks, not from NetObserv-specific measurements. Actual results will vary depending on flow record characteristics and batch sizes.
+
+- [lz4 benchmarks](https://github.com/lz4/lz4) — Yann Collet's reference benchmarks
+- [Zstandard benchmarks](https://github.com/facebook/zstd) — Meta's comparison across compression algorithms
+- [KIP-110: Add Codec for ZStandard Compression](https://cwiki.apache.org/confluence/display/KAFKA/KIP-110%3A+Add+Codec+for+ZStandard+Compression) — Kafka proposal comparing codec trade-offs
+- [Snappy documentation](https://github.com/google/snappy) — Google's design goals and performance characteristics
