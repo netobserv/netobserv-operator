@@ -59,9 +59,17 @@ func (c *AgentController) bpfmanAttachNetobserv(ctx context.Context, fc *flowsla
 }
 
 func prepareBpfApplication(bpfApp *bpfmaniov1alpha1.ClusterBpfApplication, fc *flowslatest.FlowCollector, netobservBCImage string) {
+	openSSLPath := setupGlobalData(bpfApp, fc)
+	setupByteCode(bpfApp, netobservBCImage)
+	setupBasePrograms(bpfApp)
+	setupOptionalPrograms(bpfApp, fc, openSSLPath)
+}
+
+func setupGlobalData(bpfApp *bpfmaniov1alpha1.ClusterBpfApplication, fc *flowslatest.FlowCollector) string {
 	samplingValue := make([]byte, 4)
 	dnsPortValue := make([]byte, 2)
-	var enableDNSValue, enableRTTValue, enableFLowFilterValue, enableNetworkEvents, traceValue, networkEventsGroupIDValue, enablePktTranslation, enableIPSecValue []byte
+	var enableDNSValue, enableRTTValue, enableFLowFilterValue, enableNetworkEvents, traceValue, networkEventsGroupIDValue, enablePktTranslation, enableIPSecValue, enableOpenSSLValue []byte
+	openSSLPath := defaultOpenSSLPath
 
 	binary.NativeEndian.PutUint32(samplingValue, uint32(*fc.Spec.Agent.EBPF.Sampling))
 
@@ -93,6 +101,10 @@ func prepareBpfApplication(bpfApp *bpfmaniov1alpha1.ClusterBpfApplication, fc *f
 		enableIPSecValue = append(enableIPSecValue, uint8(1))
 	}
 
+	if fc.Spec.Agent.EBPF.IsOpenSSLTrackingEnabled() {
+		enableOpenSSLValue = append(enableOpenSSLValue, uint8(1))
+	}
+
 	bpfApp.Labels = map[string]string{
 		"app": netobservApp,
 	}
@@ -105,6 +117,8 @@ func prepareBpfApplication(bpfApp *bpfmaniov1alpha1.ClusterBpfApplication, fc *f
 				dnsPortValue = []byte(v)
 			} else if k == envNetworkEventsGroupID {
 				networkEventsGroupIDValue = []byte(v)
+			} else if k == envOpenSSLPath {
+				openSSLPath = v
 			}
 		}
 
@@ -124,14 +138,22 @@ func prepareBpfApplication(bpfApp *bpfmaniov1alpha1.ClusterBpfApplication, fc *f
 		"network_events_monitoring_groupid": networkEventsGroupIDValue,
 		"enable_pkt_translation_tracking":   enablePktTranslation,
 		"enable_ipsec":                      enableIPSecValue,
+		"enable_openssl_tracking":           enableOpenSSLValue,
 	}
 
+	return openSSLPath
+}
+
+func setupByteCode(bpfApp *bpfmaniov1alpha1.ClusterBpfApplication, netobservBCImage string) {
 	bpfApp.Spec.BpfAppCommon.ByteCode = bpfmaniov1alpha1.ByteCodeSelector{
 		Image: &bpfmaniov1alpha1.ByteCodeImage{
 			Url:             netobservBCImage,
 			ImagePullPolicy: bpfmaniov1alpha1.PullIfNotPresent,
 		},
 	}
+}
+
+func setupBasePrograms(bpfApp *bpfmaniov1alpha1.ClusterBpfApplication) {
 	bpfApp.Spec.Programs = []bpfmaniov1alpha1.ClBpfApplicationProgram{
 		{
 			Name: "tcx_ingress_flow_parse",
@@ -164,128 +186,155 @@ func prepareBpfApplication(bpfApp *bpfmaniov1alpha1.ClusterBpfApplication, fc *f
 			},
 		},
 	}
+}
 
+func setupOptionalPrograms(bpfApp *bpfmaniov1alpha1.ClusterBpfApplication, fc *flowslatest.FlowCollector, openSSLPath string) {
 	if fc.Spec.Agent.EBPF.IsFlowRTTEnabled() {
-		bpfApp.Spec.Programs = append(bpfApp.Spec.Programs, []bpfmaniov1alpha1.ClBpfApplicationProgram{
-			{
-				Name: "tcp_rcv_fentry",
-				Type: bpfmaniov1alpha1.ProgTypeFentry,
-				FEntry: &bpfmaniov1alpha1.ClFentryProgramInfo{
-					ClFentryLoadInfo: bpfmaniov1alpha1.ClFentryLoadInfo{
-						Function: "tcp_rcv_established",
-					},
-					Links: []bpfmaniov1alpha1.ClFentryAttachInfo{
-						{
-							Mode: bpfmaniov1alpha1.Attach,
-						},
-					},
-				},
-			},
-		}...)
+		addRTTPrograms(bpfApp)
 	}
 
 	if fc.Spec.Agent.EBPF.IsNetworkEventsEnabled() {
-		bpfApp.Spec.Programs = append(bpfApp.Spec.Programs, []bpfmaniov1alpha1.ClBpfApplicationProgram{
-			{
-				Name: "network_events_monitoring",
-				Type: bpfmaniov1alpha1.ProgTypeKprobe,
-				KProbe: &bpfmaniov1alpha1.ClKprobeProgramInfo{
-					Links: []bpfmaniov1alpha1.ClKprobeAttachInfo{
-						{
-							Function: "psample_sample_packet",
-						},
-					},
-				},
-			},
-		}...)
+		addNetworkEventsPrograms(bpfApp)
 	}
 
 	if fc.Spec.Agent.EBPF.IsPktDropEnabled() {
-		bpfApp.Spec.Programs = append(bpfApp.Spec.Programs, []bpfmaniov1alpha1.ClBpfApplicationProgram{
-			{
-				Name: "kfree_skb",
-				Type: bpfmaniov1alpha1.ProgTypeTracepoint,
-				TracePoint: &bpfmaniov1alpha1.ClTracepointProgramInfo{
-					Links: []bpfmaniov1alpha1.ClTracepointAttachInfo{
-						{
-							Name: "skb/kfree_skb",
-						},
-					},
-				},
-			},
-		}...)
+		addPktDropPrograms(bpfApp)
 	}
 
 	if fc.Spec.Agent.EBPF.IsPacketTranslationEnabled() {
-		bpfApp.Spec.Programs = append(bpfApp.Spec.Programs, []bpfmaniov1alpha1.ClBpfApplicationProgram{
-			{
-				Name: "track_nat_manip_pkt",
-				Type: bpfmaniov1alpha1.ProgTypeKprobe,
-				KProbe: &bpfmaniov1alpha1.ClKprobeProgramInfo{
-					Links: []bpfmaniov1alpha1.ClKprobeAttachInfo{
-						{
-							Function: "nf_nat_manip_pkt",
-						},
-					},
-				},
-			},
-		}...)
+		addPacketTranslationPrograms(bpfApp)
 	}
 
 	if fc.Spec.Agent.EBPF.IsIPSecEnabled() {
-		bpfApp.Spec.Programs = append(bpfApp.Spec.Programs, []bpfmaniov1alpha1.ClBpfApplicationProgram{
-			{
-				Name: "xfrm_input_kprobe",
-				Type: bpfmaniov1alpha1.ProgTypeKprobe,
-				KProbe: &bpfmaniov1alpha1.ClKprobeProgramInfo{
-					Links: []bpfmaniov1alpha1.ClKprobeAttachInfo{
-						{
-							Function: "xfrm_input",
-						},
-					},
-				},
-			},
-		}...)
-		bpfApp.Spec.Programs = append(bpfApp.Spec.Programs, []bpfmaniov1alpha1.ClBpfApplicationProgram{
-			{
-				Name: "xfrm_input_kretprobe",
-				Type: bpfmaniov1alpha1.ProgTypeKretprobe,
-				KRetProbe: &bpfmaniov1alpha1.ClKretprobeProgramInfo{
-					Links: []bpfmaniov1alpha1.ClKretprobeAttachInfo{
-						{
-							Function: "xfrm_input",
-						},
-					},
-				},
-			},
-		}...)
-		bpfApp.Spec.Programs = append(bpfApp.Spec.Programs, []bpfmaniov1alpha1.ClBpfApplicationProgram{
-			{
-				Name: "xfrm_output_kprobe",
-				Type: bpfmaniov1alpha1.ProgTypeKprobe,
-				KProbe: &bpfmaniov1alpha1.ClKprobeProgramInfo{
-					Links: []bpfmaniov1alpha1.ClKprobeAttachInfo{
-						{
-							Function: "xfrm_output",
-						},
-					},
-				},
-			},
-		}...)
-		bpfApp.Spec.Programs = append(bpfApp.Spec.Programs, []bpfmaniov1alpha1.ClBpfApplicationProgram{
-			{
-				Name: "xfrm_output_kretprobe",
-				Type: bpfmaniov1alpha1.ProgTypeKretprobe,
-				KRetProbe: &bpfmaniov1alpha1.ClKretprobeProgramInfo{
-					Links: []bpfmaniov1alpha1.ClKretprobeAttachInfo{
-						{
-							Function: "xfrm_output",
-						},
-					},
-				},
-			},
-		}...)
+		addIPSecPrograms(bpfApp)
 	}
+
+	if fc.Spec.Agent.EBPF.IsOpenSSLTrackingEnabled() {
+		addOpenSSLPrograms(bpfApp, openSSLPath)
+	}
+}
+
+func addRTTPrograms(bpfApp *bpfmaniov1alpha1.ClusterBpfApplication) {
+	bpfApp.Spec.Programs = append(bpfApp.Spec.Programs, bpfmaniov1alpha1.ClBpfApplicationProgram{
+		Name: "tcp_rcv_fentry",
+		Type: bpfmaniov1alpha1.ProgTypeFentry,
+		FEntry: &bpfmaniov1alpha1.ClFentryProgramInfo{
+			ClFentryLoadInfo: bpfmaniov1alpha1.ClFentryLoadInfo{
+				Function: "tcp_rcv_established",
+			},
+			Links: []bpfmaniov1alpha1.ClFentryAttachInfo{
+				{
+					Mode: bpfmaniov1alpha1.Attach,
+				},
+			},
+		},
+	})
+}
+
+func addNetworkEventsPrograms(bpfApp *bpfmaniov1alpha1.ClusterBpfApplication) {
+	bpfApp.Spec.Programs = append(bpfApp.Spec.Programs, bpfmaniov1alpha1.ClBpfApplicationProgram{
+		Name: "network_events_monitoring",
+		Type: bpfmaniov1alpha1.ProgTypeKprobe,
+		KProbe: &bpfmaniov1alpha1.ClKprobeProgramInfo{
+			Links: []bpfmaniov1alpha1.ClKprobeAttachInfo{
+				{
+					Function: "psample_sample_packet",
+				},
+			},
+		},
+	})
+}
+
+func addPktDropPrograms(bpfApp *bpfmaniov1alpha1.ClusterBpfApplication) {
+	bpfApp.Spec.Programs = append(bpfApp.Spec.Programs, bpfmaniov1alpha1.ClBpfApplicationProgram{
+		Name: "kfree_skb",
+		Type: bpfmaniov1alpha1.ProgTypeTracepoint,
+		TracePoint: &bpfmaniov1alpha1.ClTracepointProgramInfo{
+			Links: []bpfmaniov1alpha1.ClTracepointAttachInfo{
+				{
+					Name: "skb/kfree_skb",
+				},
+			},
+		},
+	})
+}
+
+func addPacketTranslationPrograms(bpfApp *bpfmaniov1alpha1.ClusterBpfApplication) {
+	bpfApp.Spec.Programs = append(bpfApp.Spec.Programs, bpfmaniov1alpha1.ClBpfApplicationProgram{
+		Name: "track_nat_manip_pkt",
+		Type: bpfmaniov1alpha1.ProgTypeKprobe,
+		KProbe: &bpfmaniov1alpha1.ClKprobeProgramInfo{
+			Links: []bpfmaniov1alpha1.ClKprobeAttachInfo{
+				{
+					Function: "nf_nat_manip_pkt",
+				},
+			},
+		},
+	})
+}
+
+func addIPSecPrograms(bpfApp *bpfmaniov1alpha1.ClusterBpfApplication) {
+	bpfApp.Spec.Programs = append(bpfApp.Spec.Programs,
+		bpfmaniov1alpha1.ClBpfApplicationProgram{
+			Name: "xfrm_input_kprobe",
+			Type: bpfmaniov1alpha1.ProgTypeKprobe,
+			KProbe: &bpfmaniov1alpha1.ClKprobeProgramInfo{
+				Links: []bpfmaniov1alpha1.ClKprobeAttachInfo{
+					{
+						Function: "xfrm_input",
+					},
+				},
+			},
+		},
+		bpfmaniov1alpha1.ClBpfApplicationProgram{
+			Name: "xfrm_input_kretprobe",
+			Type: bpfmaniov1alpha1.ProgTypeKretprobe,
+			KRetProbe: &bpfmaniov1alpha1.ClKretprobeProgramInfo{
+				Links: []bpfmaniov1alpha1.ClKretprobeAttachInfo{
+					{
+						Function: "xfrm_input",
+					},
+				},
+			},
+		},
+		bpfmaniov1alpha1.ClBpfApplicationProgram{
+			Name: "xfrm_output_kprobe",
+			Type: bpfmaniov1alpha1.ProgTypeKprobe,
+			KProbe: &bpfmaniov1alpha1.ClKprobeProgramInfo{
+				Links: []bpfmaniov1alpha1.ClKprobeAttachInfo{
+					{
+						Function: "xfrm_output",
+					},
+				},
+			},
+		},
+		bpfmaniov1alpha1.ClBpfApplicationProgram{
+			Name: "xfrm_output_kretprobe",
+			Type: bpfmaniov1alpha1.ProgTypeKretprobe,
+			KRetProbe: &bpfmaniov1alpha1.ClKretprobeProgramInfo{
+				Links: []bpfmaniov1alpha1.ClKretprobeAttachInfo{
+					{
+						Function: "xfrm_output",
+					},
+				},
+			},
+		},
+	)
+}
+
+func addOpenSSLPrograms(bpfApp *bpfmaniov1alpha1.ClusterBpfApplication, openSSLPath string) {
+	bpfApp.Spec.Programs = append(bpfApp.Spec.Programs, bpfmaniov1alpha1.ClBpfApplicationProgram{
+		Name: "probe_entry_SSL_write",
+		Type: bpfmaniov1alpha1.ProgTypeUprobe,
+		UProbe: &bpfmaniov1alpha1.ClUprobeProgramInfo{
+			Links: []bpfmaniov1alpha1.ClUprobeAttachInfo{
+				{
+					Target:   openSSLPath,
+					Function: "SSL_write",
+				},
+			},
+		},
+	})
 }
 
 func (c *AgentController) createBpfApplication(ctx context.Context, bpfApp *bpfmaniov1alpha1.ClusterBpfApplication) error {

@@ -36,10 +36,11 @@ var (
 	CurrentClusterInfo     clusterInfo
 	needPrivileged         = []AgentFeature{UDNMapping, NetworkEvents}
 	neededOpenShiftVersion = map[AgentFeature]string{
-		PacketDrop:    "4.14.0",
-		UDNMapping:    "4.18.0",
-		NetworkEvents: "4.19.0",
-		EbpfManager:   "4.19.0",
+		PacketDrop:      "4.14.0",
+		UDNMapping:      "4.18.0",
+		NetworkEvents:   "4.19.0",
+		EbpfManager:     "4.19.0",
+		OpenSSLTracking: "4.14.0", // Requires uprobe support
 	}
 )
 

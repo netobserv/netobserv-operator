@@ -188,7 +188,8 @@ type FlowCollectorIPFIX struct {
 // - `EbpfManager`, to enable using eBPF Manager to manage NetObserv eBPF programs. [Unsupported (*)].<br>
 // - `UDNMapping`, to enable interfaces mapping to UDN.<br>
 // - `IPSec`, to track flows between nodes with IPsec encryption.<br>
-// +kubebuilder:validation:Enum:="PacketDrop";"DNSTracking";"FlowRTT";"NetworkEvents";"PacketTranslation";"EbpfManager";"UDNMapping";"IPSec"
+// - `OpenSSLTracking`, to track SSL/TLS encrypted traffic using OpenSSL uprobes [Technology Preview].<br>
+// +kubebuilder:validation:Enum:="PacketDrop";"DNSTracking";"FlowRTT";"NetworkEvents";"PacketTranslation";"EbpfManager";"UDNMapping";"IPSec";"OpenSSLTracking"
 type AgentFeature string
 
 const (
@@ -200,6 +201,7 @@ const (
 	EbpfManager       AgentFeature = "EbpfManager"
 	UDNMapping        AgentFeature = "UDNMapping"
 	IPSec             AgentFeature = "IPSec"
+	OpenSSLTracking   AgentFeature = "OpenSSLTracking"
 )
 
 // Name of an eBPF agent alert.
