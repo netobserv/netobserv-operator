@@ -40,7 +40,7 @@ func TestStatusWorkflow(t *testing.T) {
 	assertHasConditionTypes(t, conds, []string{"FlowCollectorControllerReady", "MonitoringReady", "Ready"})
 	assertHasCondition(t, conds, "Ready", "Pending", metav1.ConditionFalse)
 	assertHasCondition(t, conds, "FlowCollectorControllerReady", "DaemonSetNotReady", metav1.ConditionFalse)
-	assertHasCondition(t, conds, "MonitoringReady", "Unused", metav1.ConditionUnknown)
+	assertHasCondition(t, conds, "MonitoringReady", "Unknown", metav1.ConditionUnknown)
 
 	sl.CheckDaemonSetProgress(&appsv1.DaemonSet{ObjectMeta: metav1.ObjectMeta{Name: "test"}, Status: appsv1.DaemonSetStatus{
 		DesiredNumberScheduled: 3,
@@ -764,7 +764,7 @@ func TestConditionPolarity(t *testing.T) {
 		{StatusFailure, metav1.ConditionFalse, "NotReady"},
 		{StatusInProgress, metav1.ConditionFalse, "NotReady"},
 		{StatusDegraded, metav1.ConditionFalse, "NotReady"},
-		{StatusUnknown, metav1.ConditionUnknown, "Unused"},
+		{StatusUnknown, metav1.ConditionUnknown, "Unknown"},
 		{StatusUnused, metav1.ConditionUnknown, "Unused"},
 	}
 	for _, tc := range tests {

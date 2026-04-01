@@ -158,13 +158,10 @@ func (s *Manager) getConditions() []metav1.Condition {
 }
 
 // populateComponentStatuses maps internal ComponentStatus instances to the CRD status fields.
+// Always start fresh to avoid stale data from a previous API server fetch influencing the merge.
 func (s *Manager) populateComponentStatuses(fc *flowslatest.FlowCollector) {
-	if fc.Status.Components == nil {
-		fc.Status.Components = &flowslatest.FlowCollectorComponentsStatus{}
-	}
-	if fc.Status.Integrations == nil {
-		fc.Status.Integrations = &flowslatest.FlowCollectorIntegrationsStatus{}
-	}
+	fc.Status.Components = &flowslatest.FlowCollectorComponentsStatus{}
+	fc.Status.Integrations = &flowslatest.FlowCollectorIntegrationsStatus{}
 
 	s.statuses.Range(func(_, v any) bool {
 		cs := v.(ComponentStatus)
@@ -219,7 +216,7 @@ func mergeProcessorStatus(existing *flowslatest.FlowCollectorComponentStatus, cs
 	}
 
 	crd := cs.toCRDStatus()
-	if existingIsWeak || cs.Status == StatusFailure || cs.Status == StatusInProgress {
+	if existingIsWeak || cs.Status == StatusFailure || cs.Status == StatusInProgress || cs.Status == StatusDegraded {
 		return crd
 	}
 	if existing.State == string(StatusReady) && crd.DesiredReplicas != nil {
@@ -359,7 +356,7 @@ func (s *Manager) GetKafkaCondition() *metav1.Condition {
 	var messages []string
 
 	// Check transformer (only used with Kafka)
-	if ts := s.getStatus(FLPTransformer); ts != nil && ts.Status != StatusUnknown {
+	if ts := s.getStatus(FLPTransformer); ts != nil && ts.Status != StatusUnknown && ts.Status != StatusUnused {
 		if ts.Status == StatusFailure || ts.Status == StatusDegraded {
 			hasKafkaIssue = true
 			messages = append(messages, fmt.Sprintf("Transformer: %s", ts.Message))

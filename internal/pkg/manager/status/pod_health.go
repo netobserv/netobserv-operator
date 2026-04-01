@@ -3,6 +3,7 @@ package status
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -65,8 +66,15 @@ func CheckPodHealth(ctx context.Context, c client.Client, namespace string, matc
 		return PodHealthSummary{}
 	}
 
+	sortedReasons := make([]string, 0, len(groups))
+	for reason := range groups {
+		sortedReasons = append(sortedReasons, reason)
+	}
+	sort.Strings(sortedReasons)
+
 	var parts []string
-	for _, g := range groups {
+	for _, reason := range sortedReasons {
+		g := groups[reason]
 		count := len(g.podNames)
 		names := g.podNames
 		if len(names) > maxPodNamesInSummary {
@@ -117,6 +125,15 @@ func classifyPodIssue(pod *corev1.Pod) (string, string) {
 
 	if pod.Status.Phase == corev1.PodFailed {
 		return "PodFailed", pod.Status.Message
+	}
+
+	if pod.Status.Phase == corev1.PodPending {
+		for i := range pod.Status.Conditions {
+			c := &pod.Status.Conditions[i]
+			if c.Type == corev1.PodScheduled && c.Status == corev1.ConditionFalse {
+				return "PendingScheduling", c.Message
+			}
+		}
 	}
 
 	return "", ""

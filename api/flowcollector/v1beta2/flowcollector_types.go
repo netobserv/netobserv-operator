@@ -1640,7 +1640,7 @@ type FlowCollectorComponentStatus struct {
 
 // `FlowCollectorExporterStatus` represents the status of a configured exporter.
 type FlowCollectorExporterStatus struct {
-	// `name` is the identifier for this exporter, matching spec.exporters entries.
+	// `name` is a generated identifier for this exporter (e.g., "kafka-export-0"), derived from its type and position in spec.exporters.
 	Name string `json:"name"`
 
 	// `type` is the exporter type (Kafka, IPFIX, OpenTelemetry).

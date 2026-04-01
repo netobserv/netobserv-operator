@@ -33,7 +33,10 @@ func (s *ComponentStatus) toCondition() metav1.Condition {
 		Message: s.Message,
 	}
 	switch s.Status {
-	case StatusUnknown, StatusUnused:
+	case StatusUnknown:
+		c.Status = metav1.ConditionUnknown
+		c.Reason = "Unknown"
+	case StatusUnused:
 		c.Status = metav1.ConditionUnknown
 		c.Reason = "Unused"
 	case StatusFailure, StatusInProgress, StatusDegraded:

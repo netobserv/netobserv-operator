@@ -6278,7 +6278,7 @@ spec:
                             description: '`message` is a human-readable description of the exporter''s current state.'
                             type: string
                           name:
-                            description: '`name` is the identifier for this exporter, matching spec.exporters entries.'
+                            description: '`name` is a generated identifier for this exporter (e.g., "kafka-export-0"), derived from its type and position in spec.exporters.'
                             type: string
                           reason:
                             description: '`reason` is a one-word CamelCase reason for the exporter''s current state.'

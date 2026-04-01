@@ -113,6 +113,38 @@ func TestClassifyPodIssue_PodFailed(t *testing.T) {
 	assert.Equal(t, "Pod exceeded memory", msg)
 }
 
+func TestClassifyPodIssue_PendingScheduling(t *testing.T) {
+	pod := &corev1.Pod{
+		Status: corev1.PodStatus{
+			Phase: corev1.PodPending,
+			Conditions: []corev1.PodCondition{{
+				Type:    corev1.PodScheduled,
+				Status:  corev1.ConditionFalse,
+				Reason:  "Unschedulable",
+				Message: "0/3 nodes are available: insufficient memory",
+			}},
+		},
+	}
+	reason, msg := classifyPodIssue(pod)
+	assert.Equal(t, "PendingScheduling", reason)
+	assert.Equal(t, "0/3 nodes are available: insufficient memory", msg)
+}
+
+func TestClassifyPodIssue_PendingButScheduled(t *testing.T) {
+	pod := &corev1.Pod{
+		Status: corev1.PodStatus{
+			Phase: corev1.PodPending,
+			Conditions: []corev1.PodCondition{{
+				Type:   corev1.PodScheduled,
+				Status: corev1.ConditionTrue,
+			}},
+		},
+	}
+	reason, msg := classifyPodIssue(pod)
+	assert.Empty(t, reason)
+	assert.Empty(t, msg)
+}
+
 func TestTruncateMessage(t *testing.T) {
 	short := "short message"
 	assert.Equal(t, short, truncateMessage(short, 100))

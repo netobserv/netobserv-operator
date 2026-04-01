@@ -13482,7 +13482,7 @@ with respect to the current state of the instance.<br/>
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          `name` is the identifier for this exporter, matching spec.exporters entries.<br/>
+          `name` is a generated identifier for this exporter (e.g., "kafka-export-0"), derived from its type and position in spec.exporters.<br/>
         </td>
         <td>true</td>
       </tr><tr>
