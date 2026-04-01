@@ -292,6 +292,24 @@ func TestSetPodHealthDegradation(t *testing.T) {
 	assert.Equal(t, int32(2), cs.PodHealth.UnhealthyCount)
 }
 
+func TestSetPodHealthFromInProgress(t *testing.T) {
+	s := NewManager()
+	agent := s.ForComponent(EBPFAgents)
+
+	agent.SetNotReady("DaemonSetNotReady", "DaemonSet not ready: 0/2")
+	assert.Equal(t, StatusInProgress, agent.Get().Status)
+
+	agent.setPodHealth(PodHealthSummary{
+		UnhealthyCount: 2,
+		Issues:         "2 CrashLoopBackOff (pod-a, pod-b): Error",
+	})
+
+	cs := agent.Get()
+	assert.Equal(t, StatusDegraded, cs.Status, "InProgress + unhealthy pods should become Degraded")
+	assert.Equal(t, "UnhealthyPods", cs.Reason)
+	assert.Equal(t, int32(2), cs.PodHealth.UnhealthyCount)
+}
+
 func TestSetPodHealthNoDowngradeFromFailure(t *testing.T) {
 	s := NewManager()
 	agent := s.ForComponent(EBPFAgents)

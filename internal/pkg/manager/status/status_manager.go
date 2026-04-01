@@ -566,7 +566,7 @@ func (i *Instance) setPodHealth(health PodHealthSummary) {
 	cs := i.s.getStatus(i.cpnt)
 	if cs != nil {
 		cs.PodHealth = health
-		if health.UnhealthyCount > 0 && cs.Status == StatusReady {
+		if health.UnhealthyCount > 0 && (cs.Status == StatusReady || cs.Status == StatusInProgress) {
 			cs.Status = StatusDegraded
 			cs.Reason = "UnhealthyPods"
 			cs.Message = health.Issues
