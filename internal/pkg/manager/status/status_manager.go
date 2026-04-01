@@ -417,6 +417,23 @@ func (s *Manager) SetExporterStatus(name, exporterType, state, reason, message s
 	})
 }
 
+// NeedsRequeue returns true if any component is in a transient state that warrants
+// periodic re-checking (e.g., pods crashing into CrashLoopBackOff after a deployment rollout).
+// Controllers should use this to return RequeueAfter so the status keeps updating
+// even when DaemonSet/Deployment watches don't fire for pod-level changes.
+func (s *Manager) NeedsRequeue() bool {
+	needsRequeue := false
+	s.statuses.Range(func(_, v any) bool {
+		cs := v.(ComponentStatus)
+		if cs.Status == StatusInProgress || cs.PodHealth.UnhealthyCount > 0 {
+			needsRequeue = true
+			return false
+		}
+		return true
+	})
+	return needsRequeue
+}
+
 // ClearExporters removes all exporter statuses (call before re-populating).
 func (s *Manager) ClearExporters() {
 	s.exporters.Range(func(key, _ any) bool {

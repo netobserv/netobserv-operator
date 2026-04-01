@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 
 	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
 	sliceslatest "github.com/netobserv/netobserv-operator/api/flowcollectorslice/v1alpha1"
@@ -117,6 +118,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Result
 	}
 
 	r.status.SetReady()
+	if r.mgr.Status.NeedsRequeue() {
+		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+	}
 	return ctrl.Result{}, nil
 }
 

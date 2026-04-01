@@ -818,6 +818,53 @@ func TestGlobalConditionUnusedNotCounted(t *testing.T) {
 	assert.Contains(t, readyCond.Message, "0 with failure")
 }
 
+func TestNeedsRequeue(t *testing.T) {
+	t.Run("all ready returns false", func(t *testing.T) {
+		s := NewManager()
+		agent := s.ForComponent(EBPFAgents)
+		plugin := s.ForComponent(WebConsole)
+		agent.SetReady()
+		plugin.SetReady()
+		assert.False(t, s.NeedsRequeue())
+	})
+
+	t.Run("in-progress component returns true", func(t *testing.T) {
+		s := NewManager()
+		agent := s.ForComponent(EBPFAgents)
+		plugin := s.ForComponent(WebConsole)
+		agent.SetReady()
+		plugin.SetNotReady("Deploying", "rolling out")
+		assert.True(t, s.NeedsRequeue())
+	})
+
+	t.Run("unhealthy pods returns true", func(t *testing.T) {
+		s := NewManager()
+		agent := s.ForComponent(EBPFAgents)
+		agent.SetReady()
+		agent.setPodHealth(PodHealthSummary{
+			UnhealthyCount: 2,
+			Issues:         "2 CrashLoopBackOff (pod-a, pod-b)",
+		})
+		assert.True(t, s.NeedsRequeue())
+	})
+
+	t.Run("unused and unknown do not trigger", func(t *testing.T) {
+		s := NewManager()
+		a := s.ForComponent(EBPFAgents)
+		b := s.ForComponent(WebConsole)
+		a.SetUnused("disabled")
+		b.SetUnknown()
+		assert.False(t, s.NeedsRequeue())
+	})
+
+	t.Run("failure without pod issues does not trigger", func(t *testing.T) {
+		s := NewManager()
+		agent := s.ForComponent(EBPFAgents)
+		agent.SetFailure("ConfigError", "bad config")
+		assert.False(t, s.NeedsRequeue())
+	})
+}
+
 func ctx() context.Context {
 	return context.Background()
 }
