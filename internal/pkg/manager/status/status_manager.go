@@ -13,7 +13,9 @@ import (
 	kerr "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/retry"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -36,11 +38,19 @@ const (
 )
 
 type Manager struct {
-	statuses sync.Map
+	statuses      sync.Map
+	exporters     sync.Map
+	eventRecorder record.EventRecorder
+	prevStatuses  sync.Map
 }
 
 func NewManager() *Manager {
 	return &Manager{}
+}
+
+// SetEventRecorder sets the EventRecorder for emitting Kubernetes Events.
+func (s *Manager) SetEventRecorder(recorder record.EventRecorder) {
+	s.eventRecorder = recorder
 }
 
 func (s *Manager) getStatus(cpnt ComponentName) *ComponentStatus {
@@ -54,30 +64,36 @@ func (s *Manager) getStatus(cpnt ComponentName) *ComponentStatus {
 }
 
 func (s *Manager) setInProgress(cpnt ComponentName, reason, message string) {
-	s.statuses.Store(cpnt, ComponentStatus{
-		Name:    cpnt,
-		Status:  StatusInProgress,
-		Reason:  reason,
-		Message: message,
-	})
+	cs := s.preserveReplicas(cpnt)
+	cs.Status = StatusInProgress
+	cs.Reason = reason
+	cs.Message = message
+	s.statuses.Store(cpnt, cs)
 }
 
 func (s *Manager) setFailure(cpnt ComponentName, reason, message string) {
-	s.statuses.Store(cpnt, ComponentStatus{
-		Name:    cpnt,
-		Status:  StatusFailure,
-		Reason:  reason,
-		Message: message,
-	})
+	cs := s.preserveReplicas(cpnt)
+	cs.Status = StatusFailure
+	cs.Reason = reason
+	cs.Message = message
+	s.statuses.Store(cpnt, cs)
 }
 
 func (s *Manager) setDegraded(cpnt ComponentName, reason, message string) {
-	s.statuses.Store(cpnt, ComponentStatus{
-		Name:    cpnt,
-		Status:  StatusDegraded,
-		Reason:  reason,
-		Message: message,
-	})
+	cs := s.preserveReplicas(cpnt)
+	cs.Status = StatusDegraded
+	cs.Reason = reason
+	cs.Message = message
+	s.statuses.Store(cpnt, cs)
+}
+
+func (s *Manager) preserveReplicas(cpnt ComponentName) ComponentStatus {
+	cs := ComponentStatus{Name: cpnt}
+	if existing := s.getStatus(cpnt); existing != nil {
+		cs.DesiredReplicas = existing.DesiredReplicas
+		cs.ReadyReplicas = existing.ReadyReplicas
+	}
+	return cs
 }
 
 func (s *Manager) hasFailure(cpnt ComponentName) bool {
@@ -86,10 +102,16 @@ func (s *Manager) hasFailure(cpnt ComponentName) bool {
 }
 
 func (s *Manager) setReady(cpnt ComponentName) {
-	s.statuses.Store(cpnt, ComponentStatus{
+	existing := s.getStatus(cpnt)
+	cs := ComponentStatus{
 		Name:   cpnt,
 		Status: StatusReady,
-	})
+	}
+	if existing != nil {
+		cs.DesiredReplicas = existing.DesiredReplicas
+		cs.ReadyReplicas = existing.ReadyReplicas
+	}
+	s.statuses.Store(cpnt, cs)
 }
 
 func (s *Manager) setUnknown(cpnt ComponentName) {
@@ -102,7 +124,7 @@ func (s *Manager) setUnknown(cpnt ComponentName) {
 func (s *Manager) setUnused(cpnt ComponentName, message string) {
 	s.statuses.Store(cpnt, ComponentStatus{
 		Name:    cpnt,
-		Status:  StatusUnknown,
+		Status:  StatusUnused,
 		Reason:  "ComponentUnused",
 		Message: message,
 	})
@@ -135,32 +157,172 @@ func (s *Manager) getConditions() []metav1.Condition {
 	return append([]metav1.Condition{global}, conds...)
 }
 
-func (s *Manager) Sync(ctx context.Context, c client.Client) {
-	updateStatus(ctx, c, s.getConditions()...)
+// populateComponentStatuses maps internal ComponentStatus instances to the CRD status fields.
+func (s *Manager) populateComponentStatuses(fc *flowslatest.FlowCollector) {
+	if fc.Status.Components == nil {
+		fc.Status.Components = &flowslatest.FlowCollectorComponentsStatus{}
+	}
+	if fc.Status.Integrations == nil {
+		fc.Status.Integrations = &flowslatest.FlowCollectorIntegrationsStatus{}
+	}
+
+	s.statuses.Range(func(_, v any) bool {
+		cs := v.(ComponentStatus)
+		switch cs.Name {
+		case EBPFAgents:
+			fc.Status.Components.Agent = cs.toCRDStatus()
+		case FLPParent, FLPMonolith, FLPTransformer:
+			fc.Status.Components.Processor = mergeProcessorStatus(fc.Status.Components.Processor, &cs)
+		case WebConsole:
+			fc.Status.Components.Plugin = cs.toCRDStatus()
+		case Monitoring:
+			fc.Status.Integrations.Monitoring = cs.toCRDStatus()
+		case LokiStack, DemoLoki:
+			if fc.Status.Integrations.Loki == nil || cs.Status == StatusFailure || cs.Status == StatusDegraded {
+				fc.Status.Integrations.Loki = cs.toCRDStatus()
+			}
+		case FlowCollectorController, StaticController, NetworkPolicy:
+			// Reported only through conditions, not dedicated CRD status fields.
+		}
+		return true
+	})
+
+	var exporters []flowslatest.FlowCollectorExporterStatus
+	s.exporters.Range(func(_, v any) bool {
+		exp := v.(flowslatest.FlowCollectorExporterStatus)
+		exporters = append(exporters, exp)
+		return true
+	})
+	fc.Status.Integrations.Exporters = exporters
 }
 
-func updateStatus(ctx context.Context, c client.Client, conditions ...metav1.Condition) {
-	log := log.FromContext(ctx)
-	log.Info("Updating FlowCollector status")
+// mergeProcessorStatus handles FLP processor status aggregation from parent, monolith, and transformer.
+// Active sub-reconcilers (non-Unknown/Unused) take priority over the parent status.
+func mergeProcessorStatus(existing *flowslatest.FlowCollectorComponentStatus, cs *ComponentStatus) *flowslatest.FlowCollectorComponentStatus {
+	isInactive := cs.Status == StatusUnknown || cs.Status == StatusUnused
+	existingIsWeak := existing == nil ||
+		existing.State == string(StatusUnknown) ||
+		existing.State == string(StatusUnused)
+
+	if isInactive {
+		if existing == nil {
+			return cs.toCRDStatus()
+		}
+		return existing
+	}
+
+	if cs.Name == FLPParent {
+		if existingIsWeak {
+			return cs.toCRDStatus()
+		}
+		return existing
+	}
+
+	crd := cs.toCRDStatus()
+	if existingIsWeak || cs.Status == StatusFailure || cs.Status == StatusInProgress {
+		return crd
+	}
+	if existing.State == string(StatusReady) && crd.DesiredReplicas != nil {
+		existing.DesiredReplicas = crd.DesiredReplicas
+		existing.ReadyReplicas = crd.ReadyReplicas
+		existing.UnhealthyPodCount = crd.UnhealthyPodCount
+		existing.PodIssues = crd.PodIssues
+	}
+	return existing
+}
+
+func (s *Manager) Sync(ctx context.Context, c client.Client) {
+	s.updateStatus(ctx, c)
+}
+
+func (s *Manager) emitStateTransitionEvents(ctx context.Context, fc *flowslatest.FlowCollector) {
+	if s.eventRecorder == nil {
+		return
+	}
+	rlog := log.FromContext(ctx)
+
+	s.statuses.Range(func(key, v any) bool {
+		cpnt := key.(ComponentName)
+		current := v.(ComponentStatus)
+
+		prev, hasPrev := s.prevStatuses.Load(cpnt)
+		s.prevStatuses.Store(cpnt, current)
+		if !hasPrev {
+			return true
+		}
+		prevStatus := prev.(ComponentStatus)
+		if prevStatus.Status == current.Status {
+			return true
+		}
+
+		switch {
+		case current.Status == StatusFailure:
+			msg := fmt.Sprintf("Component %s entered failure state: %s - %s", cpnt, current.Reason, current.Message)
+			s.eventRecorder.Event(fc, "Warning", "ComponentFailure", msg)
+			rlog.Info("Event emitted", "type", "ComponentFailure", "component", cpnt)
+		case current.Status == StatusDegraded:
+			msg := fmt.Sprintf("Component %s degraded: %s - %s", cpnt, current.Reason, current.Message)
+			s.eventRecorder.Event(fc, "Warning", "ComponentDegraded", msg)
+		case prevStatus.Status == StatusFailure && (current.Status == StatusReady || current.Status == StatusInProgress):
+			msg := fmt.Sprintf("Component %s recovered from failure", cpnt)
+			s.eventRecorder.Event(fc, "Normal", "ComponentRecovered", msg)
+		}
+		return true
+	})
+}
+
+func (s *Manager) updateStatus(ctx context.Context, c client.Client) {
+	rlog := log.FromContext(ctx)
+	rlog.Info("Updating FlowCollector status")
 
 	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
 		fc := flowslatest.FlowCollector{}
 		if err := c.Get(ctx, constants.FlowCollectorName, &fc); err != nil {
 			if kerr.IsNotFound(err) {
-				// ignore: when it's being deleted, there's no point trying to update its status
 				return nil
 			}
 			return err
 		}
+		s.emitStateTransitionEvents(ctx, &fc)
+		s.cleanupStaleConditions(&fc)
+		// Compute conditions fresh on each retry iteration to stay consistent
+		// with populateComponentStatuses, which also reads from the sync.Map
+		conditions := s.getConditions()
 		conditions = append(conditions, checkValidation(ctx, &fc))
-		for _, c := range conditions {
-			meta.SetStatusCondition(&fc.Status.Conditions, c)
+		if kafkaCond := s.GetKafkaCondition(); kafkaCond != nil {
+			conditions = append(conditions, *kafkaCond)
 		}
+		for _, cond := range conditions {
+			meta.SetStatusCondition(&fc.Status.Conditions, cond)
+		}
+		s.populateComponentStatuses(&fc)
 		return c.Status().Update(ctx, &fc)
 	})
 
 	if err != nil {
-		log.Error(err, "failed to update FlowCollector status")
+		rlog.Error(err, "failed to update FlowCollector status")
+	}
+}
+
+// cleanupStaleConditions removes legacy condition types (e.g., old "Waiting*" names)
+// that may still be present after an operator upgrade.
+var staleConditionTypes = []string{
+	"WaitingFlowCollectorController",
+	"WaitingEBPFAgents",
+	"WaitingWebConsole",
+	"WaitingFLPParent",
+	"WaitingFLPMonolith",
+	"WaitingFLPTransformer",
+	"WaitingMonitoring",
+	"WaitingStaticController",
+	"WaitingNetworkPolicy",
+	"WaitingDemoLoki",
+	"WaitingLokiStack",
+}
+
+func (s *Manager) cleanupStaleConditions(fc *flowslatest.FlowCollector) {
+	for _, ct := range staleConditionTypes {
+		meta.RemoveStatusCondition(&fc.Status.Conditions, ct)
 	}
 }
 
@@ -182,12 +344,88 @@ func checkValidation(ctx context.Context, fc *flowslatest.FlowCollector) metav1.
 			Message: strings.Join(warnings, "; "),
 		}
 	}
-	// No issue
 	return metav1.Condition{
 		Type:   ConditionConfigurationIssue,
 		Reason: "Valid",
 		Status: metav1.ConditionFalse,
 	}
+}
+
+// GetKafkaCondition returns a KafkaReady condition if Kafka is being used.
+// It aggregates the health of Kafka-related components: agent (when using Kafka export),
+// FLP transformer (Kafka consumer), and any Kafka exporters.
+func (s *Manager) GetKafkaCondition() *metav1.Condition {
+	hasKafkaIssue := false
+	var messages []string
+
+	// Check transformer (only used with Kafka)
+	if ts := s.getStatus(FLPTransformer); ts != nil && ts.Status != StatusUnknown {
+		if ts.Status == StatusFailure || ts.Status == StatusDegraded {
+			hasKafkaIssue = true
+			messages = append(messages, fmt.Sprintf("Transformer: %s", ts.Message))
+		}
+		if ts.PodHealth.UnhealthyCount > 0 {
+			hasKafkaIssue = true
+			messages = append(messages, fmt.Sprintf("Transformer pods: %s", ts.PodHealth.Issues))
+		}
+	}
+
+	// Check agent for Kafka-related pod issues
+	if as := s.getStatus(EBPFAgents); as != nil {
+		if as.PodHealth.UnhealthyCount > 0 && strings.Contains(strings.ToLower(as.PodHealth.Issues), "kafka") {
+			hasKafkaIssue = true
+			messages = append(messages, fmt.Sprintf("Agent pods: %s", as.PodHealth.Issues))
+		}
+	}
+
+	// Check Kafka exporters
+	s.exporters.Range(func(_, v any) bool {
+		exp := v.(flowslatest.FlowCollectorExporterStatus)
+		if exp.Type == "Kafka" && exp.State == string(StatusFailure) {
+			hasKafkaIssue = true
+			messages = append(messages, fmt.Sprintf("Exporter %s: %s", exp.Name, exp.Message))
+		}
+		return true
+	})
+
+	if hasKafkaIssue {
+		return &metav1.Condition{
+			Type:    "KafkaReady",
+			Status:  metav1.ConditionFalse,
+			Reason:  "KafkaIssue",
+			Message: strings.Join(messages, "; "),
+		}
+	}
+
+	// If transformer is active (Kafka mode), report healthy
+	if ts := s.getStatus(FLPTransformer); ts != nil && ts.Status == StatusReady {
+		return &metav1.Condition{
+			Type:   "KafkaReady",
+			Status: metav1.ConditionTrue,
+			Reason: "Ready",
+		}
+	}
+
+	return nil
+}
+
+// SetExporterStatus sets the status of a specific exporter by name.
+func (s *Manager) SetExporterStatus(name, exporterType, state, reason, message string) {
+	s.exporters.Store(name, flowslatest.FlowCollectorExporterStatus{
+		Name:    name,
+		Type:    exporterType,
+		State:   state,
+		Reason:  reason,
+		Message: message,
+	})
+}
+
+// ClearExporters removes all exporter statuses (call before re-populating).
+func (s *Manager) ClearExporters() {
+	s.exporters.Range(func(key, _ any) bool {
+		s.exporters.Delete(key)
+		return true
+	})
 }
 
 func (s *Manager) ForComponent(cpnt ComponentName) Instance {
@@ -220,37 +458,106 @@ func (i *Instance) SetUnused(message string) {
 	i.s.setUnused(i.cpnt, message)
 }
 
-// CheckDeploymentProgress sets the status either as In Progress, or Ready.
+// CheckDeploymentProgress sets the status either as In Progress, or Ready,
+// and populates replica counts from the Deployment status.
 func (i *Instance) CheckDeploymentProgress(d *appsv1.Deployment) {
 	if d == nil {
 		i.s.setInProgress(i.cpnt, "DeploymentNotCreated", "Deployment not created")
 		return
 	}
+	i.setDeploymentReplicas(d)
 	for _, c := range d.Status.Conditions {
 		if c.Type == appsv1.DeploymentAvailable {
 			if c.Status != v1.ConditionTrue {
-				i.s.setInProgress(i.cpnt, "DeploymentNotReady", fmt.Sprintf("Deployment %s not ready: %d/%d (%s)", d.Name, d.Status.UpdatedReplicas, d.Status.Replicas, c.Message))
+				i.s.setInProgress(i.cpnt, "DeploymentNotReady", fmt.Sprintf("Deployment %s not ready: %d/%d (%s)", d.Name, d.Status.ReadyReplicas, d.Status.Replicas, c.Message))
+				i.setDeploymentReplicas(d)
 			} else {
 				i.s.setReady(i.cpnt)
+				i.setDeploymentReplicas(d)
 			}
 			return
 		}
 	}
-	if d.Status.UpdatedReplicas == d.Status.Replicas {
+	if d.Status.ReadyReplicas == d.Status.Replicas && d.Status.Replicas > 0 {
 		i.s.setReady(i.cpnt)
 	} else {
-		i.s.setInProgress(i.cpnt, "DeploymentNotReady", fmt.Sprintf("Deployment %s not ready: %d/%d (missing condition)", d.Name, d.Status.UpdatedReplicas, d.Status.Replicas))
+		i.s.setInProgress(i.cpnt, "DeploymentNotReady", fmt.Sprintf("Deployment %s not ready: %d/%d (missing condition)", d.Name, d.Status.ReadyReplicas, d.Status.Replicas))
+	}
+	i.setDeploymentReplicas(d)
+}
+
+func (i *Instance) setDeploymentReplicas(d *appsv1.Deployment) {
+	cs := i.s.getStatus(i.cpnt)
+	if cs != nil {
+		var desired int32 = 1
+		if d.Spec.Replicas != nil {
+			desired = *d.Spec.Replicas
+		}
+		cs.DesiredReplicas = ptr.To(desired)
+		cs.ReadyReplicas = ptr.To(d.Status.ReadyReplicas)
+		i.s.statuses.Store(i.cpnt, *cs)
 	}
 }
 
-// CheckDaemonSetProgress sets the status either as In Progress, or Ready.
+// CheckDaemonSetProgress sets the status either as In Progress, or Ready,
+// and populates replica counts from the DaemonSet status.
 func (i *Instance) CheckDaemonSetProgress(ds *appsv1.DaemonSet) {
 	if ds == nil {
 		i.s.setInProgress(i.cpnt, "DaemonSetNotCreated", "DaemonSet not created")
 	} else if ds.Status.UpdatedNumberScheduled < ds.Status.DesiredNumberScheduled {
 		i.s.setInProgress(i.cpnt, "DaemonSetNotReady", fmt.Sprintf("DaemonSet %s not ready: %d/%d", ds.Name, ds.Status.UpdatedNumberScheduled, ds.Status.DesiredNumberScheduled))
+		i.setDaemonSetReplicas(ds)
 	} else {
 		i.s.setReady(i.cpnt)
+		i.setDaemonSetReplicas(ds)
+	}
+}
+
+func (i *Instance) setDaemonSetReplicas(ds *appsv1.DaemonSet) {
+	cs := i.s.getStatus(i.cpnt)
+	if cs != nil {
+		cs.DesiredReplicas = ptr.To(ds.Status.DesiredNumberScheduled)
+		cs.ReadyReplicas = ptr.To(ds.Status.NumberReady)
+		i.s.statuses.Store(i.cpnt, *cs)
+	}
+}
+
+// CheckDeploymentHealth combines CheckDeploymentProgress with pod health checking.
+// If the deployment has unhealthy pods, it inspects container statuses for details.
+func (i *Instance) CheckDeploymentHealth(ctx context.Context, c client.Client, d *appsv1.Deployment) {
+	i.CheckDeploymentProgress(d)
+	if d == nil || d.Spec.Selector == nil {
+		return
+	}
+	if d.Status.ReadyReplicas < d.Status.Replicas || d.Status.UnavailableReplicas > 0 {
+		health := CheckPodHealth(ctx, c, d.Namespace, d.Spec.Selector.MatchLabels)
+		i.setPodHealth(health)
+	}
+}
+
+// CheckDaemonSetHealth combines CheckDaemonSetProgress with pod health checking.
+// If the DaemonSet has unhealthy pods, it inspects container statuses for details.
+func (i *Instance) CheckDaemonSetHealth(ctx context.Context, c client.Client, ds *appsv1.DaemonSet) {
+	i.CheckDaemonSetProgress(ds)
+	if ds == nil || ds.Spec.Selector == nil {
+		return
+	}
+	if ds.Status.NumberReady < ds.Status.DesiredNumberScheduled || ds.Status.NumberUnavailable > 0 {
+		health := CheckPodHealth(ctx, c, ds.Namespace, ds.Spec.Selector.MatchLabels)
+		i.setPodHealth(health)
+	}
+}
+
+func (i *Instance) setPodHealth(health PodHealthSummary) {
+	cs := i.s.getStatus(i.cpnt)
+	if cs != nil {
+		cs.PodHealth = health
+		if health.UnhealthyCount > 0 && cs.Status == StatusReady {
+			cs.Status = StatusDegraded
+			cs.Reason = "UnhealthyPods"
+			cs.Message = health.Issues
+		}
+		i.s.statuses.Store(i.cpnt, *cs)
 	}
 }
 

@@ -143,9 +143,12 @@ func (c *AgentController) Reconcile(ctx context.Context, target *flowslatest.Flo
 	err := c.reconcile(ctx, target)
 	if err != nil {
 		rlog.Error(err, "AgentController reconcile failure")
-		// Set status failure unless it was already set
 		if !c.Status.HasFailure() {
-			c.Status.SetFailure("AgentControllerError", err.Error())
+			reason := "AgentControllerError"
+			if target.Spec.UseKafka() {
+				reason = "AgentKafkaError"
+			}
+			c.Status.SetFailure(reason, err.Error())
 		}
 		return err
 	}
@@ -204,7 +207,7 @@ func (c *AgentController) reconcile(ctx context.Context, target *flowslatest.Flo
 		err = c.UpdateIfOwned(ctx, current, desired)
 	default:
 		rlog.Info("action: nothing to do")
-		c.Status.CheckDaemonSetProgress(current)
+		c.Status.CheckDaemonSetHealth(ctx, c.Client, current)
 	}
 
 	if err != nil {
@@ -308,6 +311,7 @@ func (c *AgentController) desired(ctx context.Context, coll *flowslatest.FlowCol
 	if coll.Spec.Agent.EBPF.IsAgentFeatureEnabled(flowslatest.PacketDrop) && !coll.Spec.Agent.EBPF.IsEbpfManagerEnabled() {
 		if !coll.Spec.Agent.EBPF.Privileged {
 			rlog.Error(fmt.Errorf("invalid configuration"), "To use PacketsDrop feature privileged mode needs to be enabled")
+			c.Status.SetDegraded("InvalidConfiguration", "PacketDrop feature requires privileged mode")
 		} else {
 			volume := corev1.Volume{
 				Name: bpfTraceMountName,
@@ -332,6 +336,7 @@ func (c *AgentController) desired(ctx context.Context, coll *flowslatest.FlowCol
 		coll.Spec.Agent.EBPF.IsAgentFeatureEnabled(flowslatest.UDNMapping) {
 		if !coll.Spec.Agent.EBPF.Privileged {
 			rlog.Error(fmt.Errorf("invalid configuration"), "To use NetworkEvents or UDNMapping features, privileged mode needs to be enabled")
+			c.Status.SetDegraded("InvalidConfiguration", "NetworkEvents/UDNMapping features require privileged mode")
 		} else {
 			hostPath := advancedConfig.Env[envOVNObservHostMountPath]
 			if hostPath == "" {

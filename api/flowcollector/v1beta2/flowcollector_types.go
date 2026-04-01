@@ -1607,12 +1607,103 @@ type FlowCollectorExecution struct {
 	Mode ExecutionMode `json:"mode"`
 }
 
+// `FlowCollectorComponentStatus` represents the status of a single operator component.
+type FlowCollectorComponentStatus struct {
+	// `state` reports the overall health of the component.
+	// +kubebuilder:validation:Enum:="Ready";"InProgress";"Failure";"Degraded";"Unknown";"Unused"
+	State string `json:"state"`
+
+	// `reason` is a one-word CamelCase reason for the component's current state.
+	// +optional
+	Reason string `json:"reason,omitempty"`
+
+	// `message` is a human-readable description of the component's current state.
+	// +optional
+	Message string `json:"message,omitempty"`
+
+	// `desiredReplicas` is the desired number of replicas (for Deployments) or nodes (for DaemonSets).
+	// +optional
+	DesiredReplicas *int32 `json:"desiredReplicas,omitempty"`
+
+	// `readyReplicas` is the number of ready replicas (for Deployments) or up-to-date nodes (for DaemonSets).
+	// +optional
+	ReadyReplicas *int32 `json:"readyReplicas,omitempty"`
+
+	// `unhealthyPodCount` is the number of pods in a degraded state (CrashLoopBackOff, OOMKilled, etc.).
+	// +optional
+	UnhealthyPodCount int32 `json:"unhealthyPodCount,omitempty"`
+
+	// `podIssues` is a summary of unhealthy pod issues (e.g., "3 pods CrashLoopBackOff: kafka connection refused").
+	// +optional
+	PodIssues string `json:"podIssues,omitempty"`
+}
+
+// `FlowCollectorExporterStatus` represents the status of a configured exporter.
+type FlowCollectorExporterStatus struct {
+	// `name` is the identifier for this exporter, matching spec.exporters entries.
+	Name string `json:"name"`
+
+	// `type` is the exporter type (Kafka, IPFIX, OpenTelemetry).
+	// +kubebuilder:validation:Enum:="Kafka";"IPFIX";"OpenTelemetry"
+	Type string `json:"type"`
+
+	// `state` reports the health of this exporter.
+	// +kubebuilder:validation:Enum:="Ready";"InProgress";"Failure";"Degraded";"Unknown"
+	State string `json:"state"`
+
+	// `reason` is a one-word CamelCase reason for the exporter's current state.
+	// +optional
+	Reason string `json:"reason,omitempty"`
+
+	// `message` is a human-readable description of the exporter's current state.
+	// +optional
+	Message string `json:"message,omitempty"`
+}
+
+// `FlowCollectorComponentsStatus` groups the status of operator-managed components.
+type FlowCollectorComponentsStatus struct {
+	// `agent` reports the status of the eBPF agent component.
+	// +optional
+	Agent *FlowCollectorComponentStatus `json:"agent,omitempty"`
+
+	// `processor` reports the status of the flowlogs-pipeline component.
+	// +optional
+	Processor *FlowCollectorComponentStatus `json:"processor,omitempty"`
+
+	// `plugin` reports the status of the console plugin component.
+	// +optional
+	Plugin *FlowCollectorComponentStatus `json:"plugin,omitempty"`
+}
+
+// `FlowCollectorIntegrationsStatus` groups the status of external integrations.
+type FlowCollectorIntegrationsStatus struct {
+	// `loki` reports the status of the Loki integration.
+	// +optional
+	Loki *FlowCollectorComponentStatus `json:"loki,omitempty"`
+
+	// `monitoring` reports the status of monitoring (dashboards, ServiceMonitor, etc.).
+	// +optional
+	Monitoring *FlowCollectorComponentStatus `json:"monitoring,omitempty"`
+
+	// `exporters` reports the status of configured exporters.
+	// +optional
+	Exporters []FlowCollectorExporterStatus `json:"exporters,omitempty"`
+}
+
 // `FlowCollectorStatus` defines the observed state of FlowCollector
 type FlowCollectorStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// `conditions` represents the latest available observations of an object's state
 	Conditions []metav1.Condition `json:"conditions"`
+
+	// `components` reports the status of operator-managed components (agent, processor, plugin).
+	// +optional
+	Components *FlowCollectorComponentsStatus `json:"components,omitempty"`
+
+	// `integrations` reports the status of external integrations (Loki, monitoring, exporters).
+	// +optional
+	Integrations *FlowCollectorIntegrationsStatus `json:"integrations,omitempty"`
 
 	// Namespace where console plugin and flowlogs-pipeline have been deployed.
 	//
@@ -1623,8 +1714,10 @@ type FlowCollectorStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Cluster
-// +kubebuilder:printcolumn:name="Agent",type="string",JSONPath=`.spec.agent.type`
-// +kubebuilder:printcolumn:name="Sampling (EBPF)",type="string",JSONPath=`.spec.agent.ebpf.sampling`
+// +kubebuilder:printcolumn:name="Agent",type="string",JSONPath=`.status.components.agent.state`
+// +kubebuilder:printcolumn:name="Processor",type="string",JSONPath=`.status.components.processor.state`
+// +kubebuilder:printcolumn:name="Plugin",type="string",JSONPath=`.status.components.plugin.state`
+// +kubebuilder:printcolumn:name="Sampling",type="string",JSONPath=`.spec.agent.ebpf.sampling`
 // +kubebuilder:printcolumn:name="Deployment Model",type="string",JSONPath=`.spec.deploymentModel`
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=`.status.conditions[?(@.type=="Ready")].reason`
 // +kubebuilder:printcolumn:name="Warnings",type="string",JSONPath=`.status.conditions[?(@.type=="ConfigurationIssue")].message`

@@ -106,9 +106,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Result
 	err = r.reconcile(ctx, clh, fc)
 	if err != nil {
 		l.Error(err, "FLP reconcile failure")
-		// Set status failure unless it was already set
 		if !r.status.HasFailure() {
-			r.status.SetFailure("FLPError", err.Error())
+			reason := "FLPError"
+			if fc.Spec.UseKafka() {
+				reason = "FLPKafkaError"
+			}
+			r.status.SetFailure(reason, err.Error())
 		}
 		return ctrl.Result{}, err
 	}
@@ -135,6 +138,7 @@ func (r *Reconciler) reconcile(ctx context.Context, clh *helper.Client, fc *flow
 		subnetLabels, err = r.getOpenShiftSubnets(ctx)
 		if err != nil {
 			log.Error(err, "error while reading subnet definitions")
+			r.status.SetDegraded("SubnetDetectionError", fmt.Sprintf("subnet auto-detect failed: %v", err))
 		}
 	}
 
@@ -183,7 +187,21 @@ func (r *Reconciler) reconcile(ctx context.Context, clh *helper.Client, fc *flow
 		}
 	}
 
+	// Track exporter status
+	r.updateExporterStatuses(fc)
+
 	return nil
+}
+
+func (r *Reconciler) updateExporterStatuses(fc *flowslatest.FlowCollector) {
+	r.mgr.Status.ClearExporters()
+	for i, exp := range fc.Spec.Exporters {
+		if exp == nil {
+			continue
+		}
+		name := fmt.Sprintf("%s-export-%d", strings.ToLower(string(exp.Type)), i)
+		r.mgr.Status.SetExporterStatus(name, string(exp.Type), string(status.StatusReady), "Configured", "")
+	}
 }
 
 func (r *Reconciler) newCommonInfo(clh *helper.Client, ns string, loki *helper.LokiConfig) reconcilers.Common {

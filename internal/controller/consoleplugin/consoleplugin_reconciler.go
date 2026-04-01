@@ -56,7 +56,7 @@ func NewReconciler(cmn *reconcilers.Instance) CPReconciler {
 }
 
 // Reconcile is the reconciler entry point to reconcile the current plugin state with the desired configuration
-func (r *CPReconciler) Reconcile(ctx context.Context, desired *flowslatest.FlowCollector, lokiStatus status.ComponentStatus) error {
+func (r *CPReconciler) Reconcile(ctx context.Context, desired *flowslatest.FlowCollector, lokiStatus *status.ComponentStatus) error {
 	l := log.FromContext(ctx).WithName("web-console")
 	ctx = log.IntoContext(ctx, l)
 
@@ -75,7 +75,7 @@ func (r *CPReconciler) Reconcile(ctx context.Context, desired *flowslatest.FlowC
 	return nil
 }
 
-func (r *CPReconciler) reconcile(ctx context.Context, desired *flowslatest.FlowCollector, lokiStatus status.ComponentStatus) error {
+func (r *CPReconciler) reconcile(ctx context.Context, desired *flowslatest.FlowCollector, lokiStatus *status.ComponentStatus) error {
 	// Retrieve current owned objects
 	err := r.Managed.FetchAll(ctx)
 	if err != nil {
@@ -148,9 +148,9 @@ func (r *CPReconciler) checkAutoPatch(ctx context.Context, desired *flowslatest.
 	advancedConfig := helper.GetAdvancedPluginConfig(desired.Spec.ConsolePlugin.Advanced)
 	reg := desired.Spec.UseWebConsole() && *advancedConfig.Register
 	if err := r.Client.Get(ctx, types.NamespacedName{Name: "cluster"}, &console); err != nil {
-		// Console operator CR not found => warn but continue execution
 		if reg {
 			log.FromContext(ctx).Error(err, "Could not get the Console Operator resource for plugin registration. Please register manually.")
+			r.Status.SetDegraded("PluginRegistrationFailed", "Could not auto-register console plugin; manual registration needed")
 		}
 		return nil
 	}
@@ -204,7 +204,7 @@ func (r *CPReconciler) reconcilePlugin(ctx context.Context, builder *builder, de
 	return nil
 }
 
-func (r *CPReconciler) reconcileConfigMap(ctx context.Context, builder *builder, lokiStatus status.ComponentStatus) (string, error) {
+func (r *CPReconciler) reconcileConfigMap(ctx context.Context, builder *builder, lokiStatus *status.ComponentStatus) (string, error) {
 	externalRecordingAnnotations, err := getExternalRecordingAnnotations(ctx, r.Client)
 	if err != nil {
 		return "", err

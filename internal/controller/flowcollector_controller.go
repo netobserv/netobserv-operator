@@ -185,7 +185,7 @@ func (r *FlowCollectorReconciler) reconcile(ctx context.Context, clh *helper.Cli
 	}
 
 	// Console plugin
-	if err := cpReconciler.Reconcile(ctx, desired, lokiStatus); err != nil {
+	if err := cpReconciler.Reconcile(ctx, desired, &lokiStatus); err != nil {
 		return err
 	}
 

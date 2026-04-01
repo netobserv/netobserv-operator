@@ -632,7 +632,7 @@ func (b *builder) getHealthRecordingAnnotations() map[string]map[string]string {
 // returns a configmap with a digest of its configuration contents, which will be used to
 // detect any configuration change. externalRecordingAnnotations is optional (e.g. nil in tests);
 // when non-empty, those annotations are merged into the frontend config (from PrometheusRules).
-func (b *builder) configMap(ctx context.Context, externalRecordingAnnotations map[string]map[string]string, lokiStatus status.ComponentStatus) (*corev1.ConfigMap, string, error) {
+func (b *builder) configMap(ctx context.Context, externalRecordingAnnotations map[string]map[string]string, lokiStatus *status.ComponentStatus) (*corev1.ConfigMap, string, error) {
 	config := cfg.PluginConfig{
 		Server: cfg.ServerConfig{
 			Port: int(*b.advanced.Port),
@@ -648,7 +648,7 @@ func (b *builder) configMap(ctx context.Context, externalRecordingAnnotations ma
 	// configure loki
 	var err error
 	config.Loki, err = b.getLokiConfig()
-	if lokiStatus.Status != status.StatusUnknown {
+	if lokiStatus != nil && lokiStatus.Status != status.StatusUnknown && lokiStatus.Status != status.StatusUnused {
 		config.Loki.StatusURL = ""
 		if lokiStatus.Status == status.StatusReady {
 			config.Loki.Status = "ready"
