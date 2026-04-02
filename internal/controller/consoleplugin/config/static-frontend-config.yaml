@@ -1272,7 +1272,6 @@ filters:
     component: autocomplete
     placeholder: 'E.g: NoError, NXDomain, NotAuth'
     hint: Add DNS RCODE name filter.
-    placeholder: 'E.g: NoError, NXDomain, NotAuth'
     examples: |-
       Specify a single DNS RCODE name like:
               - A IANA RCODE number like 0, 3, 9
