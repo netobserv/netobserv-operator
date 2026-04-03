@@ -526,12 +526,14 @@ func (c *AgentController) envConfig(ctx context.Context, coll *flowslatest.FlowC
 				caPath := c.volumes.AddVolume(ca, "netobserv-ca")
 				config = append(config, corev1.EnvVar{Name: envTargetTLSCACertPath, Value: caPath})
 				if clientCert == nil {
-					// Annotate pod with CA ref
-					caDigest, err := c.Watcher.ProcessFileReference(ctx, c.Client, *ca, c.PrivilegedNamespace())
-					if err != nil {
-						return nil, err
+					if ca.Namespace != "" {
+						// Annotate pod with CA ref
+						caDigest, err := c.Watcher.ProcessFileReference(ctx, c.Client, *ca, c.PrivilegedNamespace())
+						if err != nil {
+							return nil, err
+						}
+						annots[watchers.Annotation("tls-ca")] = caDigest
 					}
-					annots[watchers.Annotation("tls-ca")] = caDigest
 				} else {
 					certPath, keyPath := c.volumes.AddCertificate(clientCert, "client-certs")
 					config = append(config, corev1.EnvVar{Name: envTargetTLSUserCertPath, Value: certPath})
