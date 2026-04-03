@@ -49,7 +49,7 @@ func (b *Builder) AddCertificate(ref *flowslatest.CertificateReference, volumeNa
 func (b *Builder) AddVolume(config *flowslatest.FileReference, volumeName string) string {
 	vol, vm := buildVolumeAndMount(config.Type, config.Name, volumeName)
 	b.insertOrReplace(&VolumeInfo{Volume: vol, Mount: vm})
-	return path.Join("var", volumeName, config.File)
+	return path.Join("/var", volumeName, config.File)
 }
 
 // AddToken will add a volume + volume mount for a service account token if defined
