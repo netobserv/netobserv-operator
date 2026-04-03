@@ -175,7 +175,10 @@ func (s *Manager) populateComponentStatuses(fc *flowslatest.FlowCollector) {
 		case Monitoring:
 			fc.Status.Integrations.Monitoring = cs.toCRDStatus()
 		case LokiStack, DemoLoki:
-			if fc.Status.Integrations.Loki == nil || cs.Status == StatusFailure || cs.Status == StatusDegraded {
+			existingIsWeak := fc.Status.Integrations.Loki == nil ||
+				fc.Status.Integrations.Loki.State == string(StatusUnknown) ||
+				fc.Status.Integrations.Loki.State == string(StatusUnused)
+			if existingIsWeak || cs.Status == StatusFailure || cs.Status == StatusDegraded || cs.Status == StatusReady {
 				fc.Status.Integrations.Loki = cs.toCRDStatus()
 			}
 		case FlowCollectorController, StaticController, NetworkPolicy:
@@ -272,6 +275,7 @@ func (s *Manager) updateStatus(ctx context.Context, c client.Client) {
 	rlog := log.FromContext(ctx)
 	rlog.Info("Updating FlowCollector status")
 
+	var updatedFC *flowslatest.FlowCollector
 	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
 		fc := flowslatest.FlowCollector{}
 		if err := c.Get(ctx, constants.FlowCollectorName, &fc); err != nil {
@@ -280,10 +284,7 @@ func (s *Manager) updateStatus(ctx context.Context, c client.Client) {
 			}
 			return err
 		}
-		s.emitStateTransitionEvents(ctx, &fc)
 		s.cleanupStaleConditions(&fc)
-		// Compute conditions fresh on each retry iteration to stay consistent
-		// with populateComponentStatuses, which also reads from the sync.Map
 		conditions := s.getConditions()
 		conditions = append(conditions, checkValidation(ctx, &fc))
 		if kafkaCond := s.GetKafkaCondition(); kafkaCond != nil {
@@ -293,11 +294,17 @@ func (s *Manager) updateStatus(ctx context.Context, c client.Client) {
 			meta.SetStatusCondition(&fc.Status.Conditions, cond)
 		}
 		s.populateComponentStatuses(&fc)
-		return c.Status().Update(ctx, &fc)
+		if err := c.Status().Update(ctx, &fc); err != nil {
+			return err
+		}
+		updatedFC = &fc
+		return nil
 	})
 
 	if err != nil {
 		rlog.Error(err, "failed to update FlowCollector status")
+	} else if updatedFC != nil {
+		s.emitStateTransitionEvents(ctx, updatedFC)
 	}
 }
 
@@ -394,12 +401,25 @@ func (s *Manager) GetKafkaCondition() *metav1.Condition {
 		}
 	}
 
-	// If transformer is active (Kafka mode), report healthy
-	if ts := s.getStatus(FLPTransformer); ts != nil && ts.Status == StatusReady {
-		return &metav1.Condition{
-			Type:   "KafkaReady",
-			Status: metav1.ConditionTrue,
-			Reason: "Ready",
+	// If transformer is active (Kafka mode), report its state
+	if ts := s.getStatus(FLPTransformer); ts != nil {
+		switch ts.Status {
+		case StatusReady:
+			return &metav1.Condition{
+				Type:   "KafkaReady",
+				Status: metav1.ConditionTrue,
+				Reason: "Ready",
+			}
+		case StatusInProgress:
+			return &metav1.Condition{
+				Type:    "KafkaReady",
+				Status:  metav1.ConditionFalse,
+				Reason:  "KafkaPending",
+				Message: "Kafka transformer is rolling out",
+			}
+		case StatusUnknown, StatusUnused, StatusFailure, StatusDegraded:
+			// Failure/Degraded already handled above via hasKafkaIssue;
+			// Unknown/Unused mean Kafka mode is not active.
 		}
 	}
 
@@ -518,8 +538,8 @@ func (i *Instance) setDeploymentReplicas(d *appsv1.Deployment) {
 func (i *Instance) CheckDaemonSetProgress(ds *appsv1.DaemonSet) {
 	if ds == nil {
 		i.s.setInProgress(i.cpnt, "DaemonSetNotCreated", "DaemonSet not created")
-	} else if ds.Status.UpdatedNumberScheduled < ds.Status.DesiredNumberScheduled {
-		i.s.setInProgress(i.cpnt, "DaemonSetNotReady", fmt.Sprintf("DaemonSet %s not ready: %d/%d", ds.Name, ds.Status.UpdatedNumberScheduled, ds.Status.DesiredNumberScheduled))
+	} else if ds.Status.NumberReady < ds.Status.DesiredNumberScheduled {
+		i.s.setInProgress(i.cpnt, "DaemonSetNotReady", fmt.Sprintf("DaemonSet %s not ready: %d/%d", ds.Name, ds.Status.NumberReady, ds.Status.DesiredNumberScheduled))
 		i.setDaemonSetReplicas(ds)
 	} else {
 		i.s.setReady(i.cpnt)

@@ -32,7 +32,7 @@ func TestStatusWorkflow(t *testing.T) {
 
 	sl.CheckDaemonSetProgress(&appsv1.DaemonSet{ObjectMeta: metav1.ObjectMeta{Name: "test"}, Status: appsv1.DaemonSetStatus{
 		DesiredNumberScheduled: 3,
-		UpdatedNumberScheduled: 1,
+		NumberReady:            1,
 	}})
 	sm.SetUnknown()
 
@@ -44,7 +44,6 @@ func TestStatusWorkflow(t *testing.T) {
 
 	sl.CheckDaemonSetProgress(&appsv1.DaemonSet{ObjectMeta: metav1.ObjectMeta{Name: "test"}, Status: appsv1.DaemonSetStatus{
 		DesiredNumberScheduled: 3,
-		UpdatedNumberScheduled: 3,
 		NumberReady:            3,
 	}})
 	sm.SetUnused("message")

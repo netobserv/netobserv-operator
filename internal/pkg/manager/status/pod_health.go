@@ -107,6 +107,12 @@ func classifyPodIssue(pod *corev1.Pod) (string, string) {
 				return "CrashLoopBackOff", msg
 			case "ImagePullBackOff", "ErrImagePull":
 				return "ImagePullError", cs.State.Waiting.Message
+			case "ContainerCreating", "PodInitializing":
+				// Normal transient states, not an issue
+			case "":
+				// No reason set yet
+			default:
+				return cs.State.Waiting.Reason, cs.State.Waiting.Message
 			}
 		}
 

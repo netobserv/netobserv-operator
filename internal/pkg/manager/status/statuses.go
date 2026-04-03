@@ -45,6 +45,9 @@ func (s *ComponentStatus) toCondition() metav1.Condition {
 	case StatusReady:
 		c.Status = metav1.ConditionTrue
 		c.Reason = "Ready"
+	default:
+		c.Status = metav1.ConditionUnknown
+		c.Reason = "Unknown"
 	}
 	if s.Reason != "" {
 		c.Reason = s.Reason
