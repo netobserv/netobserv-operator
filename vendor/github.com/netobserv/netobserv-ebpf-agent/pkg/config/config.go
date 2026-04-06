@@ -286,6 +286,8 @@ type Agent struct {
 	// EnableFlowsRingbufFallback enable the "direct_flows" ring buffer, which is a fallback method to get flows from the kernel space, used when the main map is full or busy.
 	// See also: https://github.com/netobserv/netobserv-ebpf-agent/blob/main/docs/architecture.md
 	EnableFlowsRingbufFallback bool `env:"ENABLE_FLOWS_RINGBUF_FALLBACK" envDefault:"false"`
+	// EnableTLSTracking allow tracking TLS usage per flow (version, cipher suite, ...)
+	EnableTLSTracking bool `env:"ENABLE_TLS_TRACKING" envDefault:"false"`
 
 	/* Deprecated configs are listed below this line
 	 * See manageDeprecatedConfigs function for details
