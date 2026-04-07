@@ -14,7 +14,10 @@ const (
 	pf6Image = "quay.io/netobserv/console-plugin:test"
 )
 
-const testPluginImagesRaw = "4.14.0=" + pf4Image + ";4.15.0=" + pf5Image + ";4.22.0=" + pf6Image
+const (
+	testPluginImagesRaw         = "4.14.0=" + pf4Image + ";4.15.0=" + pf5Image + ";4.22.0=" + pf6Image
+	testPluginImagesWithDefault = "default=" + pf4Image + ";4.15.0=" + pf5Image + ";4.22.0=" + pf6Image
+)
 
 func testConfig(t *testing.T) *Config {
 	t.Helper()
@@ -45,6 +48,26 @@ func TestParseConsolePluginImages_SingleEntry(t *testing.T) {
 	assert.Equal(t, "registry/img:latest", cfg.ConsolePluginImageVariants[0].Image)
 }
 
+func TestParseConsolePluginImages_SingleImageNoPrefix(t *testing.T) {
+	cfg := &Config{}
+	err := cfg.ParseConsolePluginImages("quay.io/netobserv/console-plugin:main")
+	require.NoError(t, err)
+	require.Len(t, cfg.ConsolePluginImageVariants, 1)
+	assert.Equal(t, "default", cfg.ConsolePluginImageVariants[0].MinVersion)
+	assert.Equal(t, "quay.io/netobserv/console-plugin:main", cfg.ConsolePluginImageVariants[0].Image)
+}
+
+func TestParseConsolePluginImages_DefaultWithVersions(t *testing.T) {
+	cfg := &Config{}
+	err := cfg.ParseConsolePluginImages(testPluginImagesWithDefault)
+	require.NoError(t, err)
+	require.Len(t, cfg.ConsolePluginImageVariants, 3)
+	assert.Equal(t, "default", cfg.ConsolePluginImageVariants[0].MinVersion)
+	assert.Equal(t, pf4Image, cfg.ConsolePluginImageVariants[0].Image)
+	assert.Equal(t, "4.15.0", cfg.ConsolePluginImageVariants[1].MinVersion)
+	assert.Equal(t, pf5Image, cfg.ConsolePluginImageVariants[1].Image)
+}
+
 func TestParseConsolePluginImages_Empty(t *testing.T) {
 	cfg := &Config{}
 	err := cfg.ParseConsolePluginImages("")
@@ -52,11 +75,13 @@ func TestParseConsolePluginImages_Empty(t *testing.T) {
 	assert.Empty(t, cfg.ConsolePluginImageVariants)
 }
 
-func TestParseConsolePluginImages_InvalidNoEquals(t *testing.T) {
+func TestParseConsolePluginImages_NoEqualsIsSingleImage(t *testing.T) {
 	cfg := &Config{}
-	err := cfg.ParseConsolePluginImages("missing-equals")
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "expected format")
+	err := cfg.ParseConsolePluginImages("registry/image:tag")
+	require.NoError(t, err)
+	require.Len(t, cfg.ConsolePluginImageVariants, 1)
+	assert.Equal(t, "default", cfg.ConsolePluginImageVariants[0].MinVersion)
+	assert.Equal(t, "registry/image:tag", cfg.ConsolePluginImageVariants[0].Image)
 }
 
 func TestParseConsolePluginImages_InvalidNoImage(t *testing.T) {
@@ -140,7 +165,57 @@ func TestResolveConsolePluginImage_NonOpenShift(t *testing.T) {
 	info.Mock("", "")
 	img, err := cfg.ResolveConsolePluginImage(info)
 	require.NoError(t, err)
-	assert.Equal(t, pf6Image, img, "should default to last entry (most current)")
+	assert.Equal(t, pf4Image, img, "should default to first versioned entry (baseline)")
+}
+
+func TestResolveConsolePluginImage_NonOpenShiftWithDefault(t *testing.T) {
+	cfg := &Config{}
+	require.NoError(t, cfg.ParseConsolePluginImages(testPluginImagesWithDefault))
+	info := &cluster.Info{}
+	info.Mock("", "")
+	img, err := cfg.ResolveConsolePluginImage(info)
+	require.NoError(t, err)
+	assert.Equal(t, pf4Image, img, "should use default= entry")
+}
+
+func TestResolveConsolePluginImage_OCPFallsBackToDefault(t *testing.T) {
+	cfg := &Config{}
+	require.NoError(t, cfg.ParseConsolePluginImages(testPluginImagesWithDefault))
+	info := &cluster.Info{}
+	info.Mock("4.13.0", "")
+	img, err := cfg.ResolveConsolePluginImage(info)
+	require.NoError(t, err)
+	assert.Equal(t, pf4Image, img, "OCP below minimum versioned entry should fall back to default=")
+}
+
+func TestResolveConsolePluginImage_OCPMatchesVersionOverDefault(t *testing.T) {
+	cfg := &Config{}
+	require.NoError(t, cfg.ParseConsolePluginImages(testPluginImagesWithDefault))
+	info := &cluster.Info{}
+	info.Mock("4.22.0", "")
+	img, err := cfg.ResolveConsolePluginImage(info)
+	require.NoError(t, err)
+	assert.Equal(t, pf6Image, img, "OCP matching a versioned entry should pick it over default=")
+}
+
+func TestResolveConsolePluginImage_SingleImage(t *testing.T) {
+	cfg := &Config{}
+	require.NoError(t, cfg.ParseConsolePluginImages("quay.io/netobserv/console-plugin:main"))
+	info := &cluster.Info{}
+	info.Mock("4.18.0", "")
+	img, err := cfg.ResolveConsolePluginImage(info)
+	require.NoError(t, err)
+	assert.Equal(t, "quay.io/netobserv/console-plugin:main", img)
+}
+
+func TestResolveConsolePluginImage_SingleImageNonOpenShift(t *testing.T) {
+	cfg := &Config{}
+	require.NoError(t, cfg.ParseConsolePluginImages("quay.io/netobserv/console-plugin:main"))
+	info := &cluster.Info{}
+	info.Mock("", "")
+	img, err := cfg.ResolveConsolePluginImage(info)
+	require.NoError(t, err)
+	assert.Equal(t, "quay.io/netobserv/console-plugin:main", img)
 }
 
 func TestResolveConsolePluginImage_NoVariants(t *testing.T) {
@@ -159,6 +234,26 @@ func TestValidate_ValidConfig(t *testing.T) {
 		Namespace:             "netobserv",
 	}
 	require.NoError(t, cfg.ParseConsolePluginImages("4.14.0=plugin:test"))
+	assert.NoError(t, cfg.Validate())
+}
+
+func TestValidate_SingleImage(t *testing.T) {
+	cfg := &Config{
+		EBPFAgentImage:        "agent:test",
+		FlowlogsPipelineImage: "flp:test",
+		Namespace:             "netobserv",
+	}
+	require.NoError(t, cfg.ParseConsolePluginImages("registry/plugin:tag"))
+	assert.NoError(t, cfg.Validate())
+}
+
+func TestValidate_DefaultWithVersions(t *testing.T) {
+	cfg := &Config{
+		EBPFAgentImage:        "agent:test",
+		FlowlogsPipelineImage: "flp:test",
+		Namespace:             "netobserv",
+	}
+	require.NoError(t, cfg.ParseConsolePluginImages("default=plugin:pf4;4.15.0=plugin:pf5"))
 	assert.NoError(t, cfg.Validate())
 }
 

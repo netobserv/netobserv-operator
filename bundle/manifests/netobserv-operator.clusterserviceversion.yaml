@@ -999,7 +999,7 @@ spec:
                 - --leader-elect
                 - --ebpf-agent-image=$(RELATED_IMAGE_EBPF_AGENT)
                 - --flowlogs-pipeline-image=$(RELATED_IMAGE_FLOWLOGS_PIPELINE)
-                - --console-plugin-images=4.14.0=$(RELATED_IMAGE_CONSOLE_PLUGIN_PF4);4.15.0=$(RELATED_IMAGE_CONSOLE_PLUGIN_PF5);4.22.0=$(RELATED_IMAGE_CONSOLE_PLUGIN)
+                - --console-plugin-images=default=$(RELATED_IMAGE_CONSOLE_PLUGIN_PF4);4.15.0=$(RELATED_IMAGE_CONSOLE_PLUGIN_PF5);4.22.0=$(RELATED_IMAGE_CONSOLE_PLUGIN)
                 - --demo-loki-image=$(RELATED_IMAGE_DEMO_LOKI)
                 - --namespace=$(NAMESPACE)
                 - --downstream-deployment=$(DOWNSTREAM_DEPLOYMENT)

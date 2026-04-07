@@ -36,15 +36,27 @@ type Config struct {
 	DownstreamDeployment bool
 }
 
-// ParseConsolePluginImages parses a semicolon-separated list of "minVersion=image" entries
-// and populates ConsolePluginImageVariants. Entries should be sorted ascending by minVersion.
-// Example: "4.14.0=registry/plugin:v1-pf4;4.15.0=registry/plugin:v1-pf5;4.22.0=registry/plugin:v1"
+// ParseConsolePluginImages parses console plugin image configuration.
+// Accepted formats:
+//   - Single image:       "registry/plugin:tag"  (used for all clusters)
+//   - Version-keyed list: "default=img:pf4;4.15.0=img:pf5;4.22.0=img:pf6"
+//     The "default" key is the fallback for non-OpenShift or unmatched OCP versions.
+//     Version-keyed entries should be sorted ascending by minVersion.
 func (cfg *Config) ParseConsolePluginImages(raw string) error {
 	var variants []ConsolePluginImageVariant
 	if strings.TrimSpace(raw) == "" {
 		cfg.ConsolePluginImageVariants = nil
 		return nil
 	}
+
+	// Single image (no "=" at all): treat as default-only
+	if !strings.Contains(raw, "=") {
+		cfg.ConsolePluginImageVariants = []ConsolePluginImageVariant{
+			{MinVersion: "default", Image: strings.TrimSpace(raw)},
+		}
+		return nil
+	}
+
 	for _, entry := range strings.Split(raw, ";") {
 		entry = strings.TrimSpace(entry)
 		if entry == "" {
@@ -52,7 +64,7 @@ func (cfg *Config) ParseConsolePluginImages(raw string) error {
 		}
 		eqIdx := strings.Index(entry, "=")
 		if eqIdx <= 0 || eqIdx >= len(entry)-1 {
-			return fmt.Errorf("invalid console plugin image entry %q: expected format minVersion=image", entry)
+			return fmt.Errorf("invalid console plugin image entry %q: expected format minVersion=image or default=image", entry)
 		}
 		variants = append(variants, ConsolePluginImageVariant{
 			MinVersion: entry[:eqIdx],
@@ -65,28 +77,53 @@ func (cfg *Config) ParseConsolePluginImages(raw string) error {
 
 // ResolveConsolePluginImage selects the console plugin image appropriate for the cluster's OCP version.
 // It iterates ConsolePluginImageVariants (sorted ascending by MinVersion) and returns the image from
-// the last variant whose MinVersion is satisfied. On non-OpenShift clusters, the last entry
-// (highest MinVersion, most current) is used as default. Returns an error if no variant matches.
+// the last variant whose MinVersion is satisfied. A "default" entry is used as fallback for
+// non-OpenShift clusters or when no version-specific entry matches.
 func (cfg *Config) ResolveConsolePluginImage(clusterInfo *cluster.Info) (string, error) {
 	if len(cfg.ConsolePluginImageVariants) == 0 {
 		return "", fmt.Errorf("no console plugin image variants configured")
 	}
-	if !clusterInfo.IsOpenShift() {
-		return cfg.ConsolePluginImageVariants[len(cfg.ConsolePluginImageVariants)-1].Image, nil
+
+	var defaultImage string
+	for _, v := range cfg.ConsolePluginImageVariants {
+		if v.MinVersion == "default" {
+			defaultImage = v.Image
+			break
+		}
 	}
+
+	if !clusterInfo.IsOpenShift() {
+		if defaultImage != "" {
+			return defaultImage, nil
+		}
+		// No explicit default: use first versioned entry (baseline image)
+		for _, v := range cfg.ConsolePluginImageVariants {
+			if v.MinVersion != "default" {
+				return v.Image, nil
+			}
+		}
+		return cfg.ConsolePluginImageVariants[0].Image, nil
+	}
+
 	var result string
 	for _, v := range cfg.ConsolePluginImageVariants {
+		if v.MinVersion == "default" {
+			continue
+		}
 		atLeast, _, err := clusterInfo.IsOpenShiftVersionAtLeast(v.MinVersion)
 		if err == nil && atLeast {
 			result = v.Image
 		}
 	}
-	if result == "" {
-		ocpVersion, _ := clusterInfo.GetOpenShiftVersion()
-		return "", fmt.Errorf("no console plugin image variant matches OpenShift version %s (minimum configured: %s)",
-			ocpVersion, cfg.ConsolePluginImageVariants[0].MinVersion)
+	if result != "" {
+		return result, nil
 	}
-	return result, nil
+	if defaultImage != "" {
+		return defaultImage, nil
+	}
+	ocpVersion, _ := clusterInfo.GetOpenShiftVersion()
+	return "", fmt.Errorf("no console plugin image variant matches OpenShift version %s (minimum configured: %s)",
+		ocpVersion, cfg.ConsolePluginImageVariants[0].MinVersion)
 }
 
 func (cfg *Config) Validate() error {
@@ -106,6 +143,9 @@ func (cfg *Config) Validate() error {
 		}
 		if v.MinVersion == "" {
 			return fmt.Errorf("console plugin image variant %d has empty MinVersion", i)
+		}
+		if v.MinVersion == "default" {
+			continue
 		}
 		ver, err := semver.NewVersion(v.MinVersion)
 		if err != nil {

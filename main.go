@@ -114,10 +114,10 @@ func main() {
 	flag.StringVar(&config.EBPFAgentImage, "ebpf-agent-image", "quay.io/netobserv/netobserv-ebpf-agent:main", "The image of the eBPF agent")
 	flag.StringVar(&config.FlowlogsPipelineImage, "flowlogs-pipeline-image", "quay.io/netobserv/flowlogs-pipeline:main", "The image of Flowlogs Pipeline")
 	flag.StringVar(&pluginImages, "console-plugin-images",
-		"4.14.0=quay.io/netobserv/network-observability-console-plugin:main",
-		"Semicolon-separated list of minVersion=image for console plugin version selection. "+
-			"Last entry is also the default for non-OpenShift. "+
-			"Example: 4.0.0=img:pf4;4.15.0=img:pf5;4.22.0=img:pf6")
+		"quay.io/netobserv/network-observability-console-plugin:main",
+		"Console plugin image(s). A single image can be set directly (e.g., registry/img:tag). "+
+			"For version-specific variants, use semicolon-separated minVersion=image entries with an optional "+
+			"default= fallback (e.g., default=img:pf4;4.15.0=img:pf5;4.22.0=img:pf6).")
 	flag.StringVar(&config.EBPFByteCodeImage, "ebpf-bytecode-image", "quay.io/netobserv/ebpf-bytecode:main", "The EBPF bytecode for the eBPF agent")
 	flag.StringVar(&config.Namespace, "namespace", "netobserv", "Current controller namespace")
 	flag.StringVar(&config.DemoLokiImage, "demo-loki-image", "grafana/loki:3.5.0", "The image of the zero click loki deployment")
