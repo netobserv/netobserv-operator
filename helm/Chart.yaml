@@ -72,7 +72,7 @@ annotations:
 dependencies:
 - name: kube-prometheus-stack
   alias: prom-stack
-  version: "~80.4.1"
+  version: "~83.0.0"
   repository: https://prometheus-community.github.io/helm-charts
   condition: install.prom-stack
 - name: loki-stack
