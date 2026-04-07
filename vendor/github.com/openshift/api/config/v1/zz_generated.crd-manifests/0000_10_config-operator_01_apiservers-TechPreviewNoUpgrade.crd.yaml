@@ -158,69 +158,6 @@ spec:
                 description: encryption allows the configuration of encryption of
                   resources at the datastore layer.
                 properties:
-                  kms:
-                    description: |-
-                      kms defines the configuration for the external KMS instance that manages the encryption keys,
-                      when KMS encryption is enabled sensitive resources will be encrypted using keys managed by an
-                      externally configured KMS instance.
-
-                      The Key Management Service (KMS) instance provides symmetric encryption and is responsible for
-                      managing the lifecyle of the encryption keys outside of the control plane.
-                      This allows integration with an external provider to manage the data encryption keys securely.
-                    properties:
-                      aws:
-                        description: |-
-                          aws defines the key config for using an AWS KMS instance
-                          for the encryption. The AWS KMS instance is managed
-                          by the user outside the purview of the control plane.
-                        properties:
-                          keyARN:
-                            description: |-
-                              keyARN specifies the Amazon Resource Name (ARN) of the AWS KMS key used for encryption.
-                              The value must adhere to the format `arn:aws:kms:<region>:<account_id>:key/<key_id>`, where:
-                              - `<region>` is the AWS region consisting of lowercase letters and hyphens followed by a number.
-                              - `<account_id>` is a 12-digit numeric identifier for the AWS account.
-                              - `<key_id>` is a unique identifier for the KMS key, consisting of lowercase hexadecimal characters and hyphens.
-                            maxLength: 128
-                            minLength: 1
-                            type: string
-                            x-kubernetes-validations:
-                            - message: keyARN must follow the format `arn:aws:kms:<region>:<account_id>:key/<key_id>`.
-                                The account ID must be a 12 digit number and the region
-                                and key ID should consist only of lowercase hexadecimal
-                                characters and hyphens (-).
-                              rule: self.matches('^arn:aws:kms:[a-z0-9-]+:[0-9]{12}:key/[a-f0-9-]+$')
-                          region:
-                            description: |-
-                              region specifies the AWS region where the KMS instance exists, and follows the format
-                              `<region-prefix>-<region-name>-<number>`, e.g.: `us-east-1`.
-                              Only lowercase letters and hyphens followed by numbers are allowed.
-                            maxLength: 64
-                            minLength: 1
-                            type: string
-                            x-kubernetes-validations:
-                            - message: region must be a valid AWS region, consisting
-                                of lowercase characters, digits and hyphens (-) only.
-                              rule: self.matches('^[a-z0-9]+(-[a-z0-9]+)*$')
-                        required:
-                        - keyARN
-                        - region
-                        type: object
-                      type:
-                        description: |-
-                          type defines the kind of platform for the KMS provider.
-                          Available provider types are AWS only.
-                        enum:
-                        - AWS
-                        type: string
-                    required:
-                    - type
-                    type: object
-                    x-kubernetes-validations:
-                    - message: aws config is required when kms provider type is AWS,
-                        and forbidden otherwise
-                      rule: 'has(self.type) && self.type == ''AWS'' ?  has(self.aws)
-                        : !has(self.aws)'
                   type:
                     description: |-
                       type defines what encryption type should be used to encrypt resources at the datastore layer.
@@ -244,11 +181,6 @@ spec:
                     - KMS
                     type: string
                 type: object
-                x-kubernetes-validations:
-                - message: kms config is required when encryption type is KMS, and
-                    forbidden otherwise
-                  rule: 'has(self.type) && self.type == ''KMS'' ?  has(self.kms) :
-                    !has(self.kms)'
               servingCerts:
                 description: |-
                   servingCert is the TLS cert info for serving secure traffic. If not specified, operator managed certificates
@@ -292,13 +224,48 @@ spec:
                     type: array
                     x-kubernetes-list-type: atomic
                 type: object
+              tlsAdherence:
+                description: |-
+                  tlsAdherence controls if components in the cluster adhere to the TLS security profile
+                  configured on this APIServer resource.
+
+                  Valid values are "LegacyAdheringComponentsOnly" and "StrictAllComponents".
+
+                  When set to "LegacyAdheringComponentsOnly", components that already honor the
+                  cluster-wide TLS profile continue to do so. Components that do not already honor
+                  it continue to use their individual TLS configurations.
+
+                  When set to "StrictAllComponents", all components must honor the configured TLS
+                  profile unless they have a component-specific TLS configuration that overrides
+                  it. This mode is recommended for security-conscious deployments and is required
+                  for certain compliance frameworks.
+
+                  Note: Some components such as Kubelet and IngressController have their own
+                  dedicated TLS configuration mechanisms via KubeletConfig and IngressController
+                  CRs respectively. When these component-specific TLS configurations are set,
+                  they take precedence over the cluster-wide tlsSecurityProfile. When not set,
+                  these components fall back to the cluster-wide default.
+
+                  Components that encounter an unknown value for tlsAdherence should treat it
+                  as "StrictAllComponents" and log a warning to ensure forward compatibility
+                  while defaulting to the more secure behavior.
+
+                  This field is optional.
+                  When omitted, this means the user has no opinion and the platform is left
+                  to choose reasonable defaults. These defaults are subject to change over time.
+                  The current default is LegacyAdheringComponentsOnly.
+
+                  Once set, this field may be changed to a different value, but may not be removed.
+                enum:
+                - LegacyAdheringComponentsOnly
+                - StrictAllComponents
+                type: string
               tlsSecurityProfile:
                 description: |-
                   tlsSecurityProfile specifies settings for TLS connections for externally exposed servers.
 
-                  If unset, a default (which may change between releases) is chosen. Note that only Old,
-                  Intermediate and Custom profiles are currently supported, and the maximum available
-                  minTLSVersion is VersionTLS12.
+                  When omitted, this means no opinion and the platform is left to choose a reasonable default, which is subject to change over time.
+                  The current default is the Intermediate profile.
                 properties:
                   custom:
                     description: |-
@@ -306,27 +273,25 @@ spec:
                       profile as invalid configurations can be catastrophic. An example custom profile
                       looks like this:
 
-                        ciphers:
-
-                          - ECDHE-ECDSA-CHACHA20-POLY1305
-
-                          - ECDHE-RSA-CHACHA20-POLY1305
-
-                          - ECDHE-RSA-AES128-GCM-SHA256
-
-                          - ECDHE-ECDSA-AES128-GCM-SHA256
-
                         minTLSVersion: VersionTLS11
+                        ciphers:
+                          - ECDHE-ECDSA-CHACHA20-POLY1305
+                          - ECDHE-RSA-CHACHA20-POLY1305
+                          - ECDHE-RSA-AES128-GCM-SHA256
+                          - ECDHE-ECDSA-AES128-GCM-SHA256
                     nullable: true
                     properties:
                       ciphers:
                         description: |-
                           ciphers is used to specify the cipher algorithms that are negotiated
-                          during the TLS handshake.  Operators may remove entries their operands
-                          do not support.  For example, to use DES-CBC3-SHA  (yaml):
+                          during the TLS handshake. Operators may remove entries that their operands
+                          do not support. For example, to use only ECDHE-RSA-AES128-GCM-SHA256 (yaml):
 
                             ciphers:
-                              - DES-CBC3-SHA
+                              - ECDHE-RSA-AES128-GCM-SHA256
+
+                          TLS 1.3 cipher suites (e.g. TLS_AES_128_GCM_SHA256) are not configurable
+                          and are always enabled when TLS 1.3 is negotiated.
                         items:
                           type: string
                         type: array
@@ -338,8 +303,6 @@ spec:
                           versions 1.1, 1.2 and 1.3 (yaml):
 
                             minTLSVersion: VersionTLS11
-
-                          NOTE: currently the highest minTLSVersion allowed is VersionTLS12
                         enum:
                         - VersionTLS10
                         - VersionTLS11
@@ -349,143 +312,81 @@ spec:
                     type: object
                   intermediate:
                     description: |-
-                      intermediate is a TLS security profile based on:
+                      intermediate is a TLS profile for use when you do not need compatibility with
+                      legacy clients and want to remain highly secure while being compatible with
+                      most clients currently in use.
 
-                      https://wiki.mozilla.org/Security/Server_Side_TLS#Intermediate_compatibility_.28recommended.29
-
-                      and looks like this (yaml):
-
-                        ciphers:
-
-                          - TLS_AES_128_GCM_SHA256
-
-                          - TLS_AES_256_GCM_SHA384
-
-                          - TLS_CHACHA20_POLY1305_SHA256
-
-                          - ECDHE-ECDSA-AES128-GCM-SHA256
-
-                          - ECDHE-RSA-AES128-GCM-SHA256
-
-                          - ECDHE-ECDSA-AES256-GCM-SHA384
-
-                          - ECDHE-RSA-AES256-GCM-SHA384
-
-                          - ECDHE-ECDSA-CHACHA20-POLY1305
-
-                          - ECDHE-RSA-CHACHA20-POLY1305
-
-                          - DHE-RSA-AES128-GCM-SHA256
-
-                          - DHE-RSA-AES256-GCM-SHA384
-
+                      This profile is equivalent to a Custom profile specified as:
                         minTLSVersion: VersionTLS12
+                        ciphers:
+                          - TLS_AES_128_GCM_SHA256
+                          - TLS_AES_256_GCM_SHA384
+                          - TLS_CHACHA20_POLY1305_SHA256
+                          - ECDHE-ECDSA-AES128-GCM-SHA256
+                          - ECDHE-RSA-AES128-GCM-SHA256
+                          - ECDHE-ECDSA-AES256-GCM-SHA384
+                          - ECDHE-RSA-AES256-GCM-SHA384
+                          - ECDHE-ECDSA-CHACHA20-POLY1305
+                          - ECDHE-RSA-CHACHA20-POLY1305
                     nullable: true
                     type: object
                   modern:
                     description: |-
-                      modern is a TLS security profile based on:
+                      modern is a TLS security profile for use with clients that support TLS 1.3 and
+                      do not need backward compatibility for older clients.
 
-                      https://wiki.mozilla.org/Security/Server_Side_TLS#Modern_compatibility
-
-                      and looks like this (yaml):
-
-                        ciphers:
-
-                          - TLS_AES_128_GCM_SHA256
-
-                          - TLS_AES_256_GCM_SHA384
-
-                          - TLS_CHACHA20_POLY1305_SHA256
-
+                      This profile is equivalent to a Custom profile specified as:
                         minTLSVersion: VersionTLS13
+                        ciphers:
+                          - TLS_AES_128_GCM_SHA256
+                          - TLS_AES_256_GCM_SHA384
+                          - TLS_CHACHA20_POLY1305_SHA256
                     nullable: true
                     type: object
                   old:
                     description: |-
-                      old is a TLS security profile based on:
+                      old is a TLS profile for use when services need to be accessed by very old
+                      clients or libraries and should be used only as a last resort.
 
-                      https://wiki.mozilla.org/Security/Server_Side_TLS#Old_backward_compatibility
-
-                      and looks like this (yaml):
-
-                        ciphers:
-
-                          - TLS_AES_128_GCM_SHA256
-
-                          - TLS_AES_256_GCM_SHA384
-
-                          - TLS_CHACHA20_POLY1305_SHA256
-
-                          - ECDHE-ECDSA-AES128-GCM-SHA256
-
-                          - ECDHE-RSA-AES128-GCM-SHA256
-
-                          - ECDHE-ECDSA-AES256-GCM-SHA384
-
-                          - ECDHE-RSA-AES256-GCM-SHA384
-
-                          - ECDHE-ECDSA-CHACHA20-POLY1305
-
-                          - ECDHE-RSA-CHACHA20-POLY1305
-
-                          - DHE-RSA-AES128-GCM-SHA256
-
-                          - DHE-RSA-AES256-GCM-SHA384
-
-                          - DHE-RSA-CHACHA20-POLY1305
-
-                          - ECDHE-ECDSA-AES128-SHA256
-
-                          - ECDHE-RSA-AES128-SHA256
-
-                          - ECDHE-ECDSA-AES128-SHA
-
-                          - ECDHE-RSA-AES128-SHA
-
-                          - ECDHE-ECDSA-AES256-SHA384
-
-                          - ECDHE-RSA-AES256-SHA384
-
-                          - ECDHE-ECDSA-AES256-SHA
-
-                          - ECDHE-RSA-AES256-SHA
-
-                          - DHE-RSA-AES128-SHA256
-
-                          - DHE-RSA-AES256-SHA256
-
-                          - AES128-GCM-SHA256
-
-                          - AES256-GCM-SHA384
-
-                          - AES128-SHA256
-
-                          - AES256-SHA256
-
-                          - AES128-SHA
-
-                          - AES256-SHA
-
-                          - DES-CBC3-SHA
-
+                      This profile is equivalent to a Custom profile specified as:
                         minTLSVersion: VersionTLS10
+                        ciphers:
+                          - TLS_AES_128_GCM_SHA256
+                          - TLS_AES_256_GCM_SHA384
+                          - TLS_CHACHA20_POLY1305_SHA256
+                          - ECDHE-ECDSA-AES128-GCM-SHA256
+                          - ECDHE-RSA-AES128-GCM-SHA256
+                          - ECDHE-ECDSA-AES256-GCM-SHA384
+                          - ECDHE-RSA-AES256-GCM-SHA384
+                          - ECDHE-ECDSA-CHACHA20-POLY1305
+                          - ECDHE-RSA-CHACHA20-POLY1305
+                          - ECDHE-ECDSA-AES128-SHA256
+                          - ECDHE-RSA-AES128-SHA256
+                          - ECDHE-ECDSA-AES128-SHA
+                          - ECDHE-RSA-AES128-SHA
+                          - ECDHE-ECDSA-AES256-SHA
+                          - ECDHE-RSA-AES256-SHA
+                          - AES128-GCM-SHA256
+                          - AES256-GCM-SHA384
+                          - AES128-SHA256
+                          - AES128-SHA
+                          - AES256-SHA
+                          - DES-CBC3-SHA
                     nullable: true
                     type: object
                   type:
                     description: |-
-                      type is one of Old, Intermediate, Modern or Custom. Custom provides
-                      the ability to specify individual TLS security profile parameters.
-                      Old, Intermediate and Modern are TLS security profiles based on:
+                      type is one of Old, Intermediate, Modern or Custom. Custom provides the
+                      ability to specify individual TLS security profile parameters.
 
-                      https://wiki.mozilla.org/Security/Server_Side_TLS#Recommended_configurations
+                      The profiles are based on version 5.7 of the Mozilla Server Side TLS
+                      configuration guidelines. The cipher lists consist of the configuration's
+                      "ciphersuites" followed by the Go-specific "ciphers" from the guidelines.
+                      See: https://ssl-config.mozilla.org/guidelines/5.7.json
 
-                      The profiles are intent based, so they may change over time as new ciphers are developed and existing ciphers
-                      are found to be insecure.  Depending on precisely which ciphers are available to a process, the list may be
-                      reduced.
-
-                      Note that the Modern profile is currently not supported because it is not
-                      yet well adopted by common software libraries.
+                      The profiles are intent based, so they may change over time as new ciphers are
+                      developed and existing ciphers are found to be insecure. Depending on
+                      precisely which ciphers are available to a process, the list may be reduced.
                     enum:
                     - Old
                     - Intermediate
@@ -494,6 +395,9 @@ spec:
                     type: string
                 type: object
             type: object
+            x-kubernetes-validations:
+            - message: tlsAdherence may not be removed once set
+              rule: 'has(oldSelf.tlsAdherence) ? has(self.tlsAdherence) : true'
           status:
             description: status holds observed values from the cluster. They may not
               be overridden.
