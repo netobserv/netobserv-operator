@@ -51,7 +51,7 @@ type ClUprobeAttachInfo struct {
 	// attachment point function.
 	// +optional
 	// +kubebuilder:default:=0
-	Offset uint64 `json:"offset,omitempty"`
+	Offset int64 `json:"offset,omitempty"`
 
 	// target is a required field and is the user-space library name or the
 	// absolute path to a binary or library.
@@ -92,7 +92,7 @@ type ClUprobeAttachInfoState struct {
 	// attachment point function.
 	// +optional
 	// +kubebuilder:default:=0
-	Offset uint64 `json:"offset"`
+	Offset int64 `json:"offset"`
 
 	// target is the provisioned user-space library name or the absolute path to a
 	// binary or library.

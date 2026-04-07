@@ -170,7 +170,7 @@ func (r *K8sRule) preprocess() {
 }
 
 type SecondaryNetwork struct {
-	Name  string         `yaml:"name,omitempty" json:"name,omitempty" doc:"name of the secondary network, as mentioned in the annotation 'k8s.v1.cni.cncf.io/network-status'"`
+	Name  string         `yaml:"name,omitempty" json:"name,omitempty" doc:"deprecated / unused"`
 	Index map[string]any `yaml:"index,omitempty" json:"index,omitempty" doc:"fields to use for indexing, must be any combination of 'mac', 'ip', 'interface', or 'udn'"`
 }
 
