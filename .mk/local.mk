@@ -50,7 +50,7 @@ local-deploy-operator:
 	go run ./main.go \
 		-ebpf-agent-image=quay.io/netobserv/netobserv-ebpf-agent:main \
 		-flowlogs-pipeline-image=quay.io/netobserv/flowlogs-pipeline:main \
-		-console-plugin-image=quay.io/netobserv/network-observability-console-plugin:main \
+		-console-plugin-images=quay.io/netobserv/network-observability-console-plugin:main \
 		-namespace=${NAMESPACE} &
 	@echo "====> Waiting for flowlogs-pipeline pod to be ready"
 	while : ; do kubectl get ds flowlogs-pipeline && break; sleep 1; done

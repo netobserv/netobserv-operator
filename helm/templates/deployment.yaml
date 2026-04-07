@@ -27,8 +27,7 @@ spec:
             - --leader-elect
             - --ebpf-agent-image=$(RELATED_IMAGE_EBPF_AGENT)
             - --flowlogs-pipeline-image=$(RELATED_IMAGE_FLOWLOGS_PIPELINE)
-            - --console-plugin-image=$(RELATED_IMAGE_CONSOLE_PLUGIN)
-            - --console-plugin-compat-image=$(RELATED_IMAGE_CONSOLE_PLUGIN_COMPAT)
+            - --console-plugin-images=$(RELATED_IMAGE_CONSOLE_PLUGIN)
             - --demo-loki-image=$(RELATED_IMAGE_DEMO_LOKI)
             - --namespace=$(NAMESPACE)
             - --downstream-deployment=$(DOWNSTREAM_DEPLOYMENT)
