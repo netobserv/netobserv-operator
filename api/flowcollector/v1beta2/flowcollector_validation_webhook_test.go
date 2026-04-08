@@ -1008,6 +1008,55 @@ func TestValidateFLP(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:       "Console plugin with Loki disabled and includeList nil (uses defaults)",
+			ocpVersion: "4.18.0",
+			fc: &FlowCollector{
+				Spec: FlowCollectorSpec{
+					Loki: FlowCollectorLoki{
+						Enable: ptr.To(false),
+					},
+					ConsolePlugin: FlowCollectorConsolePlugin{
+						Enable: ptr.To(true),
+					},
+					Processor: FlowCollectorFLP{
+						Metrics: FLPMetrics{
+							IncludeList:   nil,
+							DisableAlerts: []AlertTemplate{HealthRuleExternalEgressHighTrend, HealthRuleExternalIngressHighTrend},
+						},
+					},
+				},
+			},
+			// No warning expected because nil includeList means defaults are used
+		},
+		{
+			name:       "Console plugin with Loki disabled and includeList empty slice",
+			ocpVersion: "4.18.0",
+			fc: &FlowCollector{
+				Spec: FlowCollectorSpec{
+					Loki: FlowCollectorLoki{
+						Enable: ptr.To(false),
+					},
+					ConsolePlugin: FlowCollectorConsolePlugin{
+						Enable: ptr.To(true),
+					},
+					Processor: FlowCollectorFLP{
+						Metrics: FLPMetrics{
+							IncludeList:   &[]FLPMetric{},
+							DisableAlerts: []AlertTemplate{HealthRuleExternalEgressHighTrend, HealthRuleExternalIngressHighTrend},
+						},
+					},
+				},
+			},
+			expectedWarnings: admission.Warnings{
+				"Console plugin is enabled with Loki disabled (Prometheus-only mode) and spec.processor.metrics.includeList is set. " +
+					"Some default metrics required for console plugin queries are missing from your includeList: " +
+					"[node_ingress_bytes_total node_egress_bytes_total node_ingress_packets_total workload_ingress_bytes_total workload_egress_bytes_total " +
+					"workload_ingress_packets_total workload_egress_packets_total workload_flows_total node_to_node_ingress_flows_total]. " +
+					"This may cause some queries run from the console plugin to fail. " +
+					"Consider using spec.processor.metrics.additionalIncludeList to add metrics while preserving defaults, or ensure all required metrics are included in includeList.",
+			},
+		},
 	}
 
 	r := FlowCollector{}
