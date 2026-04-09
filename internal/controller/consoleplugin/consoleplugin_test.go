@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	ascv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -12,10 +13,9 @@ import (
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/yaml"
 
-	lokiv1 "github.com/grafana/loki/operator/apis/loki/v1"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
-	config "github.com/netobserv/netobserv-operator/internal/controller/consoleplugin/config"
+	"github.com/netobserv/netobserv-operator/internal/controller/consoleplugin/config"
 	"github.com/netobserv/netobserv-operator/internal/controller/constants"
 	"github.com/netobserv/netobserv-operator/internal/controller/reconcilers"
 	"github.com/netobserv/netobserv-operator/internal/pkg/cluster"
@@ -32,6 +32,10 @@ var testResources = corev1.ResourceRequirements{
 		corev1.ResourceCPU:    resource.MustParse("1"),
 		corev1.ResourceMemory: resource.MustParse("512Mi"),
 	},
+}
+var lokiStatusUnused = status.ComponentStatus{
+	Name:   status.LokiStack,
+	Status: status.StatusUnknown,
 }
 
 func getPluginConfig() flowslatest.FlowCollectorConsolePlugin {
@@ -111,7 +115,7 @@ func getAutoScalerSpecs() (ascv2.HorizontalPodAutoscaler, flowslatest.FlowCollec
 func getBuilder(spec *flowslatest.FlowCollectorSpec, lk *helper.LokiConfig) builder {
 	info := reconcilers.Common{Namespace: testNamespace, Loki: lk, ClusterInfo: &cluster.Info{}}
 	b := newBuilder(info.NewInstance(map[reconcilers.ImageRef]string{reconcilers.MainImage: testImage}, status.Instance{}), spec, constants.PluginName)
-	_, _, _ = b.configMap(context.Background(), nil) // build configmap to update builder's volumes
+	_, _, _ = b.configMap(context.Background(), nil, lokiStatusUnused) // build configmap to update builder's volumes
 	return b
 }
 
@@ -224,8 +228,8 @@ func TestConfigMapUpdateCheck(t *testing.T) {
 	}
 	spec := flowslatest.FlowCollectorSpec{ConsolePlugin: plugin}
 	builder := getBuilder(&spec, &loki)
-	old, _, _ := builder.configMap(context.Background(), nil)
-	nEw, _, _ := builder.configMap(context.Background(), nil)
+	old, _, _ := builder.configMap(context.Background(), nil, lokiStatusUnused)
+	nEw, _, _ := builder.configMap(context.Background(), nil, lokiStatusUnused)
 	assert.Equal(old.Data, nEw.Data)
 
 	// update loki
@@ -240,7 +244,7 @@ func TestConfigMapUpdateCheck(t *testing.T) {
 		}},
 	}
 	builder = getBuilder(&spec, &loki)
-	nEw, _, _ = builder.configMap(context.Background(), nil)
+	nEw, _, _ = builder.configMap(context.Background(), nil, lokiStatusUnused)
 	assert.NotEqual(old.Data, nEw.Data)
 	old = nEw
 
@@ -248,7 +252,7 @@ func TestConfigMapUpdateCheck(t *testing.T) {
 	loki.LokiManualParams.StatusURL = "http://loki.status:3100/"
 	loki.LokiManualParams.StatusTLS.Enable = true
 	builder = getBuilder(&spec, &loki)
-	nEw, _, _ = builder.configMap(context.Background(), nil)
+	nEw, _, _ = builder.configMap(context.Background(), nil, lokiStatusUnused)
 	assert.NotEqual(old.Data, nEw.Data)
 	old = nEw
 
@@ -259,14 +263,14 @@ func TestConfigMapUpdateCheck(t *testing.T) {
 		CertFile: "status-ca.crt",
 	}
 	builder = getBuilder(&spec, &loki)
-	nEw, _, _ = builder.configMap(context.Background(), nil)
+	nEw, _, _ = builder.configMap(context.Background(), nil, lokiStatusUnused)
 	assert.NotEqual(old.Data, nEw.Data)
 	old = nEw
 
 	// update status user cert
 	loki.LokiManualParams.StatusTLS.UserCert = ptr.Deref(helper.DefaultCertificateReference("sec-name", ""), flowslatest.CertificateReference{})
 	builder = getBuilder(&spec, &loki)
-	nEw, _, _ = builder.configMap(context.Background(), nil)
+	nEw, _, _ = builder.configMap(context.Background(), nil, lokiStatusUnused)
 	assert.NotEqual(old.Data, nEw.Data)
 }
 
@@ -282,8 +286,8 @@ func TestConfigMapUpdateWithLokistackMode(t *testing.T) {
 	loki := helper.NewLokiConfig(&lokiSpec, "any")
 	spec := flowslatest.FlowCollectorSpec{ConsolePlugin: plugin, Loki: lokiSpec}
 	builder := getBuilder(&spec, &loki)
-	old, _, _ := builder.configMap(context.Background(), nil)
-	nEw, _, _ := builder.configMap(context.Background(), nil)
+	old, _, _ := builder.configMap(context.Background(), nil, lokiStatusUnused)
+	nEw, _, _ := builder.configMap(context.Background(), nil, lokiStatusUnused)
 	assert.Equal(old.Data, nEw.Data)
 
 	// update lokistack name
@@ -292,7 +296,7 @@ func TestConfigMapUpdateWithLokistackMode(t *testing.T) {
 
 	spec = flowslatest.FlowCollectorSpec{ConsolePlugin: plugin, Loki: lokiSpec}
 	builder = getBuilder(&spec, &loki)
-	nEw, _, _ = builder.configMap(context.Background(), nil)
+	nEw, _, _ = builder.configMap(context.Background(), nil, lokiStatusUnused)
 	assert.NotEqual(old.Data, nEw.Data)
 	old = nEw
 
@@ -302,7 +306,7 @@ func TestConfigMapUpdateWithLokistackMode(t *testing.T) {
 
 	spec = flowslatest.FlowCollectorSpec{ConsolePlugin: plugin, Loki: lokiSpec}
 	builder = getBuilder(&spec, &loki)
-	nEw, _, _ = builder.configMap(context.Background(), nil)
+	nEw, _, _ = builder.configMap(context.Background(), nil, lokiStatusUnused)
 	assert.NotEqual(old.Data, nEw.Data)
 }
 
@@ -327,7 +331,7 @@ func TestConfigMapContent(t *testing.T) {
 		Processor:     flowslatest.FlowCollectorFLP{SubnetLabels: flowslatest.SubnetLabels{OpenShiftAutoDetect: ptr.To(false)}},
 	}
 	builder := getBuilder(&spec, &loki)
-	cm, _, err := builder.configMap(context.Background(), nil)
+	cm, _, err := builder.configMap(context.Background(), nil, lokiStatusUnused)
 	assert.NotNil(cm)
 	assert.Nil(err)
 
@@ -347,6 +351,38 @@ func TestConfigMapContent(t *testing.T) {
 	assert.NotEmpty(config.Frontend.Filters)
 	assert.NotEmpty(config.Frontend.Scopes)
 	assert.Equal(config.Frontend.Sampling, 1)
+}
+
+func TestConfigMapExternalRecordingAnnotations(t *testing.T) {
+	assert := assert.New(t)
+	lokiSpec := flowslatest.FlowCollectorLoki{
+		Mode:      flowslatest.LokiModeLokiStack,
+		LokiStack: flowslatest.LokiStackRef{Name: "lokistack", Namespace: "ls-namespace"},
+	}
+	loki := helper.NewLokiConfig(&lokiSpec, "any")
+	spec := flowslatest.FlowCollectorSpec{
+		ConsolePlugin: getPluginConfig(),
+		Loki:          lokiSpec,
+		Processor:     flowslatest.FlowCollectorFLP{SubnetLabels: flowslatest.SubnetLabels{OpenShiftAutoDetect: ptr.To(false)}},
+	}
+	builder := getBuilder(&spec, &loki)
+
+	external := map[string]map[string]string{
+		"my_custom_metric": {
+			"summary":                     "Custom metric",
+			"netobserv_io_network_health": `{"recordingThresholds":{"info":"10"}}`,
+		},
+	}
+	cm, _, err := builder.configMap(context.Background(), external, lokiStatusUnused)
+	assert.NotNil(cm)
+	assert.NoError(err)
+
+	var pluginConfig config.PluginConfig
+	err = yaml.Unmarshal([]byte(cm.Data["config.yaml"]), &pluginConfig)
+	assert.NoError(err)
+	assert.Contains(pluginConfig.Frontend.RecordingAnnotations, "my_custom_metric")
+	assert.Equal("Custom metric", pluginConfig.Frontend.RecordingAnnotations["my_custom_metric"]["summary"])
+	assert.Equal(`{"recordingThresholds":{"info":"10"}}`, pluginConfig.Frontend.RecordingAnnotations["my_custom_metric"]["netobserv_io_network_health"])
 }
 
 func TestServiceUpdateCheck(t *testing.T) {
@@ -490,22 +526,11 @@ func TestLokiStackStatusEmbedding(t *testing.T) {
 	builder := getBuilder(&spec, &loki)
 
 	// Test 1: LokiStack with ready status
-	lokiStackReady := &lokiv1.LokiStack{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "lokistack",
-			Namespace: "ls-namespace",
-		},
-		Status: lokiv1.LokiStackStatus{
-			Conditions: []metav1.Condition{
-				{
-					Type:   "Ready",
-					Status: "True",
-					Reason: "ReadyComponents",
-				},
-			},
-		},
+	lokiStackReady := status.ComponentStatus{
+		Name:   status.LokiStack,
+		Status: status.StatusReady,
 	}
-	cm, _, err := builder.configMap(context.Background(), lokiStackReady)
+	cm, _, err := builder.configMap(context.Background(), nil, lokiStackReady)
 	assert.Nil(err)
 	assert.NotNil(cm)
 
@@ -516,22 +541,12 @@ func TestLokiStackStatusEmbedding(t *testing.T) {
 	assert.Empty(cfg.Loki.StatusURL, "StatusURL should be cleared when LokiStack status is embedded")
 
 	// Test 2: LokiStack with pending status (no ready condition)
-	lokiStackPending := &lokiv1.LokiStack{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "lokistack",
-			Namespace: "ls-namespace",
-		},
-		Status: lokiv1.LokiStackStatus{
-			Conditions: []metav1.Condition{
-				{
-					Type:   "Pending",
-					Status: "False",
-					Reason: "PendingComponents",
-				},
-			},
-		},
+	lokiStackPending := status.ComponentStatus{
+		Name:   status.LokiStack,
+		Status: status.StatusInProgress,
+		Reason: "PendingComponents",
 	}
-	cm, _, err = builder.configMap(context.Background(), lokiStackPending)
+	cm, _, err = builder.configMap(context.Background(), nil, lokiStackPending)
 	assert.Nil(err)
 	assert.NotNil(cm)
 
@@ -540,33 +555,8 @@ func TestLokiStackStatusEmbedding(t *testing.T) {
 	assert.Equal("pending", cfg.Loki.Status)
 	assert.Empty(cfg.Loki.StatusURL)
 
-	// Test 3: LokiStack with ReadyComponents but Status=False
-	lokiStackNotReady := &lokiv1.LokiStack{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "lokistack",
-			Namespace: "ls-namespace",
-		},
-		Status: lokiv1.LokiStackStatus{
-			Conditions: []metav1.Condition{
-				{
-					Type:   "Ready",
-					Status: "False",
-					Reason: "ReadyComponents",
-				},
-			},
-		},
-	}
-	cm, _, err = builder.configMap(context.Background(), lokiStackNotReady)
-	assert.Nil(err)
-	assert.NotNil(cm)
-
-	err = yaml.Unmarshal([]byte(cm.Data["config.yaml"]), &cfg)
-	assert.Nil(err)
-	assert.Equal("pending", cfg.Loki.Status)
-	assert.Empty(cfg.Loki.StatusURL)
-
-	// Test 4: No LokiStack provided (nil)
-	cm, _, err = builder.configMap(context.Background(), nil)
+	// Test 3: No LokiStack provided (nil)
+	cm, _, err = builder.configMap(context.Background(), nil, lokiStatusUnused)
 	assert.Nil(err)
 	assert.NotNil(cm)
 
@@ -577,68 +567,6 @@ func TestLokiStackStatusEmbedding(t *testing.T) {
 	assert.Empty(cfgNil.Loki.Status, "Status should be empty when no LokiStack is provided")
 	// StatusURL should be present when using LokiStack mode without actual LokiStack object
 	assert.NotEmpty(cfgNil.Loki.StatusURL)
-}
-
-func TestGetLokiStatus(t *testing.T) {
-	assert := assert.New(t)
-
-	// Test 1: nil LokiStack
-	status := getLokiStatus(nil)
-	assert.Empty(status)
-
-	// Test 2: Ready status
-	lokiStackReady := &lokiv1.LokiStack{
-		Status: lokiv1.LokiStackStatus{
-			Conditions: []metav1.Condition{
-				{
-					Type:   "Ready",
-					Status: "True",
-					Reason: "ReadyComponents",
-				},
-			},
-		},
-	}
-	status = getLokiStatus(lokiStackReady)
-	assert.Equal("ready", status)
-
-	// Test 3: Pending status (no ReadyComponents)
-	lokiStackPending := &lokiv1.LokiStack{
-		Status: lokiv1.LokiStackStatus{
-			Conditions: []metav1.Condition{
-				{
-					Type:   "Pending",
-					Status: "True",
-					Reason: "Pending",
-				},
-			},
-		},
-	}
-	status = getLokiStatus(lokiStackPending)
-	assert.Equal("pending", status)
-
-	// Test 4: Not ready (ReadyComponents with Status=False)
-	lokiStackNotReady := &lokiv1.LokiStack{
-		Status: lokiv1.LokiStackStatus{
-			Conditions: []metav1.Condition{
-				{
-					Type:   "Ready",
-					Status: "False",
-					Reason: "ReadyComponents",
-				},
-			},
-		},
-	}
-	status = getLokiStatus(lokiStackNotReady)
-	assert.Equal("pending", status)
-
-	// Test 5: Empty conditions
-	lokiStackEmpty := &lokiv1.LokiStack{
-		Status: lokiv1.LokiStackStatus{
-			Conditions: []metav1.Condition{},
-		},
-	}
-	status = getLokiStatus(lokiStackEmpty)
-	assert.Equal("pending", status)
 }
 
 func TestLokiStackNamespaceDefaulting(t *testing.T) {
@@ -689,7 +617,7 @@ func TestLokiStackNotFoundBehavior(t *testing.T) {
 
 	// Test behavior when LokiStack is not found (nil is passed)
 	// This simulates the reconciler behavior when Get() returns NotFound
-	cm, digest, err := builder.configMap(context.Background(), nil)
+	cm, digest, err := builder.configMap(context.Background(), nil, lokiStatusUnused)
 
 	// ConfigMap should still be created successfully
 	assert.Nil(err)
@@ -714,4 +642,94 @@ func TestLokiStackNotFoundBehavior(t *testing.T) {
 
 	// This ensures the console plugin can still function with a status URL
 	// even if the LokiStack resource is temporarily unavailable
+}
+
+func TestScopeFilteringWithLoki(t *testing.T) {
+	scopeIDs := func(scopes []config.ScopeConfig) []string {
+		var ids []string
+		for i := range scopes {
+			ids = append(ids, scopes[i].ID)
+		}
+		return ids
+	}
+	plugin := getPluginConfig()
+	lokiSpec := flowslatest.FlowCollectorLoki{
+		Enable: ptr.To(true),
+	}
+	loki := helper.NewLokiConfig(&lokiSpec, "any")
+	spec := flowslatest.FlowCollectorSpec{
+		Agent: flowslatest.FlowCollectorAgent{
+			EBPF: flowslatest.FlowCollectorEBPF{
+				Features: []flowslatest.AgentFeature{flowslatest.UDNMapping},
+			},
+		},
+		ConsolePlugin: plugin,
+		Loki:          lokiSpec,
+	}
+	builder := getBuilder(&spec, &loki)
+	frontend, err := config.GetStaticFrontendConfig()
+	require.NoError(t, err)
+	assert.Equal(t, []string{"cluster", "network", "zone", "host", "namespace", "owner", "resource"}, scopeIDs(frontend.Scopes))
+
+	prom := builder.getPromConfig(context.Background())
+	warning, err := builder.setFrontendConfig(&frontend, prom.Metrics)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"network", "host", "namespace", "owner", "resource"}, scopeIDs(frontend.Scopes))
+	assert.Equal(t, "", warning)
+
+	// Make sure scope groups aren't modified
+	assert.Contains(t, frontend.Scopes[3].Groups, "hosts")
+	assert.Contains(t, frontend.Scopes[3].Groups, "hosts+namespaces")
+	assert.Contains(t, frontend.Scopes[3].Groups, "networks+hosts")
+	assert.Contains(t, frontend.Scopes[3].Groups, "networks+namespaces")
+}
+
+func TestScopeFilteringNoLoki(t *testing.T) {
+	scopeIDs := func(scopes []config.ScopeConfig) []string {
+		var ids []string
+		for i := range scopes {
+			ids = append(ids, scopes[i].ID)
+		}
+		return ids
+	}
+	plugin := getPluginConfig()
+	lokiSpec := flowslatest.FlowCollectorLoki{
+		Enable: ptr.To(false),
+	}
+	loki := helper.NewLokiConfig(&lokiSpec, "any")
+	spec := flowslatest.FlowCollectorSpec{
+		Agent: flowslatest.FlowCollectorAgent{
+			EBPF: flowslatest.FlowCollectorEBPF{
+				Features: []flowslatest.AgentFeature{flowslatest.UDNMapping},
+			},
+		},
+		Processor: flowslatest.FlowCollectorFLP{
+			AddZone: ptr.To(true),
+			Metrics: flowslatest.FLPMetrics{
+				IncludeList: &[]flowslatest.FLPMetric{
+					"node_egress_bytes_total",
+					"namespace_egress_bytes_total",
+				},
+			},
+		},
+		ConsolePlugin: plugin,
+		Loki:          lokiSpec,
+	}
+	builder := getBuilder(&spec, &loki)
+	frontend, err := config.GetStaticFrontendConfig()
+	require.NoError(t, err)
+	assert.Equal(t, []string{"cluster", "network", "zone", "host", "namespace", "owner", "resource"}, scopeIDs(frontend.Scopes))
+
+	prom := builder.getPromConfig(context.Background())
+	warning, err := builder.setFrontendConfig(&frontend, prom.Metrics)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"zone", "host", "namespace"}, scopeIDs(frontend.Scopes))
+	assert.Contains(t, warning, "Scope network invalid for metrics")
+	assert.Contains(t, warning, "Scope owner invalid for metrics")
+	assert.Contains(t, warning, "candidates: netobserv_workload_egress_bytes_total, ")
+
+	// Make sure scope groups are tailored to metrics
+	assert.Empty(t, frontend.Scopes[0].Groups)
+	assert.Equal(t, []string{"zones"}, frontend.Scopes[1].Groups)
+	assert.Equal(t, []string{"zones"}, frontend.Scopes[2].Groups)
 }

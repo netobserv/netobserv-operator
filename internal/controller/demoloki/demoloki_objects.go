@@ -1,4 +1,4 @@
-package loki
+package demoloki
 
 import (
 	"fmt"
@@ -13,9 +13,8 @@ import (
 	"k8s.io/utils/ptr"
 
 	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
-	cfg "github.com/netobserv/netobserv-operator/internal/controller/loki/config"
-
 	"github.com/netobserv/netobserv-operator/internal/controller/constants"
+	cfg "github.com/netobserv/netobserv-operator/internal/controller/demoloki/config"
 	"github.com/netobserv/netobserv-operator/internal/controller/reconcilers"
 	"github.com/netobserv/netobserv-operator/internal/pkg/helper"
 	"github.com/netobserv/netobserv-operator/internal/pkg/volumes"

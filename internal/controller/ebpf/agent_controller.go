@@ -73,6 +73,7 @@ const (
 	envEnableEbpfMgr              = "EBPF_PROGRAM_MANAGER_MODE"
 	envEnableUDNMapping           = "ENABLE_UDN_MAPPING"
 	envEnableIPsec                = "ENABLE_IPSEC_TRACKING"
+	envEnableTLSTracking          = "ENABLE_TLS_TRACKING"
 	envDNSTrackingPort            = "DNS_TRACKING_PORT"
 	envPreferredInterface         = "PREFERRED_INTERFACE_FOR_MAC_PREFIX"
 	envAttachMode                 = "TC_ATTACH_MODE"
@@ -136,6 +137,24 @@ func NewAgentController(common *reconcilers.Instance) *AgentController {
 func (c *AgentController) Reconcile(ctx context.Context, target *flowslatest.FlowCollector) error {
 	rlog := log.FromContext(ctx).WithName("ebpf")
 	ctx = log.IntoContext(ctx, rlog)
+
+	defer c.Status.Commit(ctx, c.Client)
+
+	err := c.reconcile(ctx, target)
+	if err != nil {
+		rlog.Error(err, "AgentController reconcile failure")
+		// Set status failure unless it was already set
+		if !c.Status.HasFailure() {
+			c.Status.SetFailure("AgentControllerError", err.Error())
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (c *AgentController) reconcile(ctx context.Context, target *flowslatest.FlowCollector) error {
+	rlog := log.FromContext(ctx)
 	current, err := c.current(ctx)
 	if err != nil {
 		return fmt.Errorf("fetching current eBPF agent: %w", err)
@@ -506,10 +525,27 @@ func (c *AgentController) envConfig(ctx context.Context, coll *flowslatest.FlowC
 				// Send to FLP service using TLS
 				caPath := c.volumes.AddVolume(ca, "netobserv-ca")
 				config = append(config, corev1.EnvVar{Name: envTargetTLSCACertPath, Value: caPath})
-				if clientCert != nil {
+				if clientCert == nil {
+					if ca.Namespace != "" {
+						// Annotate pod with CA ref
+						caDigest, err := c.Watcher.ProcessFileReference(ctx, c.Client, *ca, c.PrivilegedNamespace())
+						if err != nil {
+							return nil, err
+						}
+						annots[watchers.Annotation("tls-ca")] = caDigest
+					}
+				} else {
 					certPath, keyPath := c.volumes.AddCertificate(clientCert, "client-certs")
 					config = append(config, corev1.EnvVar{Name: envTargetTLSUserCertPath, Value: certPath})
 					config = append(config, corev1.EnvVar{Name: envTargetTLSUserKeyPath, Value: keyPath})
+
+					// Annotate pod with certificate reference so that it is reloaded if modified
+					caDigest, userDigest, err := c.Watcher.ProcessMTLSCertsFromRefs(ctx, c.Client, ca, clientCert, c.PrivilegedNamespace())
+					if err != nil {
+						return nil, err
+					}
+					annots[watchers.Annotation("mtls-ca")] = caDigest
+					annots[watchers.Annotation("mtls-user")] = userDigest
 				}
 			}
 			config = append(config,
@@ -760,6 +796,13 @@ func getEnvConfig(coll *flowslatest.FlowCollector, cinfo *cluster.Info) []corev1
 	if coll.Spec.Agent.EBPF.IsIPSecEnabled() {
 		config = append(config, corev1.EnvVar{
 			Name:  envEnableIPsec,
+			Value: "true",
+		})
+	}
+
+	if coll.Spec.Agent.EBPF.IsTLSTrackingEnabled() {
+		config = append(config, corev1.EnvVar{
+			Name:  envEnableTLSTracking,
 			Value: "true",
 		})
 	}

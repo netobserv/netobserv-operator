@@ -31,4 +31,5 @@ EOF
 
 ⌨️ To view the web console at http://localhost:9001/ (port-forwarding):
 
+$ kubectl wait -n {{ .Release.Namespace }} --timeout=60s --for condition=Available=True deployment netobserv-plugin
 $ kubectl port-forward svc/netobserv-plugin 9001:9001 -n {{ .Release.Namespace }}

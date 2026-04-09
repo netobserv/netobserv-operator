@@ -1,6 +1,7 @@
 package status
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -10,20 +11,18 @@ import (
 
 func TestStatusWorkflow(t *testing.T) {
 	s := NewManager()
-	sl := s.ForComponent(FlowCollectorLegacy)
+	sl := s.ForComponent(FlowCollectorController)
 	sm := s.ForComponent(Monitoring)
 
-	sl.SetReady() // temporary until controllers are broken down
 	sl.SetCreatingDaemonSet(&appsv1.DaemonSet{ObjectMeta: metav1.ObjectMeta{Name: "test"}})
 	sm.SetFailure("AnError", "bad one")
 
 	conds := s.getConditions()
-	assert.Len(t, conds, 4)
+	assertHasConditionTypes(t, conds, []string{"Ready", "WaitingFlowCollectorController", "WaitingMonitoring"})
 	assertHasCondition(t, conds, "Ready", "Failure", metav1.ConditionFalse)
-	assertHasCondition(t, conds, "WaitingFlowCollectorLegacy", "CreatingDaemonSet", metav1.ConditionTrue)
+	assertHasCondition(t, conds, "WaitingFlowCollectorController", "CreatingDaemonSet", metav1.ConditionTrue)
 	assertHasCondition(t, conds, "WaitingMonitoring", "AnError", metav1.ConditionTrue)
 
-	sl.SetReady() // temporary until controllers are broken down
 	sl.CheckDaemonSetProgress(&appsv1.DaemonSet{ObjectMeta: metav1.ObjectMeta{Name: "test"}, Status: appsv1.DaemonSetStatus{
 		DesiredNumberScheduled: 3,
 		UpdatedNumberScheduled: 1,
@@ -31,12 +30,11 @@ func TestStatusWorkflow(t *testing.T) {
 	sm.SetUnknown()
 
 	conds = s.getConditions()
-	assert.Len(t, conds, 4)
+	assertHasConditionTypes(t, conds, []string{"Ready", "WaitingFlowCollectorController", "WaitingMonitoring"})
 	assertHasCondition(t, conds, "Ready", "Pending", metav1.ConditionFalse)
-	assertHasCondition(t, conds, "WaitingFlowCollectorLegacy", "DaemonSetNotReady", metav1.ConditionTrue)
+	assertHasCondition(t, conds, "WaitingFlowCollectorController", "DaemonSetNotReady", metav1.ConditionTrue)
 	assertHasCondition(t, conds, "WaitingMonitoring", "Unused", metav1.ConditionUnknown)
 
-	sl.SetReady() // temporary until controllers are broken down
 	sl.CheckDaemonSetProgress(&appsv1.DaemonSet{ObjectMeta: metav1.ObjectMeta{Name: "test"}, Status: appsv1.DaemonSetStatus{
 		DesiredNumberScheduled: 3,
 		UpdatedNumberScheduled: 3,
@@ -44,12 +42,11 @@ func TestStatusWorkflow(t *testing.T) {
 	sm.SetUnused("message")
 
 	conds = s.getConditions()
-	assert.Len(t, conds, 4)
+	assertHasConditionTypes(t, conds, []string{"Ready", "WaitingFlowCollectorController", "WaitingMonitoring"})
 	assertHasCondition(t, conds, "Ready", "Ready", metav1.ConditionTrue)
-	assertHasCondition(t, conds, "WaitingFlowCollectorLegacy", "Ready", metav1.ConditionFalse)
+	assertHasCondition(t, conds, "WaitingFlowCollectorController", "Ready", metav1.ConditionFalse)
 	assertHasCondition(t, conds, "WaitingMonitoring", "ComponentUnused", metav1.ConditionUnknown)
 
-	sl.SetReady() // temporary until controllers are broken down
 	sl.CheckDeploymentProgress(&appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: "test"}, Status: appsv1.DeploymentStatus{
 		UpdatedReplicas: 2,
 		Replicas:        2,
@@ -57,9 +54,9 @@ func TestStatusWorkflow(t *testing.T) {
 	sm.SetReady()
 
 	conds = s.getConditions()
-	assert.Len(t, conds, 4)
+	assertHasConditionTypes(t, conds, []string{"Ready", "WaitingFlowCollectorController", "WaitingMonitoring"})
 	assertHasCondition(t, conds, "Ready", "Ready", metav1.ConditionTrue)
-	assertHasCondition(t, conds, "WaitingFlowCollectorLegacy", "Ready", metav1.ConditionFalse)
+	assertHasCondition(t, conds, "WaitingFlowCollectorController", "Ready", metav1.ConditionFalse)
 	assertHasCondition(t, conds, "WaitingMonitoring", "Ready", metav1.ConditionFalse)
 }
 
@@ -72,4 +69,13 @@ func assertHasCondition(t *testing.T, conditions []metav1.Condition, searchType,
 		}
 	}
 	assert.Fail(t, "Condition type not found", searchType, conditions)
+}
+
+func assertHasConditionTypes(t *testing.T, conditions []metav1.Condition, expectedTypes []string) {
+	var types []string
+	for _, c := range conditions {
+		types = append(types, c.Type)
+	}
+	slices.Sort(types)
+	assert.Equal(t, expectedTypes, types)
 }

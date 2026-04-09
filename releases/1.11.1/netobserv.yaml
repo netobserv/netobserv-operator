@@ -1,0 +1,52 @@
+apiVersion: appstudio.redhat.com/v1alpha1
+kind: Release
+metadata:
+  name: release-netobserv-1-11-1-1
+  namespace: ocp-network-observab-tenant
+  labels:
+    release.appstudio.openshift.io/author: 'jtakvori'
+spec:
+  releasePlan: netobserv-zstream
+  snapshot: netobserv-zstream-20260331-130950-000
+  data:
+    releaseNotes:
+      type: RHSA
+      cves:
+        - key: CVE-2026-25639
+          component: network-observability-console-plugin-zstream
+        - key: CVE-2026-25639
+          component: network-observability-console-plugin-pf4-zstream
+        - key: CVE-2025-61729
+          component: network-observability-cli-zstream
+        - key: CVE-2025-61729
+          component: netobserv-ebpf-agent-zstream
+        - key: CVE-2025-61729
+          component: flowlogs-pipeline-zstream
+        - key: CVE-2025-61729
+          component: network-observability-operator-zstream
+        - key: CVE-2025-61728
+          component: netobserv-ebpf-agent-zstream
+        - key: CVE-2025-61728
+          component: flowlogs-pipeline-zstream
+        - key: CVE-2025-61726
+          component: network-observability-cli-zstream
+        - key: CVE-2025-61726
+          component: netobserv-ebpf-agent-zstream
+        - key: CVE-2025-61726
+          component: flowlogs-pipeline-zstream
+        - key: CVE-2025-61726
+          component: network-observability-operator-zstream
+        - key: CVE-2025-68121
+          component: network-observability-cli-zstream
+        - key: CVE-2026-26960
+          component: network-observability-console-plugin-zstream
+        - key: CVE-2026-29063
+          component: network-observability-console-plugin-zstream
+        - key: CVE-2026-33186
+          component: network-observability-cli-zstream
+        - key: CVE-2026-33186
+          component: netobserv-ebpf-agent-zstream
+        - key: CVE-2026-33186
+          component: flowlogs-pipeline-zstream
+        - key: CVE-2026-33186
+          component: network-observability-operator-zstream

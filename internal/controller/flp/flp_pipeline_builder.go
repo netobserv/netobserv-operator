@@ -177,17 +177,12 @@ func (b *PipelineBuilder) addEnrichStage(previous config.PipelineBuilderStage) c
 
 	// Propagate 2dary networks config
 	var secondaryNetworks []api.SecondaryNetwork
-	if b.desired.Processor.Advanced != nil && len(b.desired.Processor.Advanced.SecondaryNetworks) > 0 {
-		for _, sn := range b.desired.Processor.Advanced.SecondaryNetworks {
-			flpSN := api.SecondaryNetwork{
-				Name:  sn.Name,
-				Index: map[string]any{},
-			}
-			for _, index := range sn.Index {
-				flpSN.Index[strings.ToLower(string(index))] = nil
-			}
-			secondaryNetworks = append(secondaryNetworks, flpSN)
+	for _, sn := range b.desired.GetSecondaryIndexes() {
+		flpSN := api.SecondaryNetwork{Index: map[string]any{}}
+		for _, index := range sn.Index {
+			flpSN.Index[strings.ToLower(string(index))] = nil
 		}
+		secondaryNetworks = append(secondaryNetworks, flpSN)
 	}
 	if b.desired.Agent.EBPF.IsUDNMappingEnabled() {
 		secondaryNetworks = append(secondaryNetworks, api.SecondaryNetwork{

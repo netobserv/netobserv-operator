@@ -46,7 +46,7 @@ In that case, you still get the Prometheus metrics or export raw flows to a cust
 
 ## Configuration
 
-The `FlowCollector` resource is used to configure the operator and its managed components. A comprehensive documentation is [available here](https://github.com/netobserv/netobserv-operator/blob/1.11.2-community/docs/FlowCollector.md), and a full sample file [there](https://github.com/netobserv/netobserv-operator/blob/1.11.2-community/config/samples/flows_v1beta2_flowcollector.yaml).
+The `FlowCollector` resource is used to configure the operator and its managed components. A comprehensive documentation is [available here](https://github.com/netobserv/netobserv-operator/blob/1.11.3-community/docs/FlowCollector.md), and a full sample file [there](https://github.com/netobserv/netobserv-operator/blob/1.11.3-community/config/samples/flows_v1beta2_flowcollector.yaml).
 
 To edit configuration in cluster, run:
 
@@ -99,7 +99,7 @@ Please refer to the documentation on GitHub for more information.
 This documentation includes:
 
 - An [overview](https://github.com/netobserv/netobserv-operator#openshift-console) of the features, with screenshots
-- More information on [configuring metrics](https://github.com/netobserv/netobserv-operator/blob/1.11.2-community/docs/Metrics.md).
+- More information on [configuring metrics](https://github.com/netobserv/netobserv-operator/blob/1.11.3-community/docs/Metrics.md).
 - A [performance](https://github.com/netobserv/netobserv-operator#performance-fine-tuning) section, for fine-tuning
 - A [security](https://github.com/netobserv/netobserv-operator#securing-data-and-communications) section
 - An [F.A.Q.](https://github.com/netobserv/netobserv-operator#faq--troubleshooting) section

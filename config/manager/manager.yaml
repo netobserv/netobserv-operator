@@ -34,13 +34,13 @@ spec:
         - --profiling-bind-address=$(PROFILING_BIND_ADDRESS)
         env:
           - name: RELATED_IMAGE_EBPF_AGENT
-            value: quay.io/netobserv/netobserv-ebpf-agent:v1.11.2-community
+            value: quay.io/netobserv/netobserv-ebpf-agent:v1.11.3-community
           - name: RELATED_IMAGE_FLOWLOGS_PIPELINE
-            value: quay.io/netobserv/flowlogs-pipeline:v1.11.2-community
+            value: quay.io/netobserv/flowlogs-pipeline:v1.11.3-community
           - name: RELATED_IMAGE_CONSOLE_PLUGIN
-            value: quay.io/netobserv/network-observability-console-plugin:v1.11.2-community
+            value: quay.io/netobserv/network-observability-console-plugin:v1.11.3-community
           - name: RELATED_IMAGE_CONSOLE_PLUGIN_COMPAT
-            value: quay.io/netobserv/network-observability-console-plugin:v1.11.2-community-pf4
+            value: quay.io/netobserv/network-observability-console-plugin:v1.11.3-community-pf4
           - name: RELATED_IMAGE_DEMO_LOKI
             value: grafana/loki:3.5.0
           - name: DOWNSTREAM_DEPLOYMENT

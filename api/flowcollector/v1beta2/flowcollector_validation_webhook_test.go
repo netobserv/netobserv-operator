@@ -910,9 +910,7 @@ func TestValidateFLP(t *testing.T) {
 				},
 			},
 			expectedWarnings: admission.Warnings{
-				"Both spec.processor.metrics.includeList and spec.processor.metrics.additionalIncludeList are set. " +
-					"When includeList is set, it replaces the default metrics entirely, and additionalIncludeList is ignored. " +
-					"Use includeList to override defaults, or use additionalIncludeList alone to append to defaults.",
+				MetricsIncludeListWarning,
 			},
 		},
 		{

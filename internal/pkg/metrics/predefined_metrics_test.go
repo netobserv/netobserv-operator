@@ -94,6 +94,7 @@ func TestGetDefinitionsRemoveNetworkLabels(t *testing.T) {
 
 	spec := util.SpecForMetrics("workload_ingress_bytes_total")
 	// Disable multiNetworks feature (UDN mapping and secondary indexes)
+	spec.Agent.EBPF.Privileged = false
 	spec.Agent.EBPF.Features = []flowslatest.AgentFeature{flowslatest.FlowRTT, flowslatest.DNSTracking, flowslatest.PacketDrop} // Remove UDNMapping if it was there
 	spec.Processor.Advanced = nil                                                                                               // Ensure no secondary indexes
 	res := GetDefinitions(spec, false)

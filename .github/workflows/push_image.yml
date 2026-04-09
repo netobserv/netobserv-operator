@@ -25,7 +25,7 @@ jobs:
       - name: checkout
         uses: actions/checkout@v3
       - name: docker login to quay.io
-        uses: docker/login-action@v2
+        uses: docker/login-action@465a07811f14bebb1938fbed4728c6a1ff8901fc # v2.2.0
         with:
           username: ${{ env.WF_REGISTRY_USER }}
           password: ${{ secrets.QUAY_SECRET }}
@@ -68,7 +68,7 @@ jobs:
     - name: Test
       run: make test
     - name: Report coverage
-      uses: codecov/codecov-action@v4
+      uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238 # v4.6.0
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       with:

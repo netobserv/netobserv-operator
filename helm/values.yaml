@@ -10,20 +10,20 @@ certManager:
 # Deployment manifest values
 ebpfAgent:
   image: quay.io/netobserv/netobserv-ebpf-agent
-  version: v1.11.2-community
+  version: v1.11.3-community
 flowlogsPipeline:
   image: quay.io/netobserv/flowlogs-pipeline
-  version: v1.11.2-community
+  version: v1.11.3-community
 consolePlugin:
   image: quay.io/netobserv/network-observability-console-plugin
-  version: v1.11.2-community
+  version: v1.11.3-community
 standaloneConsole:
   enable: true
   image: quay.io/netobserv/network-observability-standalone-frontend
-  version: v1.11.2-community
+  version: v1.11.3-community
 operator:
   image: quay.io/netobserv/network-observability-operator
-  version: 1.11.2-community
+  version: 1.11.3-community
   # Node affinity configuration for the operator deployment
   nodeAffinity: {}
   # Example:

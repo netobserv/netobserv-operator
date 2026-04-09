@@ -106,7 +106,7 @@ spec:
   releasePlan: netobserv-fbc-v4-20
   snapshot: catalog-4-20-20260216-092039-000
 ---
-# TODO
+# Done
 apiVersion: appstudio.redhat.com/v1alpha1
 kind: Release
 metadata:
@@ -118,7 +118,7 @@ spec:
   releasePlan: netobserv-fbc-v4-21
   snapshot: catalog-4-21-20260216-092035-000
 ---
-# TODO
+# Done
 apiVersion: appstudio.redhat.com/v1alpha1
 kind: Release
 metadata:

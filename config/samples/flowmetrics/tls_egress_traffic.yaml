@@ -1,0 +1,37 @@
+apiVersion: flows.netobserv.io/v1alpha1
+kind: FlowMetric
+metadata:
+  name: tls-egress-traffic
+  namespace: netobserv
+spec:
+  type: Counter
+  valueField: Bytes
+  labels: [SrcSubnetLabel,SrcK8S_Namespace,SrcK8S_OwnerName,SrcK8S_OwnerType,DstSubnetLabel,DstK8S_Namespace,DstK8S_OwnerName,DstK8S_OwnerType,Proto,TLSVersion,TLSTypes]
+  direction: Egress
+  filters:
+  - field: SrcK8S_Namespace
+    matchType: Presence
+  charts:
+  - dashboardName: TLS
+    title: "Egress TLS traffic"
+    unit: percent
+    type: SingleStat
+    queries:
+    - promQL: 'sum(rate(netobserv_tls_egress_traffic{TLSVersion!=""}[2m])) / sum(rate(netobserv_tls_egress_traffic[2m]))'
+      legend: ""
+  - dashboardName: TLS
+    sectionName: Per namespace
+    title: Egress traffic without TLS
+    unit: Bps
+    type: StackArea
+    queries:
+    - promQL: 'topk(10, sum(rate(netobserv_tls_egress_traffic{TLSVersion=""}[2m])) by (SrcK8S_Namespace))'
+      legend: "{{SrcK8S_Namespace}}"
+  - dashboardName: TLS
+    sectionName: Per version
+    title: Egress traffic per TLS version
+    unit: Bps
+    type: StackArea
+    queries:
+    - promQL: 'topk(10, sum(rate(netobserv_tls_egress_traffic{TLSVersion!~"|.*0x.*"}[2m])) by (TLSVersion))'
+      legend: "{{TLSVersion}}"

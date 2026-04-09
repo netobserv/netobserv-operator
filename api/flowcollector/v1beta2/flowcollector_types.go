@@ -188,7 +188,8 @@ type FlowCollectorIPFIX struct {
 // - `EbpfManager`, to enable using eBPF Manager to manage NetObserv eBPF programs. [Unsupported (*)].<br>
 // - `UDNMapping`, to enable interfaces mapping to UDN.<br>
 // - `IPSec`, to track flows between nodes with IPsec encryption.<br>
-// +kubebuilder:validation:Enum:="PacketDrop";"DNSTracking";"FlowRTT";"NetworkEvents";"PacketTranslation";"EbpfManager";"UDNMapping";"IPSec"
+// - `TLSTracking`, to track TLS usage.<br>
+// +kubebuilder:validation:Enum:="PacketDrop";"DNSTracking";"FlowRTT";"NetworkEvents";"PacketTranslation";"EbpfManager";"UDNMapping";"IPSec";"TLSTracking"
 type AgentFeature string
 
 const (
@@ -200,6 +201,7 @@ const (
 	EbpfManager       AgentFeature = "EbpfManager"
 	UDNMapping        AgentFeature = "UDNMapping"
 	IPSec             AgentFeature = "IPSec"
+	TLSTracking       AgentFeature = "TLSTracking"
 )
 
 // Name of an eBPF agent alert.
@@ -404,6 +406,7 @@ type FlowCollectorEBPF struct {
 	// This feature requires mounting the kernel debug filesystem, so the eBPF agent pods must run as privileged via `spec.agent.ebpf.privileged`.
 	// It requires using the OVN-Kubernetes network plugin with the Observability feature. <br>
 	// - `IPSec`, to track flows between nodes with IPsec encryption. <br>
+	// - `TLSTracking`, to track TLS usage. <br>
 	// +optional
 	Features []AgentFeature `json:"features,omitempty"`
 
@@ -1100,6 +1103,7 @@ type PrometheusQuerier struct {
 	// such as getting per-pod information or viewing raw flows.
 	// If both Prometheus and Loki are enabled, Prometheus takes precedence and Loki is used as a fallback for queries that Prometheus cannot handle.
 	// If they are both disabled, the Console plugin is not deployed.
+	//+kubebuilder:default:=true
 	Enable *bool `json:"enable,omitempty"`
 
 	// `mode` must be set according to the type of Prometheus installation that stores NetObserv metrics:<br>
@@ -1426,6 +1430,7 @@ type AdvancedProcessorConfig struct {
 	// Defines secondary networks to be checked for resources identification.
 	// To guarantee a correct identification, indexed values must form an unique identifier across the cluster.
 	// If the same index is used by several resources, those resources might be incorrectly labeled.
+	// If not provided and `spec.agent.ebpf.privileged` is `true`, secondary networks are detected automatically.
 	// +optional
 	SecondaryNetworks []SecondaryNetwork `json:"secondaryNetworks,omitempty"`
 }
@@ -1441,8 +1446,8 @@ const (
 )
 
 type SecondaryNetwork struct {
-	// `name` should match the network name as visible in the pods annotation 'k8s.v1.cni.cncf.io/network-status'.
-	// +kubebuilder:validation:Required
+	// Deprecated: `name` is unused.
+	// +optional
 	Name string `json:"name,omitempty"`
 
 	// `index` is a list of fields to use for indexing the pods. They should form a unique Pod identifier across the cluster.

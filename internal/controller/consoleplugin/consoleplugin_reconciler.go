@@ -2,6 +2,7 @@ package consoleplugin
 
 import (
 	"context"
+	"encoding/json"
 	"reflect"
 
 	osv1 "github.com/openshift/api/console/v1"
@@ -11,13 +12,14 @@ import (
 	ascv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	lokiv1 "github.com/grafana/loki/operator/apis/loki/v1"
 	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
 	"github.com/netobserv/netobserv-operator/internal/controller/constants"
 	"github.com/netobserv/netobserv-operator/internal/controller/reconcilers"
 	"github.com/netobserv/netobserv-operator/internal/pkg/helper"
+	"github.com/netobserv/netobserv-operator/internal/pkg/manager/status"
 	"github.com/netobserv/netobserv-operator/internal/pkg/resources"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
@@ -54,10 +56,26 @@ func NewReconciler(cmn *reconcilers.Instance) CPReconciler {
 }
 
 // Reconcile is the reconciler entry point to reconcile the current plugin state with the desired configuration
-func (r *CPReconciler) Reconcile(ctx context.Context, desired *flowslatest.FlowCollector) error {
-	l := log.FromContext(ctx).WithName("console-plugin")
+func (r *CPReconciler) Reconcile(ctx context.Context, desired *flowslatest.FlowCollector, lokiStatus status.ComponentStatus) error {
+	l := log.FromContext(ctx).WithName("web-console")
 	ctx = log.IntoContext(ctx, l)
 
+	defer r.Status.Commit(ctx, r.Client)
+
+	err := r.reconcile(ctx, desired, lokiStatus)
+	if err != nil {
+		l.Error(err, "Web Console reconcile failure")
+		// Set status failure unless it was already set
+		if !r.Status.HasFailure() {
+			r.Status.SetFailure("WebConsoleError", err.Error())
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (r *CPReconciler) reconcile(ctx context.Context, desired *flowslatest.FlowCollector, lokiStatus status.ComponentStatus) error {
 	// Retrieve current owned objects
 	err := r.Managed.FetchAll(ctx)
 	if err != nil {
@@ -85,7 +103,7 @@ func (r *CPReconciler) Reconcile(ctx context.Context, desired *flowslatest.FlowC
 			}
 		}
 
-		cmDigest, err := r.reconcileConfigMap(ctx, &builder, &desired.Spec)
+		cmDigest, err := r.reconcileConfigMap(ctx, &builder, lokiStatus)
 		if err != nil {
 			return err
 		}
@@ -115,6 +133,11 @@ func (r *CPReconciler) Reconcile(ctx context.Context, desired *flowslatest.FlowC
 	} else {
 		// delete any existing owned object
 		r.Managed.TryDeleteAll(ctx)
+		if desired.Spec.OnHold() {
+			r.Status.SetUnused("FlowCollector is on hold")
+		} else {
+			r.Status.SetUnused("Web console not enabled")
+		}
 	}
 
 	return nil
@@ -181,29 +204,12 @@ func (r *CPReconciler) reconcilePlugin(ctx context.Context, builder *builder, de
 	return nil
 }
 
-func (r *CPReconciler) reconcileConfigMap(ctx context.Context, builder *builder, desired *flowslatest.FlowCollectorSpec) (string, error) {
-	var lokiStack *lokiv1.LokiStack
-	if desired.Loki.Mode == flowslatest.LokiModeLokiStack {
-		lokiStack = &lokiv1.LokiStack{}
-		ns := desired.Loki.LokiStack.Namespace
-		if ns == "" {
-			ns = desired.Namespace
-		}
-		if err := r.Client.Get(ctx, types.NamespacedName{Name: desired.Loki.LokiStack.Name, Namespace: ns}, lokiStack); err != nil {
-			lokiStack = nil
-			if apierrors.IsNotFound(err) {
-				log.FromContext(ctx).Info("LokiStack resource not found, status will not be available",
-					"name", desired.Loki.LokiStack.Name,
-					"namespace", ns)
-			} else {
-				log.FromContext(ctx).Error(err, "Failed to get LokiStack resource",
-					"name", desired.Loki.LokiStack.Name,
-					"namespace", ns)
-			}
-		}
+func (r *CPReconciler) reconcileConfigMap(ctx context.Context, builder *builder, lokiStatus status.ComponentStatus) (string, error) {
+	externalRecordingAnnotations, err := getExternalRecordingAnnotations(ctx, r.Client)
+	if err != nil {
+		return "", err
 	}
-
-	newCM, configDigest, err := builder.configMap(ctx, lokiStack)
+	newCM, configDigest, err := builder.configMap(ctx, externalRecordingAnnotations, lokiStatus)
 	if err != nil {
 		return "", err
 	}
@@ -272,4 +278,45 @@ func (r *CPReconciler) reconcileHPA(ctx context.Context, builder *builder, desir
 func pluginNeedsUpdate(plg *osv1.ConsolePlugin, desired *pluginSpec) bool {
 	advancedConfig := helper.GetAdvancedPluginConfig(desired.Advanced)
 	return plg.Spec.Backend.Service.Port != *advancedConfig.Port
+}
+
+// getExternalRecordingAnnotations reads PrometheusRules with label netobserv=true and netobserv.io/network-health annotation.
+// Returns metric name -> annotations. Recording rules without the annotation are not included.
+// On List failure returns an error so the caller does not overwrite the config with empty external rules (transient API errors).
+func getExternalRecordingAnnotations(ctx context.Context, cl client.Client) (map[string]map[string]string, error) {
+	out := make(map[string]map[string]string)
+	list := &monitoringv1.PrometheusRuleList{}
+	if err := cl.List(ctx, list, client.MatchingLabels{"netobserv": "true"}); err != nil {
+		log.FromContext(ctx).Error(err, "Failed to list PrometheusRules for recording annotations")
+		return nil, err
+	}
+	for i := range list.Items {
+		pr := &list.Items[i]
+		// Process recording rules from spec
+		for _, group := range pr.Spec.Groups {
+			for _, rule := range group.Rules {
+				// Only process recording rules (not alerts) with netobserv label
+				if rule.Record != "" {
+					if labelVal, ok := rule.Labels["netobserv"]; ok && labelVal == "true" {
+						// Check if there's annotation metadata for this rule
+						raw, hasAnnot := pr.Annotations[recordingAnnotationsAnnotation]
+						if hasAnnot && raw != "" {
+							var perRule map[string]map[string]string
+							if err := json.Unmarshal([]byte(raw), &perRule); err != nil {
+								log.FromContext(ctx).Info("Invalid netobserv.io/network-health annotation on PrometheusRule",
+									"namespace", pr.Namespace, "name", pr.Name, "error", err)
+								// Continue processing other rules even if annotation is malformed
+								continue
+							}
+							if annots, found := perRule[rule.Record]; found && len(annots) > 0 {
+								out[rule.Record] = annots
+							}
+						}
+						// Rules without annotation are not included - annotation is required
+					}
+				}
+			}
+		}
+	}
+	return out, nil
 }

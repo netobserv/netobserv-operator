@@ -1,0 +1,119 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: en-US
+tone_instructions: "Be concise and direct. No fluff."
+early_access: false
+
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: true
+  high_level_summary_placeholder: "@coderabbitai summary"
+  poem: false
+  sequence_diagrams: false
+  review_status: true
+  collapse_walkthrough: true
+  changed_files_summary: true
+  assess_linked_issues: true
+  related_issues: true
+  related_prs: true
+  suggested_labels: false
+  auto_apply_labels: false
+  suggested_reviewers: false
+  auto_assign_reviewers: false
+
+  auto_review:
+    enabled: true
+    drafts: false
+    ignore_title_keywords:
+    - WIP
+
+  path_filters:
+    # generated deepcopy
+    - "!**/zz_generated.deepcopy.go"
+    - "!vendor/"
+
+  tools:
+    # already run in CI (code-style workflow)
+    golangci-lint:
+      enabled: false
+
+    # useful for this project
+    shellcheck:
+      enabled: true
+    yamllint:
+      enabled: true
+    hadolint:
+      enabled: true
+    gitleaks:
+      enabled: true
+    actionlint:
+      enabled: true
+    checkov:
+      enabled: true
+
+    # not relevant to this project
+    ruff:
+      enabled: false
+    biome:
+      enabled: false
+    swiftlint:
+      enabled: false
+    phpstan:
+      enabled: false
+    phpmd:
+      enabled: false
+    phpcs:
+      enabled: false
+    eslint:
+      enabled: false
+    flake8:
+      enabled: false
+    rubocop:
+      enabled: false
+    detekt:
+      enabled: false
+    pmd:
+      enabled: false
+    clippy:
+      enabled: false
+    pylint:
+      enabled: false
+    oxc:
+      enabled: false
+    stylelint:
+      enabled: false
+    htmlhint:
+      enabled: false
+    prismaLint:
+      enabled: false
+    shopifyThemeCheck:
+      enabled: false
+    luacheck:
+      enabled: false
+    brakeman:
+      enabled: false
+    dotenvLint:
+      enabled: false
+    emberTemplateLint:
+      enabled: false
+    psscriptanalyzer:
+      enabled: false
+
+  finishing_touches:
+    docstrings:
+      enabled: true
+    unit_tests:
+      enabled: true
+
+chat:
+  auto_reply: true
+
+knowledge_base:
+  web_search:
+    enabled: true
+  learnings:
+    scope: auto
+  issues:
+    scope: auto
+  pull_requests:
+    scope: auto

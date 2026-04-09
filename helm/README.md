@@ -95,6 +95,7 @@ A few remarks:
 To view the test console, you can port-forward 9001:
 
 ```bash
+kubectl wait -n netobserv --timeout=60s --for condition=Available=True deployment netobserv-plugin
 kubectl port-forward svc/netobserv-plugin 9001:9001 -n netobserv
 ```
 

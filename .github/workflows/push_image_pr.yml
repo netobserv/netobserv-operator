@@ -28,7 +28,7 @@ jobs:
           docker load --input ./bundle.tar
           docker load --input ./catalog.tar
       - name: docker login to quay.io
-        uses: docker/login-action@v2
+        uses: docker/login-action@465a07811f14bebb1938fbed4728c6a1ff8901fc # v2.2.0
         with:
           username: ${{ env.WF_REGISTRY_USER }}
           password: ${{ secrets.QUAY_SECRET }}

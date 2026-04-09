@@ -1,4 +1,4 @@
-package status
+package lokistack
 
 import (
 	"context"
@@ -7,12 +7,16 @@ import (
 
 	lokiv1 "github.com/grafana/loki/operator/apis/loki/v1"
 	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
+	"github.com/netobserv/netobserv-operator/internal/pkg/cluster"
+	"github.com/netobserv/netobserv-operator/internal/pkg/manager"
+	"github.com/netobserv/netobserv-operator/internal/pkg/manager/status"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	kerr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -27,41 +31,58 @@ func (m *mockClient) Get(ctx context.Context, key types.NamespacedName, obj clie
 	return args.Error(0)
 }
 
+func initLSWatcher() (*mockClient, *Watcher) {
+	clust := &cluster.Info{}
+	clust.Mock("", "", cluster.LokiStack)
+	client := &mockClient{}
+	lsw := Watcher{
+		mgr:                &manager.Manager{ClusterInfo: clust},
+		cl:                 client,
+		status:             status.NewManager().ForComponent(status.LokiStack),
+		lokiWatcherStarted: true,
+	}
+	return client, &lsw
+}
+
 func TestCheckLoki_Disabled(t *testing.T) {
 	fc := &flowslatest.FlowCollector{
 		Spec: flowslatest.FlowCollectorSpec{
 			Loki: flowslatest.FlowCollectorLoki{
-				Enable: ptr(false),
+				Enable: ptr.To(false),
 			},
 		},
 	}
 
-	client := &mockClient{}
-	condition := checkLoki(context.Background(), client, fc)
+	_, lsw := initLSWatcher()
+	st := lsw.Reconcile(context.Background(), fc)
 
-	assert.Equal(t, LokiIssue, condition.Type)
-	assert.Equal(t, "Unused", condition.Reason)
-	assert.Equal(t, metav1.ConditionUnknown, condition.Status)
-	assert.Contains(t, condition.Message, "Loki is disabled")
+	assert.Equal(t, status.ComponentStatus{
+		Name:    status.LokiStack,
+		Status:  status.StatusUnknown,
+		Reason:  "ComponentUnused",
+		Message: "Loki is disabled",
+	}, st)
 }
 
 func TestCheckLoki_NotLokiStackMode(t *testing.T) {
 	fc := &flowslatest.FlowCollector{
 		Spec: flowslatest.FlowCollectorSpec{
 			Loki: flowslatest.FlowCollectorLoki{
-				Enable: ptr(true),
+				Enable: ptr.To(true),
 				Mode:   flowslatest.LokiModeManual,
 			},
 		},
 	}
 
-	client := &mockClient{}
-	condition := checkLoki(context.Background(), client, fc)
+	_, lsw := initLSWatcher()
+	st := lsw.Reconcile(context.Background(), fc)
 
-	assert.Equal(t, LokiIssue, condition.Type)
-	assert.Equal(t, "Unused", condition.Reason)
-	assert.Equal(t, metav1.ConditionUnknown, condition.Status)
-	assert.Contains(t, condition.Message, "not configured in LokiStack mode")
+	assert.Equal(t, status.ComponentStatus{
+		Name:    status.LokiStack,
+		Status:  status.StatusUnknown,
+		Reason:  "ComponentUnused",
+		Message: "Loki is not configured in LokiStack mode",
+	}, st)
 }
 
 func TestCheckLoki_LokiStackNotFound(t *testing.T) {
@@ -72,7 +93,7 @@ func TestCheckLoki_LokiStackNotFound(t *testing.T) {
 		Spec: flowslatest.FlowCollectorSpec{
 			Namespace: "netobserv",
 			Loki: flowslatest.FlowCollectorLoki{
-				Enable: ptr(true),
+				Enable: ptr.To(true),
 				Mode:   flowslatest.LokiModeLokiStack,
 				LokiStack: flowslatest.LokiStackRef{
 					Name: "loki",
@@ -81,19 +102,19 @@ func TestCheckLoki_LokiStackNotFound(t *testing.T) {
 		},
 	}
 
-	client := &mockClient{}
+	client, lsw := initLSWatcher()
 	nsname := types.NamespacedName{Name: "loki", Namespace: "netobserv"}
 	client.On("Get", mock.Anything, nsname, mock.Anything, mock.Anything).
 		Return(kerr.NewNotFound(schema.GroupResource{}, "loki"))
 
-	condition := checkLoki(context.Background(), client, fc)
+	st := lsw.Reconcile(context.Background(), fc)
 
-	assert.Equal(t, LokiIssue, condition.Type)
-	assert.Equal(t, "LokiStackNotFound", condition.Reason)
-	assert.Equal(t, metav1.ConditionTrue, condition.Status)
-	assert.Contains(t, condition.Message, "could not be found")
-	assert.Contains(t, condition.Message, "loki")
-	assert.Contains(t, condition.Message, "netobserv")
+	assert.Equal(t, status.ComponentStatus{
+		Name:    status.LokiStack,
+		Status:  status.StatusFailure,
+		Reason:  "CantFetchLokiStack",
+		Message: ` "loki" not found`,
+	}, st)
 }
 
 func TestCheckLoki_LokiStackNotReady(t *testing.T) {
@@ -121,7 +142,7 @@ func TestCheckLoki_LokiStackNotReady(t *testing.T) {
 		Spec: flowslatest.FlowCollectorSpec{
 			Namespace: "netobserv",
 			Loki: flowslatest.FlowCollectorLoki{
-				Enable: ptr(true),
+				Enable: ptr.To(true),
 				Mode:   flowslatest.LokiModeLokiStack,
 				LokiStack: flowslatest.LokiStackRef{
 					Name: "loki",
@@ -130,21 +151,21 @@ func TestCheckLoki_LokiStackNotReady(t *testing.T) {
 		},
 	}
 
-	client := &mockClient{}
+	client, lsw := initLSWatcher()
 	nsname := types.NamespacedName{Name: "loki", Namespace: "netobserv"}
 	client.On("Get", mock.Anything, nsname, mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 		arg := args.Get(2).(*lokiv1.LokiStack)
 		*arg = *lokiStack
 	}).Return(nil)
 
-	condition := checkLoki(context.Background(), client, fc)
+	st := lsw.Reconcile(context.Background(), fc)
 
-	assert.Equal(t, LokiIssue, condition.Type)
-	assert.Equal(t, "LokiStackNotReady", condition.Reason)
-	assert.Equal(t, metav1.ConditionTrue, condition.Status)
-	assert.Contains(t, condition.Message, "not ready")
-	assert.Contains(t, condition.Message, "PendingComponents")
-	assert.Contains(t, condition.Message, "Some components are still starting")
+	assert.Equal(t, status.ComponentStatus{
+		Name:    status.LokiStack,
+		Status:  status.StatusInProgress,
+		Reason:  "LokiStackNotReady",
+		Message: `LokiStack is not ready [name: loki, namespace: netobserv]: PendingComponents - Some components are still starting`,
+	}, st)
 }
 
 func TestCheckLoki_LokiStackWithErrorCondition(t *testing.T) {
@@ -178,7 +199,7 @@ func TestCheckLoki_LokiStackWithErrorCondition(t *testing.T) {
 		Spec: flowslatest.FlowCollectorSpec{
 			Namespace: "netobserv",
 			Loki: flowslatest.FlowCollectorLoki{
-				Enable: ptr(true),
+				Enable: ptr.To(true),
 				Mode:   flowslatest.LokiModeLokiStack,
 				LokiStack: flowslatest.LokiStackRef{
 					Name: "loki",
@@ -187,20 +208,21 @@ func TestCheckLoki_LokiStackWithErrorCondition(t *testing.T) {
 		},
 	}
 
-	client := &mockClient{}
+	client, lsw := initLSWatcher()
 	nsname := types.NamespacedName{Name: "loki", Namespace: "netobserv"}
 	client.On("Get", mock.Anything, nsname, mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 		arg := args.Get(2).(*lokiv1.LokiStack)
 		*arg = *lokiStack
 	}).Return(nil)
 
-	condition := checkLoki(context.Background(), client, fc)
+	st := lsw.Reconcile(context.Background(), fc)
 
-	assert.Equal(t, LokiIssue, condition.Type)
-	assert.Equal(t, "LokiStackIssues", condition.Reason)
-	assert.Equal(t, metav1.ConditionTrue, condition.Status)
-	assert.Contains(t, condition.Message, "StorageError")
-	assert.Contains(t, condition.Message, "Cannot connect to S3 backend")
+	assert.Equal(t, status.ComponentStatus{
+		Name:    status.LokiStack,
+		Status:  status.StatusFailure,
+		Reason:  "LokiStackIssues",
+		Message: `LokiStack has issues [name: loki, namespace: netobserv]: StorageError: Cannot connect to S3 backend`,
+	}, st)
 }
 
 func TestCheckLoki_LokiStackWithWarningAndDegradedConditions(t *testing.T) {
@@ -252,7 +274,7 @@ func TestCheckLoki_LokiStackWithWarningAndDegradedConditions(t *testing.T) {
 		Spec: flowslatest.FlowCollectorSpec{
 			Namespace: "netobserv",
 			Loki: flowslatest.FlowCollectorLoki{
-				Enable: ptr(true),
+				Enable: ptr.To(true),
 				Mode:   flowslatest.LokiModeLokiStack,
 				LokiStack: flowslatest.LokiStackRef{
 					Name: "loki",
@@ -261,99 +283,22 @@ func TestCheckLoki_LokiStackWithWarningAndDegradedConditions(t *testing.T) {
 		},
 	}
 
-	client := &mockClient{}
+	client, lsw := initLSWatcher()
 	nsname := types.NamespacedName{Name: "loki", Namespace: "netobserv"}
 	client.On("Get", mock.Anything, nsname, mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 		arg := args.Get(2).(*lokiv1.LokiStack)
 		*arg = *lokiStack
 	}).Return(nil)
 
-	// Check that Degraded issue is reported in LokiIssue
-	condition := checkLoki(context.Background(), client, fc)
-	assert.Equal(t, LokiIssue, condition.Type)
-	assert.Equal(t, "LokiStackIssues", condition.Reason)
-	assert.Equal(t, metav1.ConditionTrue, condition.Status)
-	assert.Contains(t, condition.Message, "Degraded")
-	assert.Contains(t, condition.Message, "Missing object storage secret")
-	// Warning should NOT be in LokiIssue
-	assert.NotContains(t, condition.Message, "Warning")
-	assert.NotContains(t, condition.Message, "schema configuration")
+	st := lsw.Reconcile(context.Background(), fc)
 
-	// Check that Warning is reported separately in LokiWarning
-	warningCondition := checkLokiWarnings(context.Background(), client, fc)
-	assert.Equal(t, LokiWarning, warningCondition.Type)
-	assert.Equal(t, "LokiStackWarnings", warningCondition.Reason)
-	assert.Equal(t, metav1.ConditionTrue, warningCondition.Status)
-	assert.Contains(t, warningCondition.Message, "Warning")
-	assert.Contains(t, warningCondition.Message, "The schema configuration does not contain the most recent schema version")
+	assert.Equal(t, status.StatusFailure, st.Status)
+	assert.Equal(t, "LokiStackIssues", st.Reason)
+	assert.Contains(t, st.Message, "Missing object storage secret")
+	assert.Contains(t, st.Message, "The schema configuration does not contain the most recent schema version and needs an update")
 }
 
-func TestCheckLokiWarnings_Disabled(t *testing.T) {
-	fc := &flowslatest.FlowCollector{
-		Spec: flowslatest.FlowCollectorSpec{
-			Loki: flowslatest.FlowCollectorLoki{
-				Enable: ptr(false),
-			},
-		},
-	}
-
-	client := &mockClient{}
-	condition := checkLokiWarnings(context.Background(), client, fc)
-
-	assert.Equal(t, LokiWarning, condition.Type)
-	assert.Equal(t, "Unused", condition.Reason)
-	assert.Equal(t, metav1.ConditionUnknown, condition.Status)
-}
-
-func TestCheckLokiWarnings_NoWarnings(t *testing.T) {
-	lokiStack := &lokiv1.LokiStack{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "loki",
-			Namespace: "netobserv",
-		},
-		Status: lokiv1.LokiStackStatus{
-			Conditions: []metav1.Condition{
-				{
-					Type:    "Ready",
-					Status:  metav1.ConditionTrue,
-					Reason:  "Ready",
-					Message: "All components ready",
-				},
-			},
-		},
-	}
-
-	fc := &flowslatest.FlowCollector{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "cluster",
-		},
-		Spec: flowslatest.FlowCollectorSpec{
-			Namespace: "netobserv",
-			Loki: flowslatest.FlowCollectorLoki{
-				Enable: ptr(true),
-				Mode:   flowslatest.LokiModeLokiStack,
-				LokiStack: flowslatest.LokiStackRef{
-					Name: "loki",
-				},
-			},
-		},
-	}
-
-	client := &mockClient{}
-	nsname := types.NamespacedName{Name: "loki", Namespace: "netobserv"}
-	client.On("Get", mock.Anything, nsname, mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
-		arg := args.Get(2).(*lokiv1.LokiStack)
-		*arg = *lokiStack
-	}).Return(nil)
-
-	condition := checkLokiWarnings(context.Background(), client, fc)
-
-	assert.Equal(t, LokiWarning, condition.Type)
-	assert.Equal(t, "NoWarning", condition.Reason)
-	assert.Equal(t, metav1.ConditionFalse, condition.Status)
-}
-
-func TestCheckLokiWarnings_WithWarning(t *testing.T) {
+func TestCheckLoki_LokiStackWithJustWarnings(t *testing.T) {
 	lokiStack := &lokiv1.LokiStack{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "loki",
@@ -384,7 +329,7 @@ func TestCheckLokiWarnings_WithWarning(t *testing.T) {
 		Spec: flowslatest.FlowCollectorSpec{
 			Namespace: "netobserv",
 			Loki: flowslatest.FlowCollectorLoki{
-				Enable: ptr(true),
+				Enable: ptr.To(true),
 				Mode:   flowslatest.LokiModeLokiStack,
 				LokiStack: flowslatest.LokiStackRef{
 					Name: "loki",
@@ -393,20 +338,21 @@ func TestCheckLokiWarnings_WithWarning(t *testing.T) {
 		},
 	}
 
-	client := &mockClient{}
+	client, lsw := initLSWatcher()
 	nsname := types.NamespacedName{Name: "loki", Namespace: "netobserv"}
 	client.On("Get", mock.Anything, nsname, mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 		arg := args.Get(2).(*lokiv1.LokiStack)
 		*arg = *lokiStack
 	}).Return(nil)
 
-	condition := checkLokiWarnings(context.Background(), client, fc)
+	st := lsw.Reconcile(context.Background(), fc)
 
-	assert.Equal(t, LokiWarning, condition.Type)
-	assert.Equal(t, "LokiStackWarnings", condition.Reason)
-	assert.Equal(t, metav1.ConditionTrue, condition.Status)
-	assert.Contains(t, condition.Message, "Warning")
-	assert.Contains(t, condition.Message, "schema configuration")
+	assert.Equal(t, status.ComponentStatus{
+		Name:    status.LokiStack,
+		Status:  status.StatusDegraded,
+		Reason:  "LokiStackWarnings",
+		Message: `LokiStack has warnings [name: loki, namespace: netobserv]: Warning: The schema configuration does not contain the most recent schema version`,
+	}, st)
 }
 
 func TestCheckLoki_LokiStackComponentsWithFailedPods(t *testing.T) {
@@ -442,7 +388,7 @@ func TestCheckLoki_LokiStackComponentsWithFailedPods(t *testing.T) {
 		Spec: flowslatest.FlowCollectorSpec{
 			Namespace: "netobserv",
 			Loki: flowslatest.FlowCollectorLoki{
-				Enable: ptr(true),
+				Enable: ptr.To(true),
 				Mode:   flowslatest.LokiModeLokiStack,
 				LokiStack: flowslatest.LokiStackRef{
 					Name: "loki",
@@ -451,24 +397,21 @@ func TestCheckLoki_LokiStackComponentsWithFailedPods(t *testing.T) {
 		},
 	}
 
-	client := &mockClient{}
+	client, lsw := initLSWatcher()
 	nsname := types.NamespacedName{Name: "loki", Namespace: "netobserv"}
 	client.On("Get", mock.Anything, nsname, mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 		arg := args.Get(2).(*lokiv1.LokiStack)
 		*arg = *lokiStack
 	}).Return(nil)
 
-	condition := checkLoki(context.Background(), client, fc)
+	st := lsw.Reconcile(context.Background(), fc)
 
-	assert.Equal(t, LokiIssue, condition.Type)
-	assert.Equal(t, "LokiStackComponentIssues", condition.Reason)
-	assert.Equal(t, metav1.ConditionTrue, condition.Status)
-	assert.Contains(t, condition.Message, "Ingester")
-	assert.Contains(t, condition.Message, "2 failed pod(s)")
-	assert.Contains(t, condition.Message, "ingester-0")
-	assert.Contains(t, condition.Message, "Querier")
-	assert.Contains(t, condition.Message, "1 pending pod(s)")
-	assert.Contains(t, condition.Message, "querier-0")
+	assert.Equal(t, status.ComponentStatus{
+		Name:    status.LokiStack,
+		Status:  status.StatusInProgress,
+		Reason:  "LokiStackComponentIssues",
+		Message: `LokiStack components have issues [name: loki, namespace: netobserv]: Ingester has 2 failed pod(s): ingester-0, ingester-1; Querier has 1 pending pod(s): querier-0`,
+	}, st)
 }
 
 func TestCheckLoki_LokiStackHealthy(t *testing.T) {
@@ -507,7 +450,7 @@ func TestCheckLoki_LokiStackHealthy(t *testing.T) {
 		Spec: flowslatest.FlowCollectorSpec{
 			Namespace: "netobserv",
 			Loki: flowslatest.FlowCollectorLoki{
-				Enable: ptr(true),
+				Enable: ptr.To(true),
 				Mode:   flowslatest.LokiModeLokiStack,
 				LokiStack: flowslatest.LokiStackRef{
 					Name: "loki",
@@ -516,18 +459,21 @@ func TestCheckLoki_LokiStackHealthy(t *testing.T) {
 		},
 	}
 
-	client := &mockClient{}
+	client, lsw := initLSWatcher()
 	nsname := types.NamespacedName{Name: "loki", Namespace: "netobserv"}
 	client.On("Get", mock.Anything, nsname, mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 		arg := args.Get(2).(*lokiv1.LokiStack)
 		*arg = *lokiStack
 	}).Return(nil)
 
-	condition := checkLoki(context.Background(), client, fc)
+	st := lsw.Reconcile(context.Background(), fc)
 
-	assert.Equal(t, LokiIssue, condition.Type)
-	assert.Equal(t, "NoIssue", condition.Reason)
-	assert.Equal(t, metav1.ConditionFalse, condition.Status)
+	assert.Equal(t, status.ComponentStatus{
+		Name:    status.LokiStack,
+		Status:  status.StatusReady,
+		Reason:  "",
+		Message: "",
+	}, st)
 }
 
 func TestCheckLoki_CustomNamespace(t *testing.T) {
@@ -555,7 +501,7 @@ func TestCheckLoki_CustomNamespace(t *testing.T) {
 		Spec: flowslatest.FlowCollectorSpec{
 			Namespace: "netobserv",
 			Loki: flowslatest.FlowCollectorLoki{
-				Enable: ptr(true),
+				Enable: ptr.To(true),
 				Mode:   flowslatest.LokiModeLokiStack,
 				LokiStack: flowslatest.LokiStackRef{
 					Name:      "custom-loki",
@@ -565,18 +511,21 @@ func TestCheckLoki_CustomNamespace(t *testing.T) {
 		},
 	}
 
-	client := &mockClient{}
+	client, lsw := initLSWatcher()
 	nsname := types.NamespacedName{Name: "custom-loki", Namespace: "observability"}
 	client.On("Get", mock.Anything, nsname, mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 		arg := args.Get(2).(*lokiv1.LokiStack)
 		*arg = *lokiStack
 	}).Return(nil)
 
-	condition := checkLoki(context.Background(), client, fc)
+	st := lsw.Reconcile(context.Background(), fc)
 
-	assert.Equal(t, LokiIssue, condition.Type)
-	assert.Equal(t, "NoIssue", condition.Reason)
-	assert.Equal(t, metav1.ConditionFalse, condition.Status)
+	assert.Equal(t, status.ComponentStatus{
+		Name:    status.LokiStack,
+		Status:  status.StatusReady,
+		Reason:  "",
+		Message: "",
+	}, st)
 }
 
 func TestCheckLokiStackComponents_AllComponentTypes(t *testing.T) {
@@ -612,7 +561,7 @@ func TestCheckLokiStackComponents_AllComponentTypes(t *testing.T) {
 	assert.Len(t, issues, 6) // Should report 6 issues (failed, pending, and unknown pods)
 
 	// Check that all problematic components are reported
-	issuesStr := joinIssues(issues)
+	issuesStr := strings.Join(issues, "; ")
 	assert.Contains(t, issuesStr, "Compactor has 1 failed pod(s): compactor-0")
 	assert.Contains(t, issuesStr, "Distributor has 1 pending pod(s): distributor-0")
 	assert.Contains(t, issuesStr, "IndexGateway has 1 pod(s) with unknown status: index-gateway-0")
@@ -659,18 +608,4 @@ func TestCheckLokiStackComponents_OnlyRunningPods(t *testing.T) {
 
 	issues := checkLokiStackComponents(components)
 	assert.Empty(t, issues)
-}
-
-// Helper functions
-
-func ptr[T any](v T) *T {
-	return &v
-}
-
-func joinIssues(issues []string) string {
-	result := ""
-	for _, issue := range issues {
-		result += issue + " "
-	}
-	return result
 }

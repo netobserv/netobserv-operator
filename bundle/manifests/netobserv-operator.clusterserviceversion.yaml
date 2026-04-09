@@ -90,8 +90,8 @@ metadata:
     capabilities: Seamless Upgrades
     categories: Monitoring, Networking, Observability
     console.openshift.io/plugins: '["netobserv-plugin"]'
-    containerImage: quay.io/netobserv/network-observability-operator:1.11.2-community
-    createdAt: "2026-03-12T11:26:32Z"
+    containerImage: quay.io/netobserv/network-observability-operator:1.11.3-community
+    createdAt: "2026-04-03T08:27:44Z"
     description: Network flows collector and monitoring solution
     operatorframework.io/initialization-resource: '{"apiVersion":"flows.netobserv.io/v1beta2",
       "kind":"FlowCollector","metadata":{"name":"cluster"},"spec": {}}'
@@ -106,7 +106,7 @@ metadata:
     operatorframework.io/arch.ppc64le: supported
     operatorframework.io/arch.s390x: supported
     operatorframework.io/os.linux: supported
-  name: netobserv-operator.v1.11.2-community
+  name: netobserv-operator.v1.11.3-community
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -624,7 +624,7 @@ spec:
 
     ## Configuration
 
-    The `FlowCollector` resource is used to configure the operator and its managed components. A comprehensive documentation is [available here](https://github.com/netobserv/netobserv-operator/blob/1.11.2-community/docs/FlowCollector.md), and a full sample file [there](https://github.com/netobserv/netobserv-operator/blob/1.11.2-community/config/samples/flows_v1beta2_flowcollector.yaml).
+    The `FlowCollector` resource is used to configure the operator and its managed components. A comprehensive documentation is [available here](https://github.com/netobserv/netobserv-operator/blob/1.11.3-community/docs/FlowCollector.md), and a full sample file [there](https://github.com/netobserv/netobserv-operator/blob/1.11.3-community/config/samples/flows_v1beta2_flowcollector.yaml).
 
     To edit configuration in cluster, run:
 
@@ -677,7 +677,7 @@ spec:
     This documentation includes:
 
     - An [overview](https://github.com/netobserv/netobserv-operator#openshift-console) of the features, with screenshots
-    - More information on [configuring metrics](https://github.com/netobserv/netobserv-operator/blob/1.11.2-community/docs/Metrics.md).
+    - More information on [configuring metrics](https://github.com/netobserv/netobserv-operator/blob/1.11.3-community/docs/Metrics.md).
     - A [performance](https://github.com/netobserv/netobserv-operator#performance-fine-tuning) section, for fine-tuning
     - A [security](https://github.com/netobserv/netobserv-operator#securing-data-and-communications) section
     - An [F.A.Q.](https://github.com/netobserv/netobserv-operator#faq--troubleshooting) section
@@ -1004,13 +1004,13 @@ spec:
                 - /manager
                 env:
                 - name: RELATED_IMAGE_EBPF_AGENT
-                  value: quay.io/netobserv/netobserv-ebpf-agent:v1.11.2-community
+                  value: quay.io/netobserv/netobserv-ebpf-agent:v1.11.3-community
                 - name: RELATED_IMAGE_FLOWLOGS_PIPELINE
-                  value: quay.io/netobserv/flowlogs-pipeline:v1.11.2-community
+                  value: quay.io/netobserv/flowlogs-pipeline:v1.11.3-community
                 - name: RELATED_IMAGE_CONSOLE_PLUGIN
-                  value: quay.io/netobserv/network-observability-console-plugin:v1.11.2-community
+                  value: quay.io/netobserv/network-observability-console-plugin:v1.11.3-community
                 - name: RELATED_IMAGE_CONSOLE_PLUGIN_COMPAT
-                  value: quay.io/netobserv/network-observability-console-plugin:v1.11.2-community-pf4
+                  value: quay.io/netobserv/network-observability-console-plugin:v1.11.3-community-pf4
                 - name: RELATED_IMAGE_DEMO_LOKI
                   value: grafana/loki:3.5.0
                 - name: DOWNSTREAM_DEPLOYMENT
@@ -1020,7 +1020,7 @@ spec:
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.namespace
-                image: quay.io/netobserv/network-observability-operator:1.11.2-community
+                image: quay.io/netobserv/network-observability-operator:1.11.3-community
                 imagePullPolicy: Always
                 livenessProbe:
                   httpGet:
@@ -1152,17 +1152,17 @@ spec:
     name: Red Hat
     url: https://www.redhat.com
   relatedImages:
-  - image: quay.io/netobserv/netobserv-ebpf-agent:v1.11.2-community
+  - image: quay.io/netobserv/netobserv-ebpf-agent:v1.11.3-community
     name: ebpf-agent
-  - image: quay.io/netobserv/flowlogs-pipeline:v1.11.2-community
+  - image: quay.io/netobserv/flowlogs-pipeline:v1.11.3-community
     name: flowlogs-pipeline
-  - image: quay.io/netobserv/network-observability-console-plugin:v1.11.2-community
+  - image: quay.io/netobserv/network-observability-console-plugin:v1.11.3-community
     name: console-plugin
-  - image: quay.io/netobserv/network-observability-console-plugin:v1.11.2-community-pf4
+  - image: quay.io/netobserv/network-observability-console-plugin:v1.11.3-community-pf4
     name: console-plugin-compat
   - image: grafana/loki:3.5.0
     name: demo-loki
-  version: 1.11.2-community
+  version: 1.11.3-community
   webhookdefinitions:
   - admissionReviewVersions:
     - v1

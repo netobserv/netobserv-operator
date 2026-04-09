@@ -15,7 +15,7 @@ IMAGE_REGISTRY ?= quay.io
 REPO ?= $(IMAGE_REGISTRY)/$(IMAGE_ORG)
 
 # Component versions to use in bundle / release (do not use $VERSION for that)
-BUNDLE_VERSION ?= 1.11.2-community
+BUNDLE_VERSION ?= 1.11.3-community
 # console plugin
 export PLG_VERSION ?= v${BUNDLE_VERSION}
 # flowlogs-pipeline

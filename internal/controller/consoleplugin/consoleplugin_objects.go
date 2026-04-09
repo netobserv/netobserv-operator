@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 
-	lokiv1 "github.com/grafana/loki/operator/apis/loki/v1"
 	osv1 "github.com/openshift/api/console/v1"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"gopkg.in/yaml.v2"
@@ -28,6 +28,7 @@ import (
 	"github.com/netobserv/netobserv-operator/internal/controller/reconcilers"
 	"github.com/netobserv/netobserv-operator/internal/pkg/helper"
 	"github.com/netobserv/netobserv-operator/internal/pkg/helper/loki"
+	"github.com/netobserv/netobserv-operator/internal/pkg/manager/status"
 	"github.com/netobserv/netobserv-operator/internal/pkg/metrics"
 	"github.com/netobserv/netobserv-operator/internal/pkg/metrics/alerts"
 	"github.com/netobserv/netobserv-operator/internal/pkg/volumes"
@@ -36,6 +37,9 @@ import (
 const proxyAlias = "backend"
 
 const configMapName = "console-plugin-config"
+
+// Annotation on PrometheusRule metadata for recording-rule metadata (key = metric name, value = same as alert annotations).
+const recordingAnnotationsAnnotation = "netobserv.io/network-health"
 const configFile = "config.yaml"
 const configVolume = "config-volume"
 const configPath = "/opt/app-root/"
@@ -455,8 +459,9 @@ func (b *builder) getPromConfig(ctx context.Context) cfg.PrometheusConfig {
 	return config
 }
 
-func (b *builder) setFrontendConfig(fconf *cfg.FrontendConfig) error {
-	if b.desired.Agent.EBPF.IsPktDropEnabled() {
+// nolint:cyclop	// no real complexity here, just long boilerplate
+func (b *builder) setFrontendConfig(fconf *cfg.FrontendConfig, metrics []cfg.MetricInfo) (string, error) {
+	if b.desired.Agent.EBPF.IsPktDropEnabled() || b.desired.Agent.EBPF.IsNetworkEventsEnabled() {
 		fconf.Features = append(fconf.Features, "pktDrop")
 	}
 
@@ -480,12 +485,16 @@ func (b *builder) setFrontendConfig(fconf *cfg.FrontendConfig) error {
 		fconf.Features = append(fconf.Features, "udnMapping")
 	}
 
-	if b.desired.Agent.EBPF.IsUDNMappingEnabled() || b.desired.Processor.HasSecondaryIndexes() {
+	if b.desired.Agent.EBPF.IsUDNMappingEnabled() || len(b.desired.GetSecondaryIndexes()) > 0 {
 		fconf.Features = append(fconf.Features, "multiNetworks")
 	}
 
 	if b.desired.Agent.EBPF.IsIPSecEnabled() {
 		fconf.Features = append(fconf.Features, "ipsec")
+	}
+
+	if b.desired.Agent.EBPF.IsTLSTrackingEnabled() {
+		fconf.Features = append(fconf.Features, "tlsTracking")
 	}
 
 	fconf.RecordTypes = helper.GetRecordTypes(&b.desired.Processor)
@@ -506,7 +515,104 @@ func (b *builder) setFrontendConfig(fconf *cfg.FrontendConfig) error {
 	// Add health rules metadata for frontend
 	fconf.RecordingAnnotations = b.getHealthRecordingAnnotations()
 
-	return nil
+	// Filter-out disabled scopes
+	var scopes []cfg.ScopeConfig
+	var warnings []string
+	for i := range fconf.Scopes {
+		scope := &fconf.Scopes[i]
+		if len(scope.Feature) == 0 || slices.Contains(fconf.Features, scope.Feature) {
+			if b.desired.UseLoki() {
+				scopes = append(scopes, *scope)
+			} else if valid, warning := isScopeValidForMetrics(scope, metrics); valid {
+				scopes = append(scopes, *scope)
+			} else if scope.ID != "resource" { // don't trigger warning for "resource" scope, it's a known fact it won't be available
+				warnings = append(warnings, warning)
+			}
+		}
+	}
+	if b.desired.UseLoki() {
+		fconf.Scopes = scopes
+	} else {
+		fconf.Scopes = filterScopeGroupsForMetrics(scopes, metrics)
+	}
+
+	return strings.Join(warnings, "; "), nil
+}
+
+func isScopeValidForMetrics(scope *cfg.ScopeConfig, metrics []cfg.MetricInfo) (bool, string) {
+	var bestMatch *cfg.MetricInfo
+	var bestMatchMissingLabels []string
+	var candidates []string
+	for i := range metrics {
+		if metrics[i].ValueField == "Bytes" || metrics[i].ValueField == "Packets" {
+			missing := missingLabels(scope.Labels, &metrics[i])
+			if len(missing) == 0 {
+				if !metrics[i].Enabled {
+					candidates = append(candidates, metrics[i].Name)
+				} else {
+					return true, ""
+				}
+			} else if bestMatch == nil {
+				bestMatch = &metrics[i]
+				bestMatchMissingLabels = missing
+			}
+		}
+	}
+	if len(candidates) > 0 {
+		return false, fmt.Sprintf("Scope %s invalid for metrics (candidates: %s)", scope.ID, strings.Join(candidates, ", "))
+	}
+	if bestMatch == nil {
+		return false, fmt.Sprintf("Scope %s invalid for metrics (no best match)", scope.ID)
+	}
+	return false, fmt.Sprintf("Scope %s invalid for metrics (best match: %s; missing labels: %s)", scope.ID, bestMatch.Name, strings.Join(bestMatchMissingLabels, ", "))
+}
+
+func missingLabels(labels []string, metric *cfg.MetricInfo) []string {
+	var missing []string
+	for _, label := range labels {
+		if !slices.Contains(metric.Labels, label) {
+			missing = append(missing, label)
+		}
+	}
+	return missing
+}
+
+func filterScopeGroupsForMetrics(scopes []cfg.ScopeConfig, metrics []cfg.MetricInfo) []cfg.ScopeConfig {
+	labelsPerScope := make(map[string][]string)
+	for i := range scopes {
+		labelsPerScope[scopes[i].ID+"s"] = scopes[i].Labels
+	}
+	for i := range scopes {
+		scope := &scopes[i]
+		newGroups := []string{}
+	NextGroup:
+		for _, group := range scope.Groups {
+			neededLabels := scope.Labels
+			// Group is like "hosts+networks"
+			parts := strings.Split(group, "+")
+			for _, part := range parts {
+				if labels, isValid := labelsPerScope[part]; isValid {
+					neededLabels = append(neededLabels, labels...)
+				} else {
+					// Not a valid scope => reject that group
+					continue NextGroup
+				}
+			}
+			// Now, verify that all needed labels (for scope AND groups) are ok with metrics
+			for i := range metrics {
+				if metrics[i].Enabled && (metrics[i].ValueField == "Bytes" || metrics[i].ValueField == "Packets") {
+					missing := missingLabels(neededLabels, &metrics[i])
+					if len(missing) == 0 {
+						// Valid group
+						newGroups = append(newGroups, group)
+						continue NextGroup
+					}
+				}
+			}
+		}
+		scope.Groups = newGroups
+	}
+	return scopes
 }
 
 func (b *builder) getHealthRecordingAnnotations() map[string]map[string]string {
@@ -523,25 +629,10 @@ func (b *builder) getHealthRecordingAnnotations() map[string]map[string]string {
 	return annotsPerRecording
 }
 
-func getLokiStatus(lokiStack *lokiv1.LokiStack) string {
-	if lokiStack == nil {
-		// This case should not happen
-		return ""
-	}
-	for _, conditions := range lokiStack.Status.Conditions {
-		if conditions.Reason == "ReadyComponents" {
-			if conditions.Status == "True" {
-				return "ready"
-			}
-			break
-		}
-	}
-	return "pending"
-}
-
 // returns a configmap with a digest of its configuration contents, which will be used to
-// detect any configuration change
-func (b *builder) configMap(ctx context.Context, lokiStack *lokiv1.LokiStack) (*corev1.ConfigMap, string, error) {
+// detect any configuration change. externalRecordingAnnotations is optional (e.g. nil in tests);
+// when non-empty, those annotations are merged into the frontend config (from PrometheusRules).
+func (b *builder) configMap(ctx context.Context, externalRecordingAnnotations map[string]map[string]string, lokiStatus status.ComponentStatus) (*corev1.ConfigMap, string, error) {
 	config := cfg.PluginConfig{
 		Server: cfg.ServerConfig{
 			Port: int(*b.advanced.Port),
@@ -557,9 +648,13 @@ func (b *builder) configMap(ctx context.Context, lokiStack *lokiv1.LokiStack) (*
 	// configure loki
 	var err error
 	config.Loki, err = b.getLokiConfig()
-	if lokiStack != nil {
-		config.Loki.Status = getLokiStatus(lokiStack)
+	if lokiStatus.Status != status.StatusUnknown {
 		config.Loki.StatusURL = ""
+		if lokiStatus.Status == status.StatusReady {
+			config.Loki.Status = "ready"
+		} else {
+			config.Loki.Status = "pending"
+		}
 	}
 	if err != nil {
 		return nil, "", err
@@ -573,9 +668,20 @@ func (b *builder) configMap(ctx context.Context, lokiStack *lokiv1.LokiStack) (*
 	if err != nil {
 		return nil, "", err
 	}
-	err = b.setFrontendConfig(&config.Frontend)
+	warning, err := b.setFrontendConfig(&config.Frontend, config.Prometheus.Metrics)
 	if err != nil {
 		return nil, "", err
+	}
+	// TODO: with NETOBSERV-2375 => add DEGRADED to console status instead of this log
+	if warning != "" {
+		log.FromContext(ctx).Info("Frontend config DEGRADED", "message", warning)
+	}
+
+	for k, v := range externalRecordingAnnotations {
+		if config.Frontend.RecordingAnnotations == nil {
+			config.Frontend.RecordingAnnotations = make(map[string]map[string]string)
+		}
+		config.Frontend.RecordingAnnotations[k] = v
 	}
 
 	var configStr string

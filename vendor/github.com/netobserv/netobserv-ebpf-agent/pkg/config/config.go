@@ -283,6 +283,9 @@ type Agent struct {
 	EnableOpenSSLTracking bool `env:"ENABLE_OPENSSL_TRACKING" envDefault:"false"`
 	// OpenSSLPath path to the openssl binary
 	OpenSSLPath string `env:"OPENSSL_PATH" envDefault:"/usr/bin/openssl"`
+	// EnableFlowsRingbufFallback enable the "direct_flows" ring buffer, which is a fallback method to get flows from the kernel space, used when the main map is full or busy.
+	// See also: https://github.com/netobserv/netobserv-ebpf-agent/blob/main/docs/architecture.md
+	EnableFlowsRingbufFallback bool `env:"ENABLE_FLOWS_RINGBUF_FALLBACK" envDefault:"false"`
 
 	/* Deprecated configs are listed below this line
 	 * See manageDeprecatedConfigs function for details
