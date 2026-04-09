@@ -39,6 +39,7 @@
   "DnsFlagsResponseCode": "dns.responsecode",
   "DnsId": "dns.id",
   "DnsLatencyMs": "dns.latency",
+  "DnsName": "dns.name",
   "Dscp": "dscp",
   "IcmpCode": "icmp.code",
   "IcmpType": "icmp.type",

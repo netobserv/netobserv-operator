@@ -21,6 +21,7 @@ func TestOtelTransformConfig(t *testing.T) {
 		{Input: "DnsFlagsResponseCode", Output: "dns.responsecode", Multiplier: 0},
 		{Input: "DnsId", Output: "dns.id", Multiplier: 0},
 		{Input: "DnsLatencyMs", Output: "dns.latency", Multiplier: 0},
+		{Input: "DnsName", Output: "dns.name", Multiplier: 0},
 		{Input: "Dscp", Output: "dscp", Multiplier: 0},
 		{Input: "DstAddr", Output: "destination.address", Multiplier: 0},
 		{Input: "DstK8S_HostIP", Output: "destination.k8s.host.address", Multiplier: 0},
