@@ -70,7 +70,7 @@ func (r *informerReconciler) reconcile(ctx context.Context, desired *flowslatest
 	}
 
 	// Reconcile RBAC
-	if err := r.reconcilePermissions(ctx, &builder); err != nil {
+	if err := r.reconcilePermissions(ctx); err != nil {
 		return err
 	}
 
@@ -89,8 +89,7 @@ func (r *informerReconciler) reconcileServiceAccount(ctx context.Context, builde
 	return nil
 }
 
-func (r *informerReconciler) reconcilePermissions(ctx context.Context, builder *informerBuilder) error {
-	// Informers
+func (r *informerReconciler) reconcilePermissions(ctx context.Context) error {
 	r.rbInformer = resources.GetClusterRoleBinding(r.Namespace, informerShortName, informerName, informerName, constants.FLPInformersRole)
 	if err := r.ReconcileClusterRoleBinding(ctx, r.rbInformer); err != nil {
 		return err
