@@ -33,7 +33,6 @@ type monolithReconciler struct {
 	rbConfigWatcher  *rbacv1.RoleBinding
 	rbHostNetwork    *rbacv1.ClusterRoleBinding
 	rbLokiWriter     *rbacv1.ClusterRoleBinding
-	rbInformer       *rbacv1.ClusterRoleBinding
 	serviceMonitor   *monitoringv1.ServiceMonitor
 	prometheusRule   *monitoringv1.PrometheusRule
 }
@@ -51,7 +50,6 @@ func newMonolithReconciler(cmn *reconcilers.Instance) *monolithReconciler {
 		rbConfigWatcher:  cmn.Managed.NewRB(resources.GetRoleBindingName(monoShortName, constants.ConfigWatcherRole)),
 		rbHostNetwork:    cmn.Managed.NewCRB(resources.GetClusterRoleBindingName(monoShortName, constants.HostNetworkRole)),
 		rbLokiWriter:     cmn.Managed.NewCRB(resources.GetClusterRoleBindingName(monoShortName, constants.LokiWriterRole)),
-		rbInformer:       cmn.Managed.NewCRB(resources.GetClusterRoleBindingName(monoShortName, constants.FLPInformersRole)),
 	}
 	if cmn.ClusterInfo.HasSvcMonitor() {
 		rec.serviceMonitor = cmn.Managed.NewServiceMonitor(monoServiceMonitor)
@@ -240,12 +238,6 @@ func (r *monolithReconciler) reconcilePermissions(ctx context.Context, builder *
 	if !r.Managed.Exists(r.serviceAccount) {
 		return r.CreateOwned(ctx, builder.serviceAccount())
 	} // We only configure name, update is not needed for now
-
-	// Informers
-	r.rbInformer = resources.GetClusterRoleBinding(r.Namespace, monoShortName, monoName, monoName, constants.FLPInformersRole)
-	if err := r.ReconcileClusterRoleBinding(ctx, r.rbInformer); err != nil {
-		return err
-	}
 
 	// Host network
 	if r.ClusterInfo.IsOpenShift() && builder.desired.UseHostNetwork() {

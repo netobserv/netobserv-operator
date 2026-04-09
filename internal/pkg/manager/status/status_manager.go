@@ -27,6 +27,7 @@ const (
 	EBPFAgents                  ComponentName = "EBPFAgents"
 	WebConsole                  ComponentName = "WebConsole"
 	FLPParent                   ComponentName = "FLPParent"
+	FLPInformers                ComponentName = "FLPInformers"
 	FLPMonolith                 ComponentName = "FLPMonolith"
 	FLPTransformer              ComponentName = "FLPTransformer"
 	Monitoring                  ComponentName = "Monitoring"

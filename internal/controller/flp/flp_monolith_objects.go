@@ -168,12 +168,20 @@ func (b *monolithBuilder) service() *corev1.Service {
 		},
 		Spec: corev1.ServiceSpec{
 			Selector: map[string]string{"app": monoName},
-			Ports: []corev1.ServicePort{{
-				Name:       constants.FLPPortName,
-				Port:       port,
-				Protocol:   corev1.ProtocolTCP,
-				TargetPort: intstr.FromInt32(port),
-			}},
+			Ports: []corev1.ServicePort{
+				{
+					Name:       constants.FLPPortName,
+					Port:       port,
+					Protocol:   corev1.ProtocolTCP,
+					TargetPort: intstr.FromInt32(port),
+				},
+				{
+					Name:       "k8scache",
+					Port:       9090,
+					Protocol:   corev1.ProtocolTCP,
+					TargetPort: intstr.FromInt(9090),
+				},
+			},
 		},
 	}
 	if b.info.ClusterInfo.IsOpenShift() && (b.desired.Processor.Service == nil || b.desired.Processor.Service.TLSType == flowslatest.TLSAuto) {

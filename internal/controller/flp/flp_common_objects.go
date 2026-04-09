@@ -128,6 +128,11 @@ func podTemplate(
 		Name:          prometheusPortName,
 		ContainerPort: desired.Processor.GetMetricsPort(),
 	})
+	ports = append(ports, corev1.ContainerPort{
+		Name:          "k8scache",
+		ContainerPort: 9090,
+		Protocol:      corev1.ProtocolTCP,
+	})
 
 	if advancedConfig.ProfilePort != nil {
 		ports = append(ports, corev1.ContainerPort{
@@ -166,7 +171,11 @@ func podTemplate(
 		Name:            constants.FLPName,
 		Image:           imageName,
 		ImagePullPolicy: corev1.PullPolicy(desired.Processor.ImagePullPolicy),
-		Args:            []string{fmt.Sprintf(`--config=%s/%s`, configPath, configFile)},
+		Args: []string{
+			fmt.Sprintf(`--config=%s/%s`, configPath, configFile),
+			"--k8scache.port=9090",
+			"--k8scache.address=0.0.0.0",
+		},
 		Resources:       *desired.Processor.Resources.DeepCopy(),
 		VolumeMounts:    volumeMounts,
 		Ports:           ports,
