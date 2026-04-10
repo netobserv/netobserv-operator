@@ -27,6 +27,7 @@ const (
 	healthPortName          = "health"
 	prometheusPortName      = "prometheus"
 	profilePortName         = "pprof"
+	k8scachePort            = 9090
 	healthTimeoutSeconds    = 5
 	livenessPeriodSeconds   = 10
 	startupFailureThreshold = 5
@@ -94,6 +95,34 @@ const (
 	pull
 )
 
+// validatePortConflicts checks if any user-configured ports conflict with the hardcoded k8scache port
+func validatePortConflicts(desired *flowslatest.FlowCollectorSpec) error {
+	advancedConfig := helper.GetAdvancedProcessorConfig(desired)
+
+	// Check FLP port
+	if advancedConfig.Port != nil && *advancedConfig.Port == k8scachePort {
+		return fmt.Errorf("flowlogs-pipeline port %d conflicts with reserved k8scache port %d", *advancedConfig.Port, k8scachePort)
+	}
+
+	// Check health port
+	if advancedConfig.HealthPort != nil && *advancedConfig.HealthPort == k8scachePort {
+		return fmt.Errorf("flowlogs-pipeline health port %d conflicts with reserved k8scache port %d", *advancedConfig.HealthPort, k8scachePort)
+	}
+
+	// Check metrics port
+	metricsPort := desired.Processor.GetMetricsPort()
+	if metricsPort == k8scachePort {
+		return fmt.Errorf("flowlogs-pipeline metrics port %d conflicts with reserved k8scache port %d", metricsPort, k8scachePort)
+	}
+
+	// Check profile port (optional)
+	if advancedConfig.ProfilePort != nil && *advancedConfig.ProfilePort == k8scachePort {
+		return fmt.Errorf("flowlogs-pipeline profile port %d conflicts with reserved k8scache port %d", *advancedConfig.ProfilePort, k8scachePort)
+	}
+
+	return nil
+}
+
 func podTemplate(
 	appName, version, imageName, cmName string,
 	desired *flowslatest.FlowCollectorSpec,
@@ -130,7 +159,7 @@ func podTemplate(
 	})
 	ports = append(ports, corev1.ContainerPort{
 		Name:          "k8scache",
-		ContainerPort: 9090,
+		ContainerPort: k8scachePort,
 		Protocol:      corev1.ProtocolTCP,
 	})
 
@@ -173,7 +202,7 @@ func podTemplate(
 		ImagePullPolicy: corev1.PullPolicy(desired.Processor.ImagePullPolicy),
 		Args: []string{
 			fmt.Sprintf(`--config=%s/%s`, configPath, configFile),
-			"--k8scache.port=9090",
+			fmt.Sprintf("--k8scache.port=%d", k8scachePort),
 			"--k8scache.address=0.0.0.0",
 		},
 		Resources:       *desired.Processor.Resources.DeepCopy(),

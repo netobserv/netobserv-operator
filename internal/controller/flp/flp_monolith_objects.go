@@ -37,6 +37,11 @@ type monolithBuilder struct {
 }
 
 func newMonolithBuilder(info *reconcilers.Instance, desired *flowslatest.FlowCollectorSpec, flowMetrics *metricslatest.FlowMetricList, fcSlices []sliceslatest.FlowCollectorSlice, detectedSubnets []flowslatest.SubnetLabel) (monolithBuilder, error) {
+	// Validate port conflicts early
+	if err := validatePortConflicts(desired); err != nil {
+		return monolithBuilder{}, err
+	}
+
 	version := helper.ExtractVersion(info.Images[reconcilers.MainImage])
 	promTLS, err := getPromTLS(desired, constants.FLPMetricsSvcName)
 	if err != nil {
