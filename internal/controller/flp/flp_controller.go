@@ -2,6 +2,7 @@ package flp
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -109,7 +110,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Result
 		l.Error(err, "FLP reconcile failure")
 		if !r.status.HasFailure() {
 			reason := "FLPError"
-			if fc.Spec.UseKafka() {
+			var ke *reconcilers.KafkaError
+			if errors.As(err, &ke) {
 				reason = "FLPKafkaError"
 			}
 			r.status.SetFailure(reason, err.Error())
@@ -233,7 +235,7 @@ func annotateKafkaExporterCerts(ctx context.Context, info *reconcilers.Common, e
 func annotateKafkaCerts(ctx context.Context, info *reconcilers.Common, spec *flowslatest.FlowCollectorKafka, prefix string, annotations map[string]string) error {
 	caDigest, userDigest, err := info.Watcher.ProcessMTLSCerts(ctx, info.Client, &spec.TLS, info.Namespace)
 	if err != nil {
-		return err
+		return reconcilers.WrapKafkaError(err)
 	}
 	if caDigest != "" {
 		annotations[watchers.Annotation(prefix+"-ca")] = caDigest
@@ -244,7 +246,7 @@ func annotateKafkaCerts(ctx context.Context, info *reconcilers.Common, spec *flo
 	if spec.SASL.UseSASL() {
 		saslDigest1, saslDigest2, err := info.Watcher.ProcessSASL(ctx, info.Client, &spec.SASL, info.Namespace)
 		if err != nil {
-			return err
+			return reconcilers.WrapKafkaError(err)
 		}
 		if saslDigest1 != "" {
 			annotations[watchers.Annotation(prefix+"-sd1")] = saslDigest1

@@ -3,6 +3,7 @@ package ebpf
 import (
 	"context"
 	"encoding/json"
+	stderrors "errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -145,7 +146,8 @@ func (c *AgentController) Reconcile(ctx context.Context, target *flowslatest.Flo
 		rlog.Error(err, "AgentController reconcile failure")
 		if !c.Status.HasFailure() {
 			reason := "AgentControllerError"
-			if target.Spec.UseKafka() {
+			var ke *reconcilers.KafkaError
+			if stderrors.As(err, &ke) {
 				reason = "AgentKafkaError"
 			}
 			c.Status.SetFailure(reason, err.Error())
@@ -468,7 +470,7 @@ func (c *AgentController) envConfig(ctx context.Context, coll *flowslatest.FlowC
 			// If user cert is provided, it will use mTLS. Else, simple TLS (the userDigest and paths will be empty)
 			caDigest, userDigest, err := c.Watcher.ProcessMTLSCerts(ctx, c.Client, &coll.Spec.Kafka.TLS, c.PrivilegedNamespace())
 			if err != nil {
-				return nil, err
+				return nil, reconcilers.WrapKafkaError(err)
 			}
 			annots[watchers.Annotation("kafka-ca")] = caDigest
 			annots[watchers.Annotation("kafka-user")] = userDigest
@@ -487,7 +489,7 @@ func (c *AgentController) envConfig(ctx context.Context, coll *flowslatest.FlowC
 			// Annotate pod with secret reference so that it is reloaded if modified
 			d1, d2, err := c.Watcher.ProcessSASL(ctx, c.Client, sasl, c.PrivilegedNamespace())
 			if err != nil {
-				return nil, err
+				return nil, reconcilers.WrapKafkaError(err)
 			}
 			annots[watchers.Annotation("kafka-sd1")] = d1
 			annots[watchers.Annotation("kafka-sd2")] = d2
