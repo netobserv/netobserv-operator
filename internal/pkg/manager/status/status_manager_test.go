@@ -78,7 +78,7 @@ func TestDegradedStatus(t *testing.T) {
 	conds := s.getConditions()
 	assertHasCondition(t, conds, "Ready", "Ready,Degraded", metav1.ConditionTrue)
 	assertHasCondition(t, conds, "AgentReady", "Ready", metav1.ConditionTrue)
-	assertHasCondition(t, conds, "PluginReady", "PluginRegistrationFailed", metav1.ConditionFalse)
+	assertHasCondition(t, conds, "WebConsoleReady", "PluginRegistrationFailed", metav1.ConditionFalse)
 
 	cs := plugin.Get()
 	assert.Equal(t, StatusDegraded, cs.Status)
@@ -750,7 +750,7 @@ func TestConditionTypeMapping(t *testing.T) {
 		expected string
 	}{
 		{EBPFAgents, "AgentReady"},
-		{WebConsole, "PluginReady"},
+		{WebConsole, "WebConsoleReady"},
 		{FLPParent, "ProcessorReady"},
 		{FLPMonolith, "ProcessorMonolithReady"},
 		{FLPTransformer, "ProcessorTransformerReady"},
@@ -758,7 +758,7 @@ func TestConditionTypeMapping(t *testing.T) {
 		{LokiStack, "LokiReady"},
 		{DemoLoki, "DemoLokiReady"},
 		{FlowCollectorController, "FlowCollectorControllerReady"},
-		{StaticController, "StaticPluginReady"},
+		{StaticController, "StaticWebConsoleReady"},
 		{NetworkPolicy, "NetworkPolicyReady"},
 	}
 	for _, tc := range tests {
