@@ -67,6 +67,7 @@ func (b *informerBuilder) deployment() (*appsv1.Deployment, error) {
 				corev1.ResourceCPU:    resource.MustParse("200m"),
 			},
 		},
+		SecurityContext: helper.ContainerDefaultSecurityContext(),
 	}
 
 	return &appsv1.Deployment{
