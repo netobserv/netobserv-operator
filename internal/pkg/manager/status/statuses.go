@@ -27,9 +27,13 @@ type ComponentStatus struct {
 	PodHealth       PodHealthSummary
 }
 
+// toCondition returns a Kubernetes condition using "Waiting*" naming with negative polarity:
+// True means "component has an issue", False means "component is ready".
+// This matches the OpenShift console behavior which treats non-Ready conditions as
+// negative-polarity (True = problem).
 func (s *ComponentStatus) toCondition() metav1.Condition {
 	c := metav1.Condition{
-		Type:    conditionType(s.Name),
+		Type:    "Waiting" + string(s.Name),
 		Message: s.Message,
 	}
 	switch s.Status {
@@ -40,10 +44,10 @@ func (s *ComponentStatus) toCondition() metav1.Condition {
 		c.Status = metav1.ConditionUnknown
 		c.Reason = "Unused"
 	case StatusFailure, StatusInProgress, StatusDegraded:
-		c.Status = metav1.ConditionFalse
+		c.Status = metav1.ConditionTrue
 		c.Reason = "NotReady"
 	case StatusReady:
-		c.Status = metav1.ConditionTrue
+		c.Status = metav1.ConditionFalse
 		c.Reason = "Ready"
 	default:
 		c.Status = metav1.ConditionUnknown
@@ -53,29 +57,6 @@ func (s *ComponentStatus) toCondition() metav1.Condition {
 		c.Reason = s.Reason
 	}
 	return c
-}
-
-// conditionType maps a ComponentName to a Kubernetes condition type.
-// Uses "<Component>Ready" naming convention (positive polarity).
-var conditionTypeMap = map[ComponentName]string{
-	FlowCollectorController: "FlowCollectorControllerReady",
-	EBPFAgents:              "AgentReady",
-	WebConsole:              "WebConsoleReady",
-	FLPParent:               "ProcessorReady",
-	FLPMonolith:             "ProcessorMonolithReady",
-	FLPTransformer:          "ProcessorTransformerReady",
-	Monitoring:              "MonitoringReady",
-	StaticController:        "StaticWebConsoleReady",
-	NetworkPolicy:           "NetworkPolicyReady",
-	DemoLoki:                "DemoLokiReady",
-	LokiStack:               "LokiReady",
-}
-
-func conditionType(name ComponentName) string {
-	if ct, ok := conditionTypeMap[name]; ok {
-		return ct
-	}
-	return string(name) + "Ready"
 }
 
 func (s *ComponentStatus) toCRDStatus() *flowslatest.FlowCollectorComponentStatus {

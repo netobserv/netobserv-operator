@@ -25,10 +25,10 @@ func TestStatusWorkflow(t *testing.T) {
 	sm.SetFailure("AnError", "bad one")
 
 	conds := s.getConditions()
-	assertHasConditionTypes(t, conds, []string{"FlowCollectorControllerReady", "MonitoringReady", "Ready"})
+	assertHasConditionTypes(t, conds, []string{"Ready", "WaitingFlowCollectorController", "WaitingMonitoring"})
 	assertHasCondition(t, conds, "Ready", "Failure", metav1.ConditionFalse)
-	assertHasCondition(t, conds, "FlowCollectorControllerReady", "CreatingDaemonSet", metav1.ConditionFalse)
-	assertHasCondition(t, conds, "MonitoringReady", "AnError", metav1.ConditionFalse)
+	assertHasCondition(t, conds, "WaitingFlowCollectorController", "CreatingDaemonSet", metav1.ConditionTrue)
+	assertHasCondition(t, conds, "WaitingMonitoring", "AnError", metav1.ConditionTrue)
 
 	sl.CheckDaemonSetProgress(&appsv1.DaemonSet{ObjectMeta: metav1.ObjectMeta{Name: "test"}, Status: appsv1.DaemonSetStatus{
 		DesiredNumberScheduled: 3,
@@ -37,10 +37,10 @@ func TestStatusWorkflow(t *testing.T) {
 	sm.SetUnknown()
 
 	conds = s.getConditions()
-	assertHasConditionTypes(t, conds, []string{"FlowCollectorControllerReady", "MonitoringReady", "Ready"})
+	assertHasConditionTypes(t, conds, []string{"Ready", "WaitingFlowCollectorController", "WaitingMonitoring"})
 	assertHasCondition(t, conds, "Ready", "Pending", metav1.ConditionFalse)
-	assertHasCondition(t, conds, "FlowCollectorControllerReady", "DaemonSetNotReady", metav1.ConditionFalse)
-	assertHasCondition(t, conds, "MonitoringReady", "Unknown", metav1.ConditionUnknown)
+	assertHasCondition(t, conds, "WaitingFlowCollectorController", "DaemonSetNotReady", metav1.ConditionTrue)
+	assertHasCondition(t, conds, "WaitingMonitoring", "Unknown", metav1.ConditionUnknown)
 
 	sl.CheckDaemonSetProgress(&appsv1.DaemonSet{ObjectMeta: metav1.ObjectMeta{Name: "test"}, Status: appsv1.DaemonSetStatus{
 		DesiredNumberScheduled: 3,
@@ -49,10 +49,10 @@ func TestStatusWorkflow(t *testing.T) {
 	sm.SetUnused("message")
 
 	conds = s.getConditions()
-	assertHasConditionTypes(t, conds, []string{"FlowCollectorControllerReady", "MonitoringReady", "Ready"})
+	assertHasConditionTypes(t, conds, []string{"Ready", "WaitingFlowCollectorController", "WaitingMonitoring"})
 	assertHasCondition(t, conds, "Ready", "Ready", metav1.ConditionTrue)
-	assertHasCondition(t, conds, "FlowCollectorControllerReady", "Ready", metav1.ConditionTrue)
-	assertHasCondition(t, conds, "MonitoringReady", "ComponentUnused", metav1.ConditionUnknown)
+	assertHasCondition(t, conds, "WaitingFlowCollectorController", "Ready", metav1.ConditionFalse)
+	assertHasCondition(t, conds, "WaitingMonitoring", "ComponentUnused", metav1.ConditionUnknown)
 
 	sl.CheckDeploymentProgress(&appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: "test"}, Status: appsv1.DeploymentStatus{
 		ReadyReplicas: 2,
@@ -61,10 +61,10 @@ func TestStatusWorkflow(t *testing.T) {
 	sm.SetReady()
 
 	conds = s.getConditions()
-	assertHasConditionTypes(t, conds, []string{"FlowCollectorControllerReady", "MonitoringReady", "Ready"})
+	assertHasConditionTypes(t, conds, []string{"Ready", "WaitingFlowCollectorController", "WaitingMonitoring"})
 	assertHasCondition(t, conds, "Ready", "Ready", metav1.ConditionTrue)
-	assertHasCondition(t, conds, "FlowCollectorControllerReady", "Ready", metav1.ConditionTrue)
-	assertHasCondition(t, conds, "MonitoringReady", "Ready", metav1.ConditionTrue)
+	assertHasCondition(t, conds, "WaitingFlowCollectorController", "Ready", metav1.ConditionFalse)
+	assertHasCondition(t, conds, "WaitingMonitoring", "Ready", metav1.ConditionFalse)
 }
 
 func TestDegradedStatus(t *testing.T) {
@@ -77,8 +77,8 @@ func TestDegradedStatus(t *testing.T) {
 
 	conds := s.getConditions()
 	assertHasCondition(t, conds, "Ready", "Ready,Degraded", metav1.ConditionTrue)
-	assertHasCondition(t, conds, "AgentReady", "Ready", metav1.ConditionTrue)
-	assertHasCondition(t, conds, "WebConsoleReady", "PluginRegistrationFailed", metav1.ConditionFalse)
+	assertHasCondition(t, conds, "WaitingEBPFAgents", "Ready", metav1.ConditionFalse)
+	assertHasCondition(t, conds, "WaitingWebConsole", "PluginRegistrationFailed", metav1.ConditionTrue)
 
 	cs := plugin.Get()
 	assert.Equal(t, StatusDegraded, cs.Status)
@@ -644,28 +644,6 @@ func TestKafkaCondition(t *testing.T) {
 	})
 }
 
-func TestCleanupStaleConditions(t *testing.T) {
-	fc := &flowslatest.FlowCollector{}
-	fc.Status.Conditions = []metav1.Condition{
-		{Type: "WaitingEBPFAgents", Status: metav1.ConditionTrue, Reason: "OldReason", LastTransitionTime: metav1.Now()},
-		{Type: "WaitingWebConsole", Status: metav1.ConditionFalse, Reason: "OldReady", LastTransitionTime: metav1.Now()},
-		{Type: "Ready", Status: metav1.ConditionTrue, Reason: "Ready", LastTransitionTime: metav1.Now()},
-		{Type: "AgentReady", Status: metav1.ConditionTrue, Reason: "Ready", LastTransitionTime: metav1.Now()},
-	}
-
-	s := NewManager()
-	s.cleanupStaleConditions(fc)
-
-	var types []string
-	for _, c := range fc.Status.Conditions {
-		types = append(types, c.Type)
-	}
-	assert.NotContains(t, types, "WaitingEBPFAgents")
-	assert.NotContains(t, types, "WaitingWebConsole")
-	assert.Contains(t, types, "Ready")
-	assert.Contains(t, types, "AgentReady")
-}
-
 // fakeRecorder implements record.EventRecorder for testing event emission.
 type fakeRecorder struct {
 	events []fakeEvent
@@ -744,43 +722,16 @@ func TestEmitEventsNilRecorder(_ *testing.T) {
 	s.emitStateTransitionEvents(ctx(), fc)
 }
 
-func TestConditionTypeMapping(t *testing.T) {
-	tests := []struct {
-		name     ComponentName
-		expected string
-	}{
-		{EBPFAgents, "AgentReady"},
-		{WebConsole, "WebConsoleReady"},
-		{FLPParent, "ProcessorReady"},
-		{FLPMonolith, "ProcessorMonolithReady"},
-		{FLPTransformer, "ProcessorTransformerReady"},
-		{Monitoring, "MonitoringReady"},
-		{LokiStack, "LokiReady"},
-		{DemoLoki, "DemoLokiReady"},
-		{FlowCollectorController, "FlowCollectorControllerReady"},
-		{StaticController, "StaticWebConsoleReady"},
-		{NetworkPolicy, "NetworkPolicyReady"},
-	}
-	for _, tc := range tests {
-		t.Run(string(tc.name), func(t *testing.T) {
-			assert.Equal(t, tc.expected, conditionType(tc.name))
-		})
-	}
-
-	// Fallback for unknown component
-	assert.Equal(t, "SomeNewComponentReady", conditionType("SomeNewComponent"))
-}
-
 func TestConditionPolarity(t *testing.T) {
 	tests := []struct {
 		status    Status
 		expected  metav1.ConditionStatus
 		defReason string
 	}{
-		{StatusReady, metav1.ConditionTrue, "Ready"},
-		{StatusFailure, metav1.ConditionFalse, "NotReady"},
-		{StatusInProgress, metav1.ConditionFalse, "NotReady"},
-		{StatusDegraded, metav1.ConditionFalse, "NotReady"},
+		{StatusReady, metav1.ConditionFalse, "Ready"},
+		{StatusFailure, metav1.ConditionTrue, "NotReady"},
+		{StatusInProgress, metav1.ConditionTrue, "NotReady"},
+		{StatusDegraded, metav1.ConditionTrue, "NotReady"},
 		{StatusUnknown, metav1.ConditionUnknown, "Unknown"},
 		{StatusUnused, metav1.ConditionUnknown, "Unused"},
 	}
@@ -796,7 +747,7 @@ func TestConditionPolarity(t *testing.T) {
 	// Custom reason overrides default
 	cs := ComponentStatus{Name: EBPFAgents, Status: StatusFailure, Reason: "KafkaError"}
 	cond := cs.toCondition()
-	assert.Equal(t, metav1.ConditionFalse, cond.Status)
+	assert.Equal(t, metav1.ConditionTrue, cond.Status)
 	assert.Equal(t, "KafkaError", cond.Reason)
 }
 

@@ -284,7 +284,6 @@ func (s *Manager) updateStatus(ctx context.Context, c client.Client) {
 			}
 			return err
 		}
-		s.cleanupStaleConditions(&fc)
 		conditions := s.getConditions()
 		conditions = append(conditions, checkValidation(ctx, &fc))
 		if kafkaCond := s.GetKafkaCondition(); kafkaCond != nil {
@@ -305,28 +304,6 @@ func (s *Manager) updateStatus(ctx context.Context, c client.Client) {
 		rlog.Error(err, "failed to update FlowCollector status")
 	} else if updatedFC != nil {
 		s.emitStateTransitionEvents(ctx, updatedFC)
-	}
-}
-
-// cleanupStaleConditions removes legacy condition types (e.g., old "Waiting*" names)
-// that may still be present after an operator upgrade.
-var staleConditionTypes = []string{
-	"WaitingFlowCollectorController",
-	"WaitingEBPFAgents",
-	"WaitingWebConsole",
-	"WaitingFLPParent",
-	"WaitingFLPMonolith",
-	"WaitingFLPTransformer",
-	"WaitingMonitoring",
-	"WaitingStaticController",
-	"WaitingNetworkPolicy",
-	"WaitingDemoLoki",
-	"WaitingLokiStack",
-}
-
-func (s *Manager) cleanupStaleConditions(fc *flowslatest.FlowCollector) {
-	for _, ct := range staleConditionTypes {
-		meta.RemoveStatusCondition(&fc.Status.Conditions, ct)
 	}
 }
 
