@@ -476,15 +476,13 @@ func (i *Instance) CheckDeploymentProgress(d *appsv1.Deployment) {
 		i.s.setInProgress(i.cpnt, "DeploymentNotCreated", "Deployment not created")
 		return
 	}
-	i.setDeploymentReplicas(d)
+	defer i.setDeploymentReplicas(d)
 	for _, c := range d.Status.Conditions {
 		if c.Type == appsv1.DeploymentAvailable {
 			if c.Status != v1.ConditionTrue {
 				i.s.setInProgress(i.cpnt, "DeploymentNotReady", fmt.Sprintf("Deployment %s not ready: %d/%d (%s)", d.Name, d.Status.ReadyReplicas, d.Status.Replicas, c.Message))
-				i.setDeploymentReplicas(d)
 			} else {
 				i.s.setReady(i.cpnt)
-				i.setDeploymentReplicas(d)
 			}
 			return
 		}
@@ -494,7 +492,6 @@ func (i *Instance) CheckDeploymentProgress(d *appsv1.Deployment) {
 	} else {
 		i.s.setInProgress(i.cpnt, "DeploymentNotReady", fmt.Sprintf("Deployment %s not ready: %d/%d (missing condition)", d.Name, d.Status.ReadyReplicas, d.Status.Replicas))
 	}
-	i.setDeploymentReplicas(d)
 }
 
 func (i *Instance) setDeploymentReplicas(d *appsv1.Deployment) {
@@ -515,12 +512,13 @@ func (i *Instance) setDeploymentReplicas(d *appsv1.Deployment) {
 func (i *Instance) CheckDaemonSetProgress(ds *appsv1.DaemonSet) {
 	if ds == nil {
 		i.s.setInProgress(i.cpnt, "DaemonSetNotCreated", "DaemonSet not created")
-	} else if ds.Status.NumberReady < ds.Status.DesiredNumberScheduled {
+		return
+	}
+	defer i.setDaemonSetReplicas(ds)
+	if ds.Status.NumberReady < ds.Status.DesiredNumberScheduled {
 		i.s.setInProgress(i.cpnt, "DaemonSetNotReady", fmt.Sprintf("DaemonSet %s not ready: %d/%d", ds.Name, ds.Status.NumberReady, ds.Status.DesiredNumberScheduled))
-		i.setDaemonSetReplicas(ds)
 	} else {
 		i.s.setReady(i.cpnt)
-		i.setDaemonSetReplicas(ds)
 	}
 }
 
