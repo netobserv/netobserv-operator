@@ -2,6 +2,7 @@ package flp
 
 import (
 	"context"
+	"fmt"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -53,7 +54,7 @@ func (r *informerReconciler) reconcile(ctx context.Context, desired *flowslatest
 	// Retrieve current owned objects
 	err := r.Managed.FetchAll(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to fetch all managed resources: %w", err)
 	}
 
 	if desired.Spec.OnHold() {
@@ -66,17 +67,17 @@ func (r *informerReconciler) reconcile(ctx context.Context, desired *flowslatest
 
 	// Reconcile ServiceAccount
 	if err := r.reconcileServiceAccount(ctx, &builder); err != nil {
-		return err
+		return fmt.Errorf("failed to reconcile service account: %w", err)
 	}
 
 	// Reconcile RBAC
 	if err := r.reconcilePermissions(ctx); err != nil {
-		return err
+		return fmt.Errorf("failed to reconcile permissions: %w", err)
 	}
 
 	// Reconcile Deployment
 	if err := r.reconcileDeployment(ctx, &builder); err != nil {
-		return err
+		return fmt.Errorf("failed to reconcile deployment: %w", err)
 	}
 
 	return nil
@@ -84,7 +85,9 @@ func (r *informerReconciler) reconcile(ctx context.Context, desired *flowslatest
 
 func (r *informerReconciler) reconcileServiceAccount(ctx context.Context, builder *informerBuilder) error {
 	if !r.Managed.Exists(r.serviceAccount) {
-		return r.CreateOwned(ctx, builder.serviceAccount())
+		if err := r.CreateOwned(ctx, builder.serviceAccount()); err != nil {
+			return fmt.Errorf("failed to create service account: %w", err)
+		}
 	} // We only configure name, update is not needed for now
 	return nil
 }
@@ -92,7 +95,7 @@ func (r *informerReconciler) reconcileServiceAccount(ctx context.Context, builde
 func (r *informerReconciler) reconcilePermissions(ctx context.Context) error {
 	r.rbInformer = resources.GetClusterRoleBinding(r.Namespace, informerShortName, informerName, informerName, constants.FLPInformersRole)
 	if err := r.ReconcileClusterRoleBinding(ctx, r.rbInformer); err != nil {
-		return err
+		return fmt.Errorf("failed to reconcile cluster role binding: %w", err)
 	}
 	return nil
 }
@@ -103,10 +106,10 @@ func (r *informerReconciler) reconcileDeployment(ctx context.Context, builder *i
 
 	desiredDep, err := builder.deployment()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to build deployment: %w", err)
 	}
 
-	return reconcilers.ReconcileDeployment(
+	if err := reconcilers.ReconcileDeployment(
 		ctx,
 		r.Instance,
 		r.deployment,
@@ -114,5 +117,8 @@ func (r *informerReconciler) reconcileDeployment(ctx context.Context, builder *i
 		informerName,
 		false,
 		&report,
-	)
+	); err != nil {
+		return fmt.Errorf("failed to reconcile deployment: %w", err)
+	}
+	return nil
 }
