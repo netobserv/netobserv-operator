@@ -26,8 +26,8 @@ spec:
     - jsonPath: .spec.href
       name: URL
       type: string
-    - jsonPath: .spec.menu
-      name: Menu
+    - jsonPath: .spec.location
+      name: Location
       type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
@@ -80,9 +80,9 @@ spec:
                 - section
                 type: object
               href:
-                description: href is the absolute secure URL for the link (must use
-                  https)
-                pattern: ^https://
+                description: 'href is the absolute URL for the link. Must use https://
+                  for web URLs or mailto: for email links.'
+                pattern: ^(https://|mailto:)
                 type: string
               location:
                 description: location determines which location in the console the

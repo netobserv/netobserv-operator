@@ -20,6 +20,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// DefaultAttachPriority is the default priority used when attaching BPF
+// programs (XDP, TC, TCX) to network interfaces. Priority determines execution
+// order relative to other programs at the same attachment point, where lower
+// values indicate higher precedence. Valid range is 0-1000.
+const DefaultAttachPriority int32 = 1000
+
 type InterfaceDiscovery struct {
 	// interfaceAutoDiscovery is an optional field. When enabled, the agent
 	// monitors the creation and deletion of interfaces and automatically
