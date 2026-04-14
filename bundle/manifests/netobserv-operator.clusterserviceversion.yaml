@@ -416,6 +416,8 @@ spec:
         path: execution.mode
       - displayName: Address
         path: kafka.address
+      - displayName: Compression
+        path: kafka.compression
       - displayName: Topic
         path: kafka.topic
       - displayName: Name

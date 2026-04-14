@@ -198,9 +198,10 @@ func flowCollectorIsoSpecs() {
 				},
 			},
 			Kafka: flowslatest.FlowCollectorKafka{
-				Address: "http://kafka",
-				Topic:   "topic",
-				TLS:     defaultTLS,
+				Address:     "http://kafka",
+				Topic:       "topic",
+				Compression: "lz4",
+				TLS:         defaultTLS,
 				SASL: flowslatest.SASLConfig{
 					Type: "Disabled",
 					ClientIDReference: flowslatest.FileReference{

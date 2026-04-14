@@ -55,6 +55,7 @@ const (
 	envKafkaTLSUserKeyPath        = "KAFKA_TLS_USER_KEY_PATH"
 	envKafkaEnableSASL            = "KAFKA_ENABLE_SASL"
 	envKafkaSASLType              = "KAFKA_SASL_TYPE"
+	envKafkaCompression           = "KAFKA_COMPRESSION"
 	envKafkaSASLIDPath            = "KAFKA_SASL_CLIENT_ID_PATH"
 	envKafkaSASLSecretPath        = "KAFKA_SASL_CLIENT_SECRET_PATH"
 	envLogLevel                   = "LOG_LEVEL"
@@ -457,6 +458,7 @@ func (c *AgentController) envConfig(ctx context.Context, coll *flowslatest.FlowC
 			corev1.EnvVar{Name: envKafkaBatchSize, Value: strconv.Itoa(coll.Spec.Agent.EBPF.KafkaBatchSize)},
 			// For easier user configuration, we can assume a constant message size per flow (~100B in protobuf)
 			corev1.EnvVar{Name: envKafkaBatchMessages, Value: strconv.Itoa(coll.Spec.Agent.EBPF.KafkaBatchSize / averageMessageSize)},
+			corev1.EnvVar{Name: envKafkaCompression, Value: coll.Spec.Kafka.Compression},
 		)
 		if coll.Spec.Kafka.TLS.Enable {
 			// Annotate pod with certificate reference so that it is reloaded if modified

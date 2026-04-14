@@ -25,6 +25,7 @@ type EncodeKafka struct {
 	ReadTimeout  int64                   `yaml:"readTimeout,omitempty" json:"readTimeout,omitempty" doc:"timeout (in seconds) for read operation performed by the Writer"`
 	BatchBytes   int64                   `yaml:"batchBytes,omitempty" json:"batchBytes,omitempty" doc:"limit the maximum size of a request in bytes before being sent to a partition"`
 	BatchSize    int                     `yaml:"batchSize,omitempty" json:"batchSize,omitempty" doc:"limit on how many messages will be buffered before being sent to a partition"`
+	Compression  string                  `yaml:"compression,omitempty" json:"compression,omitempty" doc:"compression codec: none (default), gzip, snappy, lz4, zstd"`
 	TLS          *ClientTLS              `yaml:"tls" json:"tls" doc:"TLS client configuration (optional)"`
 	SASL         *SASLConfig             `yaml:"sasl" json:"sasl" doc:"SASL configuration (optional)"`
 }

@@ -3311,6 +3311,18 @@ spec:
                           default: ""
                           description: Address of the Kafka server
                           type: string
+                        compression:
+                          default: lz4
+                          description: |-
+                            Compression codec to use when producing messages to Kafka.
+                            Accepted values are: `none`, `gzip`, `snappy`, `lz4` (default), `zstd`.
+                          enum:
+                          - none
+                          - gzip
+                          - snappy
+                          - lz4
+                          - zstd
+                          type: string
                         sasl:
                           description: SASL authentication configuration. [Unsupported
                             (*)].
@@ -3632,6 +3644,18 @@ spec:
                   address:
                     default: ""
                     description: Address of the Kafka server
+                    type: string
+                  compression:
+                    default: lz4
+                    description: |-
+                      Compression codec to use when producing messages to Kafka.
+                      Accepted values are: `none`, `gzip`, `snappy`, `lz4` (default), `zstd`.
+                    enum:
+                    - none
+                    - gzip
+                    - snappy
+                    - lz4
+                    - zstd
                     type: string
                   sasl:
                     description: SASL authentication configuration. [Unsupported (*)].
