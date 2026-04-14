@@ -71,8 +71,7 @@ type TcxAttachInfo struct {
 	// +optional
 	// +kubebuilder:validation:Minimum=0
 	// +kubebuilder:validation:Maximum=1000
-	// +kubebuilder:default:=1000
-	Priority int32 `json:"priority,omitempty"`
+	Priority *int32 `json:"priority,omitempty"`
 }
 
 type TcxProgramInfoState struct {

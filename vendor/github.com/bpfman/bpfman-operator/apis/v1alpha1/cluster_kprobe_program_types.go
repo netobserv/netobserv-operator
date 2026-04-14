@@ -49,7 +49,7 @@ type ClKprobeAttachInfo struct {
 	// attachment point function. If not provided, offset defaults to 0.
 	// +optional
 	// +kubebuilder:default:=0
-	Offset uint64 `json:"offset"`
+	Offset int64 `json:"offset"`
 }
 
 type ClKprobeProgramInfoState struct {
@@ -73,5 +73,5 @@ type ClKprobeAttachInfoState struct {
 	// attachment point function.
 	// +optional
 	// +kubebuilder:default:=0
-	Offset uint64 `json:"offset"`
+	Offset int64 `json:"offset"`
 }
