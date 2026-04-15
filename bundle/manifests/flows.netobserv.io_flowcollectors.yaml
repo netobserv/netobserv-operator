@@ -5529,6 +5529,133 @@ spec:
                     - Always
                     - Never
                     type: string
+                  informers:
+                    description: |-
+                      `informers` configuration for centralized Kubernetes informers that push cache updates to flowlogs-pipeline processors.
+                      This reduces load on the Kubernetes API server by having a single component (flp-informers) query the API instead of N FLP processors.
+                      When enabled, a dedicated `flp-informers` deployment is created that watches Kubernetes resources and pushes updates via gRPC.
+                    properties:
+                      advanced:
+                        description: '`advanced` allows setting some technical parameters
+                          of the informers component.'
+                        properties:
+                          batchSize:
+                            default: 100
+                            description: '`batchSize` defines the maximum number of
+                              cache entries to send in a single update batch.'
+                            minimum: 1
+                            type: integer
+                          processorPort:
+                            default: 9090
+                            description: '`processorPort` defines the gRPC port where
+                              flowlogs-pipeline processors listen for k8s cache updates.'
+                            format: int32
+                            maximum: 65535
+                            minimum: 1
+                            type: integer
+                          resyncInterval:
+                            default: 60
+                            description: '`resyncInterval` defines the interval in
+                              seconds to rediscover processors and sync state.'
+                            minimum: 1
+                            type: integer
+                          sendTimeout:
+                            default: 10
+                            description: '`sendTimeout` defines the timeout in seconds
+                              for sending updates to processors.'
+                            minimum: 1
+                            type: integer
+                          updateBufferSize:
+                            default: 100
+                            description: '`updateBufferSize` defines the size of the
+                              internal update channel buffer.'
+                            minimum: 1
+                            type: integer
+                        type: object
+                      enabled:
+                        default: true
+                        description: |-
+                          `enabled` controls whether to deploy centralized Kubernetes informers.
+                          When `true`, a dedicated `flp-informers` deployment watches K8s resources and pushes cache updates via gRPC to FLP processors.
+                          When `false`, each FLP processor uses local informers (previous behavior).
+                        type: boolean
+                      replicas:
+                        default: 2
+                        description: |-
+                          `replicas` defines the number of replicas for the flp-informers deployment.
+                          For high availability, a minimum of 2 replicas is required when `enabled` is `true`.
+                        format: int32
+                        minimum: 1
+                        type: integer
+                      resources:
+                        default:
+                          limits:
+                            cpu: 200m
+                            memory: 256Mi
+                          requests:
+                            cpu: 50m
+                            memory: 128Mi
+                        description: |-
+                          `resources` are the compute resources required by the informers container.
+                          For more information, see https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                        properties:
+                          claims:
+                            description: |-
+                              Claims lists the names of resources, defined in spec.resourceClaims,
+                              that are used by this container.
+
+                              This field depends on the
+                              DynamicResourceAllocation feature gate.
+
+                              This field is immutable. It can only be set for containers.
+                            items:
+                              description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                              properties:
+                                name:
+                                  description: |-
+                                    Name must match the name of one entry in pod.spec.resourceClaims of
+                                    the Pod where this field is used. It makes that resource available
+                                    inside a container.
+                                  type: string
+                                request:
+                                  description: |-
+                                    Request is the name chosen for a request in the referenced claim.
+                                    If empty, everything from the claim is made available, otherwise
+                                    only the result of this request.
+                                  type: string
+                              required:
+                              - name
+                              type: object
+                            type: array
+                            x-kubernetes-list-map-keys:
+                            - name
+                            x-kubernetes-list-type: map
+                          limits:
+                            additionalProperties:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            description: |-
+                              Limits describes the maximum amount of compute resources allowed.
+                              More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                            type: object
+                          requests:
+                            additionalProperties:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            description: |-
+                              Requests describes the minimum amount of compute resources required.
+                              If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                              otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                              More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                            type: object
+                        type: object
+                    type: object
                   kafkaConsumerAutoscaler:
                     description: |-
                       `kafkaConsumerAutoscaler` [deprecated (*)] is the spec of a horizontal pod autoscaler to set up for `flowlogs-pipeline-transformer`, which consumes Kafka messages.

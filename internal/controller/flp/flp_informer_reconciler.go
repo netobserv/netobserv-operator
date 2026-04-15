@@ -63,6 +63,20 @@ func (r *informerReconciler) reconcile(ctx context.Context, desired *flowslatest
 		return nil
 	}
 
+	// Check if informers are enabled (default: true)
+	enabled := true
+	if desired.Spec.Processor.Informers != nil && desired.Spec.Processor.Informers.Enabled != nil {
+		enabled = *desired.Spec.Processor.Informers.Enabled
+	}
+
+	if !enabled {
+		// Informers disabled - cleanup resources and use local informers mode
+		r.Status.SetUnused("Centralized informers disabled - using local informers mode")
+		r.Managed.TryDeleteAll(ctx)
+		return nil
+	}
+
+	// Informers enabled - proceed with reconciliation
 	builder := newInformerBuilder(r.Instance, &desired.Spec)
 
 	// Reconcile ServiceAccount
@@ -80,6 +94,7 @@ func (r *informerReconciler) reconcile(ctx context.Context, desired *flowslatest
 		return fmt.Errorf("failed to reconcile deployment: %w", err)
 	}
 
+	r.Status.SetReady()
 	return nil
 }
 

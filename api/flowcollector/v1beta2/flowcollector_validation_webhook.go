@@ -262,6 +262,7 @@ func (v *validator) validateFLP() {
 	v.validateFLPMetricsForAlerts()
 	v.validateFLPMetricsIncludeLists()
 	v.validateFLPTLS()
+	v.validateInformers()
 }
 
 func (v *validator) validateScheduling() {
@@ -461,6 +462,29 @@ func (v *validator) validateFLPTLS() {
 			v.errors = append(
 				v.errors,
 				errors.New("missing configuration in spec.processor.providedCertificates.serverCert despite spec.processor.tlsType being set to Provided"),
+			)
+		}
+	}
+}
+
+func (v *validator) validateInformers() {
+	if v.fc.Processor.Informers == nil {
+		return
+	}
+
+	// Check if enabled
+	enabled := v.fc.Processor.Informers.Enabled != nil && *v.fc.Processor.Informers.Enabled
+
+	if enabled {
+		// When enabled, replicas must be at least 2 for high availability
+		replicas := int32(2) // default
+		if v.fc.Processor.Informers.Replicas != nil {
+			replicas = *v.fc.Processor.Informers.Replicas
+		}
+		if replicas < 2 {
+			v.errors = append(
+				v.errors,
+				fmt.Errorf("spec.processor.informers.replicas must be at least 2 when informers are enabled (got %d). Centralized informers require high availability to avoid losing the entire flow collection pipeline in case of failure", replicas),
 			)
 		}
 	}

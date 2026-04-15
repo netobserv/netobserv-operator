@@ -182,9 +182,9 @@ func (b *monolithBuilder) service() *corev1.Service {
 				},
 				{
 					Name:       "k8scache",
-					Port:       9090,
+					Port:       k8scachePort,
 					Protocol:   corev1.ProtocolTCP,
-					TargetPort: intstr.FromInt(9090),
+					TargetPort: intstr.FromInt(k8scachePort),
 				},
 			},
 		},

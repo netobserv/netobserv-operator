@@ -466,6 +466,24 @@ spec:
         path: processor.deduper.sampling
       - displayName: Filters
         path: processor.filters
+      - displayName: Informers
+        path: processor.informers
+      - displayName: Advanced
+        path: processor.informers.advanced
+      - displayName: Batch size
+        path: processor.informers.advanced.batchSize
+      - displayName: Processor port
+        path: processor.informers.advanced.processorPort
+      - displayName: Resync interval
+        path: processor.informers.advanced.resyncInterval
+      - displayName: Send timeout
+        path: processor.informers.advanced.sendTimeout
+      - displayName: Update buffer size
+        path: processor.informers.advanced.updateBufferSize
+      - displayName: Enabled
+        path: processor.informers.enabled
+      - displayName: Replicas
+        path: processor.informers.replicas
       - displayName: Log types
         path: processor.logTypes
       - displayName: Additional include list
@@ -820,6 +838,16 @@ spec:
           - get
           - list
           - patch
+          - update
+          - watch
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs:
+          - create
+          - get
+          - list
           - update
           - watch
         - apiGroups:

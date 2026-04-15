@@ -90,6 +90,23 @@ spec:
     #   customLabels:
     #   - cidrs: []
     #     name: ""
+    # Centralized Kubernetes informers (enabled by default for reduced API server load)
+    # informers:
+    #   enabled: true
+    #   replicas: 2  # Minimum 2 for HA with leader election
+    #   resources:
+    #     requests:
+    #       memory: 128Mi
+    #       cpu: 50m
+    #     limits:
+    #       memory: 256Mi
+    #       cpu: 200m
+    #   advanced:
+    #     resyncInterval: 60      # Seconds to rediscover processors
+    #     batchSize: 100          # Max entries per update batch
+    #     sendTimeout: 10         # Seconds timeout for sending updates
+    #     updateBufferSize: 100   # Update channel buffer size
+    #     processorPort: 9090     # gRPC port for k8s cache updates
     metrics:
       # server:
       #   port: 9401
