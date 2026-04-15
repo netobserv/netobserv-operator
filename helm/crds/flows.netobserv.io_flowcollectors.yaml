@@ -15,11 +15,17 @@ spec:
   scope: Cluster
   versions:
     - additionalPrinterColumns:
-        - jsonPath: .spec.agent.type
+        - jsonPath: .status.components.agent.state
           name: Agent
           type: string
+        - jsonPath: .status.components.processor.state
+          name: Processor
+          type: string
+        - jsonPath: .status.components.plugin.state
+          name: Plugin
+          type: string
         - jsonPath: .spec.agent.ebpf.sampling
-          name: Sampling (EBPF)
+          name: Sampling
           type: string
         - jsonPath: .spec.deploymentModel
           name: Deployment Model
@@ -6113,6 +6119,121 @@ spec:
             status:
               description: '`FlowCollectorStatus` defines the observed state of FlowCollector'
               properties:
+                components:
+                  description: '`components` reports the status of operator-managed components (agent, processor, plugin).'
+                  properties:
+                    agent:
+                      description: '`agent` reports the status of the eBPF agent component.'
+                      properties:
+                        desiredReplicas:
+                          description: '`desiredReplicas` is the desired number of replicas (for Deployments) or nodes (for DaemonSets).'
+                          format: int32
+                          type: integer
+                        message:
+                          description: '`message` is a human-readable description of the component''s current state.'
+                          type: string
+                        podIssues:
+                          description: '`podIssues` is a summary of unhealthy pod issues (e.g., "3 pods CrashLoopBackOff: kafka connection refused").'
+                          type: string
+                        readyReplicas:
+                          description: '`readyReplicas` is the number of ready replicas (for Deployments) or up-to-date nodes (for DaemonSets).'
+                          format: int32
+                          type: integer
+                        reason:
+                          description: '`reason` is a one-word CamelCase reason for the component''s current state.'
+                          type: string
+                        state:
+                          description: '`state` reports the overall health of the component.'
+                          enum:
+                            - Ready
+                            - InProgress
+                            - Failure
+                            - Degraded
+                            - Unknown
+                            - Unused
+                          type: string
+                        unhealthyPodCount:
+                          description: '`unhealthyPodCount` is the number of pods in a degraded state (CrashLoopBackOff, OOMKilled, etc.).'
+                          format: int32
+                          type: integer
+                      required:
+                        - state
+                      type: object
+                    plugin:
+                      description: '`plugin` reports the status of the console plugin component.'
+                      properties:
+                        desiredReplicas:
+                          description: '`desiredReplicas` is the desired number of replicas (for Deployments) or nodes (for DaemonSets).'
+                          format: int32
+                          type: integer
+                        message:
+                          description: '`message` is a human-readable description of the component''s current state.'
+                          type: string
+                        podIssues:
+                          description: '`podIssues` is a summary of unhealthy pod issues (e.g., "3 pods CrashLoopBackOff: kafka connection refused").'
+                          type: string
+                        readyReplicas:
+                          description: '`readyReplicas` is the number of ready replicas (for Deployments) or up-to-date nodes (for DaemonSets).'
+                          format: int32
+                          type: integer
+                        reason:
+                          description: '`reason` is a one-word CamelCase reason for the component''s current state.'
+                          type: string
+                        state:
+                          description: '`state` reports the overall health of the component.'
+                          enum:
+                            - Ready
+                            - InProgress
+                            - Failure
+                            - Degraded
+                            - Unknown
+                            - Unused
+                          type: string
+                        unhealthyPodCount:
+                          description: '`unhealthyPodCount` is the number of pods in a degraded state (CrashLoopBackOff, OOMKilled, etc.).'
+                          format: int32
+                          type: integer
+                      required:
+                        - state
+                      type: object
+                    processor:
+                      description: '`processor` reports the status of the flowlogs-pipeline component.'
+                      properties:
+                        desiredReplicas:
+                          description: '`desiredReplicas` is the desired number of replicas (for Deployments) or nodes (for DaemonSets).'
+                          format: int32
+                          type: integer
+                        message:
+                          description: '`message` is a human-readable description of the component''s current state.'
+                          type: string
+                        podIssues:
+                          description: '`podIssues` is a summary of unhealthy pod issues (e.g., "3 pods CrashLoopBackOff: kafka connection refused").'
+                          type: string
+                        readyReplicas:
+                          description: '`readyReplicas` is the number of ready replicas (for Deployments) or up-to-date nodes (for DaemonSets).'
+                          format: int32
+                          type: integer
+                        reason:
+                          description: '`reason` is a one-word CamelCase reason for the component''s current state.'
+                          type: string
+                        state:
+                          description: '`state` reports the overall health of the component.'
+                          enum:
+                            - Ready
+                            - InProgress
+                            - Failure
+                            - Degraded
+                            - Unknown
+                            - Unused
+                          type: string
+                        unhealthyPodCount:
+                          description: '`unhealthyPodCount` is the number of pods in a degraded state (CrashLoopBackOff, OOMKilled, etc.).'
+                          format: int32
+                          type: integer
+                      required:
+                        - state
+                      type: object
+                  type: object
                 conditions:
                   description: '`conditions` represents the latest available observations of an object''s state'
                   items:
@@ -6169,6 +6290,120 @@ spec:
                       - type
                     type: object
                   type: array
+                integrations:
+                  description: '`integrations` reports the status of external integrations (Loki, monitoring, exporters).'
+                  properties:
+                    exporters:
+                      description: '`exporters` reports the status of configured exporters.'
+                      items:
+                        description: '`FlowCollectorExporterStatus` represents the status of a configured exporter.'
+                        properties:
+                          message:
+                            description: '`message` is a human-readable description of the exporter''s current state.'
+                            type: string
+                          name:
+                            description: '`name` is a generated identifier for this exporter (e.g., "kafka-export-0"), derived from its type and position in spec.exporters.'
+                            type: string
+                          reason:
+                            description: '`reason` is a one-word CamelCase reason for the exporter''s current state.'
+                            type: string
+                          state:
+                            description: '`state` reports the health of this exporter.'
+                            enum:
+                              - Ready
+                              - InProgress
+                              - Failure
+                              - Degraded
+                              - Unknown
+                            type: string
+                          type:
+                            description: '`type` is the exporter type (Kafka, IPFIX, OpenTelemetry).'
+                            enum:
+                              - Kafka
+                              - IPFIX
+                              - OpenTelemetry
+                            type: string
+                        required:
+                          - name
+                          - state
+                          - type
+                        type: object
+                      type: array
+                    loki:
+                      description: '`loki` reports the status of the Loki integration.'
+                      properties:
+                        desiredReplicas:
+                          description: '`desiredReplicas` is the desired number of replicas (for Deployments) or nodes (for DaemonSets).'
+                          format: int32
+                          type: integer
+                        message:
+                          description: '`message` is a human-readable description of the component''s current state.'
+                          type: string
+                        podIssues:
+                          description: '`podIssues` is a summary of unhealthy pod issues (e.g., "3 pods CrashLoopBackOff: kafka connection refused").'
+                          type: string
+                        readyReplicas:
+                          description: '`readyReplicas` is the number of ready replicas (for Deployments) or up-to-date nodes (for DaemonSets).'
+                          format: int32
+                          type: integer
+                        reason:
+                          description: '`reason` is a one-word CamelCase reason for the component''s current state.'
+                          type: string
+                        state:
+                          description: '`state` reports the overall health of the component.'
+                          enum:
+                            - Ready
+                            - InProgress
+                            - Failure
+                            - Degraded
+                            - Unknown
+                            - Unused
+                          type: string
+                        unhealthyPodCount:
+                          description: '`unhealthyPodCount` is the number of pods in a degraded state (CrashLoopBackOff, OOMKilled, etc.).'
+                          format: int32
+                          type: integer
+                      required:
+                        - state
+                      type: object
+                    monitoring:
+                      description: '`monitoring` reports the status of monitoring (dashboards, ServiceMonitor, etc.).'
+                      properties:
+                        desiredReplicas:
+                          description: '`desiredReplicas` is the desired number of replicas (for Deployments) or nodes (for DaemonSets).'
+                          format: int32
+                          type: integer
+                        message:
+                          description: '`message` is a human-readable description of the component''s current state.'
+                          type: string
+                        podIssues:
+                          description: '`podIssues` is a summary of unhealthy pod issues (e.g., "3 pods CrashLoopBackOff: kafka connection refused").'
+                          type: string
+                        readyReplicas:
+                          description: '`readyReplicas` is the number of ready replicas (for Deployments) or up-to-date nodes (for DaemonSets).'
+                          format: int32
+                          type: integer
+                        reason:
+                          description: '`reason` is a one-word CamelCase reason for the component''s current state.'
+                          type: string
+                        state:
+                          description: '`state` reports the overall health of the component.'
+                          enum:
+                            - Ready
+                            - InProgress
+                            - Failure
+                            - Degraded
+                            - Unknown
+                            - Unused
+                          type: string
+                        unhealthyPodCount:
+                          description: '`unhealthyPodCount` is the number of pods in a degraded state (CrashLoopBackOff, OOMKilled, etc.).'
+                          format: int32
+                          type: integer
+                      required:
+                        - state
+                      type: object
+                  type: object
                 namespace:
                   description: |-
                     Namespace where console plugin and flowlogs-pipeline have been deployed.

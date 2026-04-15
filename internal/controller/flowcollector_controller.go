@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"time"
 
 	osv1 "github.com/openshift/api/console/v1"
 	securityv1 "github.com/openshift/api/security/v1"
@@ -135,6 +136,9 @@ func (r *FlowCollectorReconciler) Reconcile(ctx context.Context, _ ctrl.Request)
 	}
 
 	r.status.SetReady()
+	if r.mgr.Status.NeedsRequeue() {
+		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+	}
 	return ctrl.Result{}, nil
 }
 
@@ -185,7 +189,7 @@ func (r *FlowCollectorReconciler) reconcile(ctx context.Context, clh *helper.Cli
 	}
 
 	// Console plugin
-	if err := cpReconciler.Reconcile(ctx, desired, lokiStatus); err != nil {
+	if err := cpReconciler.Reconcile(ctx, desired, &lokiStatus); err != nil {
 		return err
 	}
 

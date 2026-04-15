@@ -58,7 +58,7 @@ func TestCheckLoki_Disabled(t *testing.T) {
 
 	assert.Equal(t, status.ComponentStatus{
 		Name:    status.LokiStack,
-		Status:  status.StatusUnknown,
+		Status:  status.StatusUnused,
 		Reason:  "ComponentUnused",
 		Message: "Loki is disabled",
 	}, st)
@@ -79,7 +79,7 @@ func TestCheckLoki_NotLokiStackMode(t *testing.T) {
 
 	assert.Equal(t, status.ComponentStatus{
 		Name:    status.LokiStack,
-		Status:  status.StatusUnknown,
+		Status:  status.StatusUnused,
 		Reason:  "ComponentUnused",
 		Message: "Loki is not configured in LokiStack mode",
 	}, st)

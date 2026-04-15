@@ -2,9 +2,11 @@ package flp
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 
 	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
 	sliceslatest "github.com/netobserv/netobserv-operator/api/flowcollectorslice/v1alpha1"
@@ -106,14 +108,21 @@ func (r *Reconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Result
 	err = r.reconcile(ctx, clh, fc)
 	if err != nil {
 		l.Error(err, "FLP reconcile failure")
-		// Set status failure unless it was already set
 		if !r.status.HasFailure() {
-			r.status.SetFailure("FLPError", err.Error())
+			reason := "FLPError"
+			var ke *reconcilers.KafkaError
+			if errors.As(err, &ke) {
+				reason = "FLPKafkaError"
+			}
+			r.status.SetFailure(reason, err.Error())
 		}
 		return ctrl.Result{}, err
 	}
 
 	r.status.SetReady()
+	if r.mgr.Status.NeedsRequeue() {
+		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+	}
 	return ctrl.Result{}, nil
 }
 
@@ -135,6 +144,7 @@ func (r *Reconciler) reconcile(ctx context.Context, clh *helper.Client, fc *flow
 		subnetLabels, err = r.getOpenShiftSubnets(ctx)
 		if err != nil {
 			log.Error(err, "error while reading subnet definitions")
+			r.status.SetDegraded("SubnetDetectionError", fmt.Sprintf("subnet auto-detect failed: %v", err))
 		}
 	}
 
@@ -183,7 +193,21 @@ func (r *Reconciler) reconcile(ctx context.Context, clh *helper.Client, fc *flow
 		}
 	}
 
+	// Track exporter status
+	r.updateExporterStatuses(fc)
+
 	return nil
+}
+
+func (r *Reconciler) updateExporterStatuses(fc *flowslatest.FlowCollector) {
+	r.mgr.Status.ClearExporters()
+	for i, exp := range fc.Spec.Exporters {
+		if exp == nil {
+			continue
+		}
+		name := fmt.Sprintf("%s-export-%d", strings.ToLower(string(exp.Type)), i)
+		r.mgr.Status.SetExporterStatus(name, string(exp.Type), string(status.StatusReady), "Configured", "")
+	}
 }
 
 func (r *Reconciler) newCommonInfo(clh *helper.Client, ns string, loki *helper.LokiConfig) reconcilers.Common {
@@ -211,7 +235,7 @@ func annotateKafkaExporterCerts(ctx context.Context, info *reconcilers.Common, e
 func annotateKafkaCerts(ctx context.Context, info *reconcilers.Common, spec *flowslatest.FlowCollectorKafka, prefix string, annotations map[string]string) error {
 	caDigest, userDigest, err := info.Watcher.ProcessMTLSCerts(ctx, info.Client, &spec.TLS, info.Namespace)
 	if err != nil {
-		return err
+		return reconcilers.WrapKafkaError(err)
 	}
 	if caDigest != "" {
 		annotations[watchers.Annotation(prefix+"-ca")] = caDigest
@@ -222,7 +246,7 @@ func annotateKafkaCerts(ctx context.Context, info *reconcilers.Common, spec *flo
 	if spec.SASL.UseSASL() {
 		saslDigest1, saslDigest2, err := info.Watcher.ProcessSASL(ctx, info.Client, &spec.SASL, info.Namespace)
 		if err != nil {
-			return err
+			return reconcilers.WrapKafkaError(err)
 		}
 		if saslDigest1 != "" {
 			annotations[watchers.Annotation(prefix+"-sd1")] = saslDigest1

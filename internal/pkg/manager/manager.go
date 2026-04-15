@@ -5,13 +5,17 @@ import (
 	"fmt"
 
 	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
+	"github.com/netobserv/netobserv-operator/internal/controller/constants"
 	"github.com/netobserv/netobserv-operator/internal/pkg/cluster"
 	"github.com/netobserv/netobserv-operator/internal/pkg/manager/status"
 	"github.com/netobserv/netobserv-operator/internal/pkg/migrator"
 	"github.com/netobserv/netobserv-operator/internal/pkg/narrowcache"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -19,6 +23,7 @@ import (
 
 //+kubebuilder:rbac:groups=core,resources=namespaces;services;serviceaccounts;configmaps;persistentvolumeclaims;secrets,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=pods;nodes;endpoints,verbs=get;list;watch
+//+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 //+kubebuilder:rbac:groups=apps,resources=deployments;daemonsets,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=apps,resources=replicasets,verbs=get;list;watch
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterrolebindings;rolebindings,verbs=get;list;create;delete;update;watch
@@ -85,6 +90,13 @@ func NewManager(
 		narrowcache.EndpointSlices,
 	)
 	opts.Client = client.Options{Cache: narrowCache.ControllerRuntimeClientCacheOptions()}
+	opts.Cache = cache.Options{
+		ByObject: map[client.Object]cache.ByObject{
+			&corev1.Pod{}: {
+				Label: labels.SelectorFromSet(map[string]string{"part-of": constants.OperatorName}),
+			},
+		},
+	}
 
 	internalManager, err := ctrl.NewManager(kcfg, *opts)
 	if err != nil {
@@ -96,6 +108,7 @@ func NewManager(
 	}
 
 	statusMgr := status.NewManager()
+	statusMgr.SetEventRecorder(internalManager.GetEventRecorderFor("flowcollector-controller")) //nolint:staticcheck
 
 	log.Info("Discovering APIs")
 	dc, err := discovery.NewDiscoveryClientForConfig(kcfg)

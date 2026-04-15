@@ -122,25 +122,26 @@ func ReconcileConfigMap(ctx context.Context, cl *helper.Client, current, desired
 	return cl.UpdateIfOwned(ctx, current, desired)
 }
 
-// returns true if ready, false if still in progress
+// ReconcileDaemonSet reconciles a DaemonSet and checks pod health when not ready.
 func ReconcileDaemonSet(ctx context.Context, ci *Instance, old, n *appsv1.DaemonSet, containerName string, report *helper.ChangeReport) error {
 	if !ci.Managed.Exists(old) {
 		ci.Status.SetCreatingDaemonSet(n)
 		return ci.CreateOwned(ctx, n)
 	}
-	ci.Status.CheckDaemonSetProgress(old)
+	ci.Status.CheckDaemonSetHealth(ctx, ci.Client, old)
 	if helper.PodChanged(&old.Spec.Template, &n.Spec.Template, containerName, report) {
 		return ci.UpdateIfOwned(ctx, old, n)
 	}
 	return nil
 }
 
+// ReconcileDeployment reconciles a Deployment and checks pod health when not ready.
 func ReconcileDeployment(ctx context.Context, ci *Instance, old, n *appsv1.Deployment, containerName string, ignoreReplicas bool, report *helper.ChangeReport) error {
 	if !ci.Managed.Exists(old) {
 		ci.Status.SetCreatingDeployment(n)
 		return ci.CreateOwned(ctx, n)
 	}
-	ci.Status.CheckDeploymentProgress(old)
+	ci.Status.CheckDeploymentHealth(ctx, ci.Client, old)
 	if ignoreReplicas {
 		n.Spec.Replicas = old.Spec.Replicas
 	}

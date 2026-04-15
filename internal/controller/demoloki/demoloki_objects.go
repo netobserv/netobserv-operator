@@ -42,7 +42,8 @@ func newBuilder(info *reconcilers.Instance, desired *flowslatest.FlowCollectorSp
 	return builder{
 		info: info,
 		labels: map[string]string{
-			"app": name,
+			"part-of": constants.OperatorName,
+			"app":     name,
 		},
 		selector: map[string]string{
 			"app": name,

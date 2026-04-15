@@ -121,51 +121,63 @@ func (r *Reconciler) reconcile(ctx context.Context, clh *helper.Client, desired 
 	}
 
 	// Dashboards
+	if !r.mgr.ClusterInfo.IsOpenShift() {
+		log.Info("Non-OpenShift cluster: monitoring dashboards are not available")
+	} else if !r.mgr.ClusterInfo.HasSvcMonitor() {
+		log.Info("ServiceMonitor CRD not found: monitoring is limited (prometheus-operator not installed?)")
+		r.status.SetDegraded("ServiceMonitorMissing", "ServiceMonitor CRD not found; monitoring dashboards unavailable. Install prometheus-operator for full monitoring")
+	}
 	if r.mgr.ClusterInfo.IsOpenShift() && r.mgr.ClusterInfo.HasSvcMonitor() {
-		// List custom metrics
-		fm := metricslatest.FlowMetricList{}
-		if err := r.Client.List(ctx, &fm, &client.ListOptions{Namespace: ns}); err != nil {
-			return r.status.Error("CantListFlowMetrics", err)
-		}
-		log.WithValues("items count", len(fm.Items)).Info("FlowMetrics loaded")
-
-		allMetrics := metrics.MergePredefined(fm.Items, &desired.Spec)
-		log.WithValues("metrics count", len(allMetrics)).Info("Merged metrics")
-
-		req, err := labels.NewRequirement("netobserv-managed", selection.Exists, []string{})
-		if err != nil {
-			return r.status.Error("CantQueryRequirement", err)
-		}
-		// List existing dashboards
-		currentDashboards := corev1.ConfigMapList{}
-		if err := r.Client.List(ctx, &currentDashboards, &client.ListOptions{
-			Namespace:     dashboardCMNamespace,
-			LabelSelector: labels.NewSelector().Add(*req),
-		}); err != nil {
-			return r.status.Error("CantListDashboards", err)
-		}
-
-		// Build desired dashboards
-		cms := buildFlowMetricsDashboards(allMetrics)
-		nsFlowsMetric := getNamespacedFlowsMetric(allMetrics)
-		if desiredHealthDashboardCM, del, err := buildHealthDashboard(ns, nsFlowsMetric); err != nil {
+		if err := r.reconcileDashboards(ctx, clh, desired, ns); err != nil {
 			return err
-		} else if !del {
-			cms = append(cms, desiredHealthDashboardCM)
 		}
+	}
 
-		for _, cm := range cms {
-			current := findAndRemoveConfigMapFromList(&currentDashboards, cm.Name)
-			if err := reconcilers.ReconcileConfigMap(ctx, clh, current, cm); err != nil {
-				return err
-			}
+	return nil
+}
+
+func (r *Reconciler) reconcileDashboards(ctx context.Context, clh *helper.Client, desired *flowslatest.FlowCollector, ns string) error {
+	log := log.FromContext(ctx)
+
+	fm := metricslatest.FlowMetricList{}
+	if err := r.Client.List(ctx, &fm, &client.ListOptions{Namespace: ns}); err != nil {
+		return r.status.Error("CantListFlowMetrics", err)
+	}
+	log.WithValues("items count", len(fm.Items)).Info("FlowMetrics loaded")
+
+	allMetrics := metrics.MergePredefined(fm.Items, &desired.Spec)
+	log.WithValues("metrics count", len(allMetrics)).Info("Merged metrics")
+
+	req, err := labels.NewRequirement("netobserv-managed", selection.Exists, []string{})
+	if err != nil {
+		return r.status.Error("CantQueryRequirement", err)
+	}
+	currentDashboards := corev1.ConfigMapList{}
+	if err := r.Client.List(ctx, &currentDashboards, &client.ListOptions{
+		Namespace:     dashboardCMNamespace,
+		LabelSelector: labels.NewSelector().Add(*req),
+	}); err != nil {
+		return r.status.Error("CantListDashboards", err)
+	}
+
+	cms := buildFlowMetricsDashboards(allMetrics)
+	nsFlowsMetric := getNamespacedFlowsMetric(allMetrics)
+	if desiredHealthDashboardCM, del, err := buildHealthDashboard(ns, nsFlowsMetric); err != nil {
+		return err
+	} else if !del {
+		cms = append(cms, desiredHealthDashboardCM)
+	}
+
+	for _, cm := range cms {
+		current := findAndRemoveConfigMapFromList(&currentDashboards, cm.Name)
+		if err := reconcilers.ReconcileConfigMap(ctx, clh, current, cm); err != nil {
+			return err
 		}
+	}
 
-		// Delete any CM that remained in currentDashboards list
-		for i := range currentDashboards.Items {
-			if err := reconcilers.ReconcileConfigMap(ctx, clh, &currentDashboards.Items[i], nil); err != nil {
-				return err
-			}
+	for i := range currentDashboards.Items {
+		if err := reconcilers.ReconcileConfigMap(ctx, clh, &currentDashboards.Items[i], nil); err != nil {
+			return err
 		}
 	}
 

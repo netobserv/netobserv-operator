@@ -13068,6 +13068,20 @@ If the namespace is different, the config map or the secret is copied so that it
         </td>
         <td>true</td>
       </tr><tr>
+        <td><b><a href="#flowcollectorstatuscomponents">components</a></b></td>
+        <td>object</td>
+        <td>
+          `components` reports the status of operator-managed components (agent, processor, plugin).<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#flowcollectorstatusintegrations">integrations</a></b></td>
+        <td>object</td>
+        <td>
+          `integrations` reports the status of external integrations (Loki, monitoring, exporters).<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>namespace</b></td>
         <td>string</td>
         <td>
@@ -13151,6 +13165,532 @@ with respect to the current state of the instance.<br/>
           <br/>
             <i>Format</i>: int64<br/>
             <i>Minimum</i>: 0<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### FlowCollector.status.components
+<sup><sup>[↩ Parent](#flowcollectorstatus)</sup></sup>
+
+
+
+`components` reports the status of operator-managed components (agent, processor, plugin).
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#flowcollectorstatuscomponentsagent">agent</a></b></td>
+        <td>object</td>
+        <td>
+          `agent` reports the status of the eBPF agent component.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#flowcollectorstatuscomponentsplugin">plugin</a></b></td>
+        <td>object</td>
+        <td>
+          `plugin` reports the status of the console plugin component.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#flowcollectorstatuscomponentsprocessor">processor</a></b></td>
+        <td>object</td>
+        <td>
+          `processor` reports the status of the flowlogs-pipeline component.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### FlowCollector.status.components.agent
+<sup><sup>[↩ Parent](#flowcollectorstatuscomponents)</sup></sup>
+
+
+
+`agent` reports the status of the eBPF agent component.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>state</b></td>
+        <td>enum</td>
+        <td>
+          `state` reports the overall health of the component.<br/>
+          <br/>
+            <i>Enum</i>: Ready, InProgress, Failure, Degraded, Unknown, Unused<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>desiredReplicas</b></td>
+        <td>integer</td>
+        <td>
+          `desiredReplicas` is the desired number of replicas (for Deployments) or nodes (for DaemonSets).<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>message</b></td>
+        <td>string</td>
+        <td>
+          `message` is a human-readable description of the component's current state.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>podIssues</b></td>
+        <td>string</td>
+        <td>
+          `podIssues` is a summary of unhealthy pod issues (e.g., "3 pods CrashLoopBackOff: kafka connection refused").<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>readyReplicas</b></td>
+        <td>integer</td>
+        <td>
+          `readyReplicas` is the number of ready replicas (for Deployments) or up-to-date nodes (for DaemonSets).<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>reason</b></td>
+        <td>string</td>
+        <td>
+          `reason` is a one-word CamelCase reason for the component's current state.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>unhealthyPodCount</b></td>
+        <td>integer</td>
+        <td>
+          `unhealthyPodCount` is the number of pods in a degraded state (CrashLoopBackOff, OOMKilled, etc.).<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### FlowCollector.status.components.plugin
+<sup><sup>[↩ Parent](#flowcollectorstatuscomponents)</sup></sup>
+
+
+
+`plugin` reports the status of the console plugin component.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>state</b></td>
+        <td>enum</td>
+        <td>
+          `state` reports the overall health of the component.<br/>
+          <br/>
+            <i>Enum</i>: Ready, InProgress, Failure, Degraded, Unknown, Unused<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>desiredReplicas</b></td>
+        <td>integer</td>
+        <td>
+          `desiredReplicas` is the desired number of replicas (for Deployments) or nodes (for DaemonSets).<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>message</b></td>
+        <td>string</td>
+        <td>
+          `message` is a human-readable description of the component's current state.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>podIssues</b></td>
+        <td>string</td>
+        <td>
+          `podIssues` is a summary of unhealthy pod issues (e.g., "3 pods CrashLoopBackOff: kafka connection refused").<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>readyReplicas</b></td>
+        <td>integer</td>
+        <td>
+          `readyReplicas` is the number of ready replicas (for Deployments) or up-to-date nodes (for DaemonSets).<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>reason</b></td>
+        <td>string</td>
+        <td>
+          `reason` is a one-word CamelCase reason for the component's current state.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>unhealthyPodCount</b></td>
+        <td>integer</td>
+        <td>
+          `unhealthyPodCount` is the number of pods in a degraded state (CrashLoopBackOff, OOMKilled, etc.).<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### FlowCollector.status.components.processor
+<sup><sup>[↩ Parent](#flowcollectorstatuscomponents)</sup></sup>
+
+
+
+`processor` reports the status of the flowlogs-pipeline component.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>state</b></td>
+        <td>enum</td>
+        <td>
+          `state` reports the overall health of the component.<br/>
+          <br/>
+            <i>Enum</i>: Ready, InProgress, Failure, Degraded, Unknown, Unused<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>desiredReplicas</b></td>
+        <td>integer</td>
+        <td>
+          `desiredReplicas` is the desired number of replicas (for Deployments) or nodes (for DaemonSets).<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>message</b></td>
+        <td>string</td>
+        <td>
+          `message` is a human-readable description of the component's current state.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>podIssues</b></td>
+        <td>string</td>
+        <td>
+          `podIssues` is a summary of unhealthy pod issues (e.g., "3 pods CrashLoopBackOff: kafka connection refused").<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>readyReplicas</b></td>
+        <td>integer</td>
+        <td>
+          `readyReplicas` is the number of ready replicas (for Deployments) or up-to-date nodes (for DaemonSets).<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>reason</b></td>
+        <td>string</td>
+        <td>
+          `reason` is a one-word CamelCase reason for the component's current state.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>unhealthyPodCount</b></td>
+        <td>integer</td>
+        <td>
+          `unhealthyPodCount` is the number of pods in a degraded state (CrashLoopBackOff, OOMKilled, etc.).<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### FlowCollector.status.integrations
+<sup><sup>[↩ Parent](#flowcollectorstatus)</sup></sup>
+
+
+
+`integrations` reports the status of external integrations (Loki, monitoring, exporters).
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#flowcollectorstatusintegrationsexportersindex">exporters</a></b></td>
+        <td>[]object</td>
+        <td>
+          `exporters` reports the status of configured exporters.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#flowcollectorstatusintegrationsloki">loki</a></b></td>
+        <td>object</td>
+        <td>
+          `loki` reports the status of the Loki integration.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#flowcollectorstatusintegrationsmonitoring">monitoring</a></b></td>
+        <td>object</td>
+        <td>
+          `monitoring` reports the status of monitoring (dashboards, ServiceMonitor, etc.).<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### FlowCollector.status.integrations.exporters[index]
+<sup><sup>[↩ Parent](#flowcollectorstatusintegrations)</sup></sup>
+
+
+
+`FlowCollectorExporterStatus` represents the status of a configured exporter.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          `name` is a generated identifier for this exporter (e.g., "kafka-export-0"), derived from its type and position in spec.exporters.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>state</b></td>
+        <td>enum</td>
+        <td>
+          `state` reports the health of this exporter.<br/>
+          <br/>
+            <i>Enum</i>: Ready, InProgress, Failure, Degraded, Unknown<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>type</b></td>
+        <td>enum</td>
+        <td>
+          `type` is the exporter type (Kafka, IPFIX, OpenTelemetry).<br/>
+          <br/>
+            <i>Enum</i>: Kafka, IPFIX, OpenTelemetry<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>message</b></td>
+        <td>string</td>
+        <td>
+          `message` is a human-readable description of the exporter's current state.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>reason</b></td>
+        <td>string</td>
+        <td>
+          `reason` is a one-word CamelCase reason for the exporter's current state.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### FlowCollector.status.integrations.loki
+<sup><sup>[↩ Parent](#flowcollectorstatusintegrations)</sup></sup>
+
+
+
+`loki` reports the status of the Loki integration.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>state</b></td>
+        <td>enum</td>
+        <td>
+          `state` reports the overall health of the component.<br/>
+          <br/>
+            <i>Enum</i>: Ready, InProgress, Failure, Degraded, Unknown, Unused<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>desiredReplicas</b></td>
+        <td>integer</td>
+        <td>
+          `desiredReplicas` is the desired number of replicas (for Deployments) or nodes (for DaemonSets).<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>message</b></td>
+        <td>string</td>
+        <td>
+          `message` is a human-readable description of the component's current state.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>podIssues</b></td>
+        <td>string</td>
+        <td>
+          `podIssues` is a summary of unhealthy pod issues (e.g., "3 pods CrashLoopBackOff: kafka connection refused").<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>readyReplicas</b></td>
+        <td>integer</td>
+        <td>
+          `readyReplicas` is the number of ready replicas (for Deployments) or up-to-date nodes (for DaemonSets).<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>reason</b></td>
+        <td>string</td>
+        <td>
+          `reason` is a one-word CamelCase reason for the component's current state.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>unhealthyPodCount</b></td>
+        <td>integer</td>
+        <td>
+          `unhealthyPodCount` is the number of pods in a degraded state (CrashLoopBackOff, OOMKilled, etc.).<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### FlowCollector.status.integrations.monitoring
+<sup><sup>[↩ Parent](#flowcollectorstatusintegrations)</sup></sup>
+
+
+
+`monitoring` reports the status of monitoring (dashboards, ServiceMonitor, etc.).
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>state</b></td>
+        <td>enum</td>
+        <td>
+          `state` reports the overall health of the component.<br/>
+          <br/>
+            <i>Enum</i>: Ready, InProgress, Failure, Degraded, Unknown, Unused<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>desiredReplicas</b></td>
+        <td>integer</td>
+        <td>
+          `desiredReplicas` is the desired number of replicas (for Deployments) or nodes (for DaemonSets).<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>message</b></td>
+        <td>string</td>
+        <td>
+          `message` is a human-readable description of the component's current state.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>podIssues</b></td>
+        <td>string</td>
+        <td>
+          `podIssues` is a summary of unhealthy pod issues (e.g., "3 pods CrashLoopBackOff: kafka connection refused").<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>readyReplicas</b></td>
+        <td>integer</td>
+        <td>
+          `readyReplicas` is the number of ready replicas (for Deployments) or up-to-date nodes (for DaemonSets).<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>reason</b></td>
+        <td>string</td>
+        <td>
+          `reason` is a one-word CamelCase reason for the component's current state.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>unhealthyPodCount</b></td>
+        <td>integer</td>
+        <td>
+          `unhealthyPodCount` is the number of pods in a degraded state (CrashLoopBackOff, OOMKilled, etc.).<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>false</td>
       </tr></tbody>
