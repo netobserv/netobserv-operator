@@ -173,7 +173,7 @@ func (s *Manager) populateComponentStatuses(fc *flowslatest.FlowCollector, prevC
 		switch cs.Name {
 		case EBPFAgents:
 			fc.Status.Components.Agent = cs.toCRDStatus()
-		case FLPParent, FLPMonolith, FLPTransformer:
+		case FLPParent, FLPMonolith, FLPTransformer, FLPInformers:
 			fc.Status.Components.Processor = mergeProcessorStatus(fc.Status.Components.Processor, &cs)
 		case WebConsole:
 			fc.Status.Components.Plugin = cs.toCRDStatus()
