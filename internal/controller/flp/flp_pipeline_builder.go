@@ -671,10 +671,10 @@ func (b *PipelineBuilder) addCustomExportStages(previous config.PipelineBuilderS
 			b.createKafkaWriteStage(fmt.Sprintf("kafka-export-%d", i), &exporter.Kafka, &stage)
 		}
 		if exporter.Type == flowslatest.IpfixExporter {
-			createIPFIXWriteStage(fmt.Sprintf("IPFIX-export-%d", i), &exporter.IPFIX, &stage)
+			createIPFIXWriteStage(fmt.Sprintf("ipfix-export-%d", i), &exporter.IPFIX, &stage)
 		}
 		if exporter.Type == flowslatest.OpenTelemetryExporter {
-			err := b.createOpenTelemetryStage(fmt.Sprintf("Otel-export-%d", i), &exporter.OpenTelemetry, &stage, flpMetrics)
+			err := b.createOpenTelemetryStage(fmt.Sprintf("otel-export-%d", i), &exporter.OpenTelemetry, &stage, flpMetrics)
 			if err != nil {
 				return err
 			}

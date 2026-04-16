@@ -240,7 +240,7 @@ func TestPipelineWithExporter(t *testing.T) {
 	assert.NoError(err)
 	cfs, pipeline := validatePipelineConfig(t, scm, dcm)
 	assert.Equal(
-		`[{"name":"grpc"},{"name":"extract_conntrack","follows":"grpc"},{"name":"enrich","follows":"extract_conntrack"},{"name":"loki","follows":"enrich"},{"name":"stdout","follows":"enrich"},{"name":"prometheus","follows":"enrich"},{"name":"kafka-export-0","follows":"enrich"},{"name":"IPFIX-export-1","follows":"enrich"}]`,
+		`[{"name":"grpc"},{"name":"extract_conntrack","follows":"grpc"},{"name":"enrich","follows":"extract_conntrack"},{"name":"loki","follows":"enrich"},{"name":"stdout","follows":"enrich"},{"name":"prometheus","follows":"enrich"},{"name":"kafka-export-0","follows":"enrich"},{"name":"ipfix-export-1","follows":"enrich"}]`,
 		pipeline,
 	)
 
