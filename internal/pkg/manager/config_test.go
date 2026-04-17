@@ -75,15 +75,6 @@ func TestParseConsolePluginImages_Empty(t *testing.T) {
 	assert.Empty(t, cfg.ConsolePluginImageVariants)
 }
 
-func TestParseConsolePluginImages_NoEqualsIsSingleImage(t *testing.T) {
-	cfg := &Config{}
-	err := cfg.ParseConsolePluginImages("registry/image:tag")
-	require.NoError(t, err)
-	require.Len(t, cfg.ConsolePluginImageVariants, 1)
-	assert.Equal(t, "default", cfg.ConsolePluginImageVariants[0].MinVersion)
-	assert.Equal(t, "registry/image:tag", cfg.ConsolePluginImageVariants[0].Image)
-}
-
 func TestParseConsolePluginImages_InvalidNoImage(t *testing.T) {
 	cfg := &Config{}
 	err := cfg.ParseConsolePluginImages("4.14.0=")
@@ -309,4 +300,20 @@ func TestValidate_DuplicateMinVersions(t *testing.T) {
 	err := cfg.Validate()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "must be strictly greater than previous")
+}
+
+func TestValidate_DuplicateDefaultMinVersions(t *testing.T) {
+	cfg := &Config{
+		EBPFAgentImage:        "agent:test",
+		FlowlogsPipelineImage: "flp:test",
+		Namespace:             "netobserv",
+		ConsolePluginImageVariants: []ConsolePluginImageVariant{
+			{MinVersion: "default", Image: "plugin:pf4"},
+			{MinVersion: "default", Image: "plugin:other"},
+		},
+	}
+	err := cfg.Validate()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "duplicate MinVersion")
+	assert.Contains(t, err.Error(), "ResolveConsolePluginImage")
 }

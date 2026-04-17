@@ -24,9 +24,11 @@ type Config struct {
 	EBPFAgentImage string
 	// FlowlogsPipelineImage is the image of the Flowlogs-Pipeline that is managed by the operator
 	FlowlogsPipelineImage string
-	// ConsolePluginImageVariants lists version-specific console plugin images, sorted by MinVersion ascending.
-	// The variant with the highest MinVersion that is <= the cluster OCP version is selected.
-	// On non-OpenShift or unknown version, the last entry (highest MinVersion) is used as default.
+	// ConsolePluginImageVariants lists version-specific console plugin images, sorted by MinVersion ascending
+	// (semver for versioned entries). ResolveConsolePluginImage picks the highest matching MinVersion on OpenShift.
+	// For non-OpenShift, it uses the "default" sentinel entry if present; otherwise the first versioned (non-default)
+	// entry, or the first slice element as last resort. Put the baseline image first and include default= in the
+	// env string when multiple variants exist so resolution is unambiguous.
 	ConsolePluginImageVariants []ConsolePluginImageVariant
 	// EBPFByteCodeImage is the ebpf byte code image used by EBPF Manager
 	EBPFByteCodeImage string
@@ -76,9 +78,9 @@ func (cfg *Config) ParseConsolePluginImages(raw string) error {
 }
 
 // ResolveConsolePluginImage selects the console plugin image appropriate for the cluster's OCP version.
-// It iterates ConsolePluginImageVariants (sorted ascending by MinVersion) and returns the image from
-// the last variant whose MinVersion is satisfied. A "default" entry is used as fallback for
-// non-OpenShift clusters or when no version-specific entry matches.
+// On OpenShift, it returns the image from the last variant whose semver MinVersion is satisfied.
+// A "default" entry is used when no version-specific entry matches, or on non-OpenShift if present;
+// otherwise on non-OpenShift the first non-default entry applies (then the first element as last resort).
 func (cfg *Config) ResolveConsolePluginImage(clusterInfo *cluster.Info) (string, error) {
 	if len(cfg.ConsolePluginImageVariants) == 0 {
 		return "", fmt.Errorf("no console plugin image variants configured")
@@ -137,6 +139,7 @@ func (cfg *Config) Validate() error {
 		return errors.New("console plugin images can't be empty")
 	}
 	var prev *semver.Version
+	seenDefault := false
 	for i, v := range cfg.ConsolePluginImageVariants {
 		if v.Image == "" {
 			return fmt.Errorf("console plugin image variant %d has empty image", i)
@@ -145,6 +148,10 @@ func (cfg *Config) Validate() error {
 			return fmt.Errorf("console plugin image variant %d has empty MinVersion", i)
 		}
 		if v.MinVersion == "default" {
+			if seenDefault {
+				return fmt.Errorf("console plugin image variant %d: duplicate MinVersion %q (ResolveConsolePluginImage would pick the first default only)", i, v.MinVersion)
+			}
+			seenDefault = true
 			continue
 		}
 		ver, err := semver.NewVersion(v.MinVersion)
