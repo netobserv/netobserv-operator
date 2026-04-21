@@ -90,7 +90,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Result
 			}
 			ri, err := r.newDefaultReconcilerInstance(scp)
 			if err != nil {
-				return ctrl.Result{}, fmt.Errorf("failed to resolve console plugin image: %w", err)
+				return ctrl.Result{}, r.status.Error("ConsolePluginImageError", fmt.Errorf("failed to resolve console plugin image: %w", err))
 			}
 			staticPluginReconciler := consoleplugin.NewStaticReconciler(ri)
 			if err := staticPluginReconciler.ReconcileStaticPlugin(ctx, true); err != nil {

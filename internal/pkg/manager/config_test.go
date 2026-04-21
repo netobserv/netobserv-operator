@@ -66,6 +66,8 @@ func TestParseConsolePluginImages_DefaultWithVersions(t *testing.T) {
 	assert.Equal(t, pf4Image, cfg.ConsolePluginImageVariants[0].Image)
 	assert.Equal(t, "4.15.0", cfg.ConsolePluginImageVariants[1].MinVersion)
 	assert.Equal(t, pf5Image, cfg.ConsolePluginImageVariants[1].Image)
+	assert.Equal(t, "4.22.0", cfg.ConsolePluginImageVariants[2].MinVersion)
+	assert.Equal(t, pf6Image, cfg.ConsolePluginImageVariants[2].Image)
 }
 
 func TestParseConsolePluginImages_Empty(t *testing.T) {
@@ -218,6 +220,13 @@ func TestResolveConsolePluginImage_NoVariants(t *testing.T) {
 	assert.Contains(t, err.Error(), "no console plugin image variants configured")
 }
 
+func TestResolveConsolePluginImage_NilInfo(t *testing.T) {
+	cfg := testConfig(t)
+	_, err := cfg.ResolveConsolePluginImage(nil)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "cluster info is nil")
+}
+
 func TestValidate_ValidConfig(t *testing.T) {
 	cfg := &Config{
 		EBPFAgentImage:        "agent:test",
@@ -254,8 +263,9 @@ func TestValidate_NoPluginImages(t *testing.T) {
 		FlowlogsPipelineImage: "flp:test",
 		Namespace:             "netobserv",
 	}
-	assert.Error(t, cfg.Validate())
-	assert.Contains(t, cfg.Validate().Error(), "console plugin images can't be empty")
+	err := cfg.Validate()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "console plugin images can't be empty")
 }
 
 func TestValidate_InvalidMinVersion(t *testing.T) {

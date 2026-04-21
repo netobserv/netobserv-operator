@@ -82,6 +82,9 @@ func (cfg *Config) ParseConsolePluginImages(raw string) error {
 // A "default" entry is used when no version-specific entry matches, or on non-OpenShift if present;
 // otherwise on non-OpenShift the first non-default entry applies (then the first element as last resort).
 func (cfg *Config) ResolveConsolePluginImage(clusterInfo *cluster.Info) (string, error) {
+	if clusterInfo == nil {
+		return "", errors.New("cluster info is nil")
+	}
 	if len(cfg.ConsolePluginImageVariants) == 0 {
 		return "", fmt.Errorf("no console plugin image variants configured")
 	}
