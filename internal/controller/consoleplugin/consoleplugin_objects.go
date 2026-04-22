@@ -59,17 +59,11 @@ type builder struct {
 }
 
 func newBuilder(info *reconcilers.Instance, desired *flowslatest.FlowCollectorSpec, name string) builder {
-	imageToUse := reconcilers.MainImage
-	needsPF4, _, err := info.ClusterInfo.IsOpenShiftVersionLessThan("4.15.0")
-	if err == nil && needsPF4 {
-		imageToUse = reconcilers.ConsolePluginCompatImage
-	}
-
-	version := helper.ExtractVersion(info.Images[imageToUse])
+	version := helper.ExtractVersion(info.Images[reconcilers.MainImage])
 	advanced := helper.GetAdvancedPluginConfig(desired.ConsolePlugin.Advanced)
 	return builder{
 		info:     info,
-		imageRef: imageToUse,
+		imageRef: reconcilers.MainImage,
 		labels: map[string]string{
 			"part-of": constants.OperatorName,
 			"app":     name,

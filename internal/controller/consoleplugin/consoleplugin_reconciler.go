@@ -89,7 +89,7 @@ func (r *CPReconciler) reconcile(ctx context.Context, desired *flowslatest.FlowC
 		}
 	}
 
-	if desired.Spec.UseWebConsole() && (hasPluginAPI || desired.Spec.UseStandaloneConsole(hasPluginAPI)) && !desired.Spec.OnHold() {
+	if desired.Spec.NeedsConsolePluginDeployment(hasPluginAPI) {
 		// Create object builder
 		builder := newBuilder(r.Instance, &desired.Spec, constants.PluginName)
 

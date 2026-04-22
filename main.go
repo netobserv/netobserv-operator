@@ -101,6 +101,7 @@ func main() {
 	var versionFlag bool
 
 	config := manager.Config{}
+	var pluginImages string
 
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&metricsCertFile, "metrics-cert-file", "", "The path to the TLS certificate for metrics.")
@@ -112,8 +113,11 @@ func main() {
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.StringVar(&config.EBPFAgentImage, "ebpf-agent-image", "quay.io/netobserv/netobserv-ebpf-agent:main", "The image of the eBPF agent")
 	flag.StringVar(&config.FlowlogsPipelineImage, "flowlogs-pipeline-image", "quay.io/netobserv/flowlogs-pipeline:main", "The image of Flowlogs Pipeline")
-	flag.StringVar(&config.ConsolePluginImage, "console-plugin-image", "quay.io/netobserv/network-observability-console-plugin:main", "The image of the Console Plugin")
-	flag.StringVar(&config.ConsolePluginCompatImage, "console-plugin-compat-image", "quay.io/netobserv/network-observability-console-plugin-pf4:main", "A backward compatible image of the Console Plugin (e.g. Patterfly 4 variant)")
+	flag.StringVar(&pluginImages, "console-plugin-images",
+		"quay.io/netobserv/network-observability-console-plugin:main",
+		"Console plugin image(s). A single image can be set directly (e.g., registry/img:tag). "+
+			"For version-specific variants, use semicolon-separated minVersion=image entries with an optional "+
+			"default= fallback (e.g., default=img:pf4;4.15.0=img:pf5;4.22.0=img:pf6).")
 	flag.StringVar(&config.EBPFByteCodeImage, "ebpf-bytecode-image", "quay.io/netobserv/ebpf-bytecode:main", "The EBPF bytecode for the eBPF agent")
 	flag.StringVar(&config.Namespace, "namespace", "netobserv", "Current controller namespace")
 	flag.StringVar(&config.DemoLokiImage, "demo-loki-image", "grafana/loki:3.5.0", "The image of the zero click loki deployment")
@@ -128,6 +132,11 @@ func main() {
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+
+	if err := config.ParseConsolePluginImages(pluginImages); err != nil {
+		setupLog.Error(err, "unable to parse console plugin images")
+		os.Exit(1)
+	}
 
 	appVersion := fmt.Sprintf("%s [build version: %s, build date: %s]", app, buildVersion, buildDate)
 	if versionFlag {

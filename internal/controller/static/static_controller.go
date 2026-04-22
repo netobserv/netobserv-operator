@@ -88,7 +88,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Result
 			if err != nil {
 				return ctrl.Result{}, fmt.Errorf("failed to get controller deployment: %w", err)
 			}
-			staticPluginReconciler := consoleplugin.NewStaticReconciler(r.newDefaultReconcilerInstance(scp))
+			ri, err := r.newDefaultReconcilerInstance(scp)
+			if err != nil {
+				return ctrl.Result{}, r.status.Error("ConsolePluginImageError", fmt.Errorf("failed to resolve console plugin image: %w", err))
+			}
+			staticPluginReconciler := consoleplugin.NewStaticReconciler(ri)
 			if err := staticPluginReconciler.ReconcileStaticPlugin(ctx, true); err != nil {
 				clog.Error(err, "Static plugin reconcile failure")
 				// Set status failure unless it was already set
@@ -104,7 +108,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Result
 	return ctrl.Result{}, nil
 }
 
-func (r *Reconciler) newDefaultReconcilerInstance(clh *helper.Client) *reconcilers.Instance {
+func (r *Reconciler) newDefaultReconcilerInstance(clh *helper.Client) (*reconcilers.Instance, error) {
 	// force default namespace
 	reconcilersInfo := reconcilers.Common{
 		Client:       *clh,
@@ -114,8 +118,11 @@ func (r *Reconciler) newDefaultReconcilerInstance(clh *helper.Client) *reconcile
 		Loki:         &helper.LokiConfig{},
 		IsDownstream: r.mgr.Config.DownstreamDeployment,
 	}
+	cpImage, err := r.mgr.Config.ResolveConsolePluginImage(r.mgr.ClusterInfo)
+	if err != nil {
+		return nil, err
+	}
 	return reconcilersInfo.NewInstance(map[reconcilers.ImageRef]string{
-		reconcilers.MainImage:                r.mgr.Config.ConsolePluginImage,
-		reconcilers.ConsolePluginCompatImage: r.mgr.Config.ConsolePluginCompatImage,
-	}, r.status)
+		reconcilers.MainImage: cpImage,
+	}, r.status), nil
 }

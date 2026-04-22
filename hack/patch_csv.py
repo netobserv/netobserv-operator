@@ -29,7 +29,8 @@ operator_image = os.getenv('OPERATOR_IMAGE_PULLSPEC')
 ebpf_image = os.getenv('EBPF_IMAGE_PULLSPEC')
 flp_image = os.getenv('FLP_IMAGE_PULLSPEC')
 console_image = os.getenv('CONSOLE_IMAGE_PULLSPEC')
-console_compat_image = os.getenv('CONSOLE_COMPAT_IMAGE_PULLSPEC')
+console_pf4_image = os.getenv('CONSOLE_PF4_IMAGE_PULLSPEC')
+console_pf5_image = os.getenv('CONSOLE_PF5_IMAGE_PULLSPEC')
 
 # renovate: datasource=docker depName=registry.redhat.io/openshift-logging/logging-loki-rhel9
 LOKI_IMAGE_PULLSPEC = 'registry.redhat.io/openshift-logging/logging-loki-rhel9@sha256:6efd6e1fbc337c39a37cd52f1963ea61a33f0f9ab1220eeb5ecdd86b0ceb598f'
@@ -69,8 +70,10 @@ for env in csv['spec']['install']['spec']['deployments'][0]['spec']['template'][
       env['value'] = flp_image
    if env['name'] == 'RELATED_IMAGE_CONSOLE_PLUGIN':
       env['value'] = console_image
-   if env['name'] == 'RELATED_IMAGE_CONSOLE_PLUGIN_COMPAT':
-      env['value'] = console_compat_image
+   if env['name'] == 'RELATED_IMAGE_CONSOLE_PLUGIN_PF4':
+      env['value'] = console_pf4_image
+   if env['name'] == 'RELATED_IMAGE_CONSOLE_PLUGIN_PF5':
+      env['value'] = console_pf5_image
    if env['name'] == 'RELATED_IMAGE_DEMO_LOKI':
       env['value'] = LOKI_IMAGE_PULLSPEC
 
@@ -91,8 +94,10 @@ for relatedImage in csv['spec']['relatedImages']:
       relatedImage["image"] = flp_image
    elif relatedImage["name"] == "console-plugin":
       relatedImage["image"] = console_image
-   elif relatedImage["name"] == "console-plugin-compat":
-      relatedImage["image"] = console_compat_image
+   elif relatedImage["name"] == "console-plugin-pf4":
+      relatedImage["image"] = console_pf4_image or console_image
+   elif relatedImage["name"] == "console-plugin-pf5":
+      relatedImage["image"] = console_pf5_image or console_image
    elif relatedImage["name"] == "demo-loki":
       relatedImage["image"] = LOKI_IMAGE_PULLSPEC
 

@@ -67,6 +67,15 @@ func (spec *FlowCollectorSpec) UseStandaloneConsole(hasPluginAPI bool) bool {
 		spec.ConsolePlugin.Standalone == nil && !hasPluginAPI)
 }
 
+// NeedsConsolePluginDeployment is true when the console plugin Deployment (and related objects)
+// should be reconciled. When false, the console reconciler only tears down or marks unused and
+// does not need a resolved plugin image. hasPluginAPI is whether the ConsolePlugin CRD exists.
+func (spec *FlowCollectorSpec) NeedsConsolePluginDeployment(hasPluginAPI bool) bool {
+	return spec.UseWebConsole() &&
+		(hasPluginAPI || spec.UseStandaloneConsole(hasPluginAPI)) &&
+		!spec.OnHold()
+}
+
 func (spec *FlowCollectorSpec) UseHostNetwork() bool {
 	return spec.DeploymentModel == DeploymentModelDirect
 }
