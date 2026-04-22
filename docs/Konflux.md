@@ -23,7 +23,7 @@ Builds are defined in the .tekton/ directory of each project, to ensure pre-merg
 
 Nudging is the konflux mecanism to create dependencies and update between components. When a component A is nudging a component B, Konflux will automatically create PR to update component A reference in component B.
 
-FLP, the ebpf-agent, the console plugin and the operator component are nudging the bundle build once finished and the bundle is nudging the FBC build once finished.
+FLP, the ebpf-agent, the console plugin (including PF4 and PF5 compat variants) and the operator component are nudging the bundle build once finished and the bundle is nudging the FBC build once finished.
 
 ### File Based Catalog
 
@@ -41,6 +41,8 @@ Konflux will regulary create new pull requests, there are three categories :
 - [Dependencies update](https://github.com/netobserv/netobserv-operator/pull/962) Kondlux internally use [https://github.com/renovatebot/renovate](renovate) to automatically create this PR.
 
 ## Deploying
+
+If you keep the PF5 mirror entries in the manifest below, the corresponding Konflux `Component` names must exist; otherwise remove that mirror block or onboarding will not match reality (see [Konflux PF4 and PF5 console plugin prerequisite](#konflux-pf4-and-pf5-console-plugin-prerequisite)).
 
 An `ImageDigestMirrorSet` is required:
 
@@ -71,6 +73,10 @@ spec:
       - quay.io/redhat-user-workloads/ocp-network-observab-tenant/network-observability-console-plugin-pf4-ystream
       - quay.io/redhat-user-workloads/ocp-network-observab-tenant/network-observability-console-plugin-pf4-zstream
       source: registry.redhat.io/network-observability/network-observability-console-plugin-compat-rhel9
+    - mirrors:
+      - quay.io/redhat-user-workloads/ocp-network-observab-tenant/network-observability-console-plugin-pf5-ystream
+      - quay.io/redhat-user-workloads/ocp-network-observab-tenant/network-observability-console-plugin-pf5-zstream
+      source: registry.redhat.io/network-observability/network-observability-console-plugin-pf5-rhel9
     - mirrors:
       - quay.io/redhat-user-workloads/ocp-network-observab-tenant/network-observability-cli-ystream
       - quay.io/redhat-user-workloads/ocp-network-observab-tenant/network-observability-cli-zstream
@@ -109,10 +115,52 @@ For new releases two differents directory are important :
 
 To be able to see release pipeline, a read access to the `rhtap-releng` namespace is required, this access must be requested in the konflux-user slack channel.
 
+### Konflux PF4 and PF5 console plugin prerequisite
+
+Sections below use `oc patch components …` and `oc annotate component/…` for `network-observability-console-plugin-pf4-*` and `network-observability-console-plugin-pf5-*`. Those commands **fail with NotFound** if the matching Konflux `Component` does not exist in `ocp-network-observab-tenant`.
+
+Verify PF4 components before running PF4 patch/annotate lines:
+
+```bash
+NS=ocp-network-observab-tenant
+for c in \
+  network-observability-console-plugin-pf4-ystream \
+  network-observability-console-plugin-pf4-zstream
+do
+  if oc get "components.appstudio.redhat.com/$c" -n "$NS" &>/dev/null; then
+    echo "ok: $c"
+  else
+    echo "MISSING: $c" >&2
+    echo "  Create this Component in Konflux (applications netobserv-ystream / netobserv-zstream). Names must match [ReleasePlanAdmission](https://gitlab.cee.redhat.com/releng/konflux-release-data/-/tree/main/config/stone-prd-rh01.pg1f.p1/product/ReleasePlanAdmission/ocp-network-observab)." >&2
+    exit 1
+  fi
+done
+```
+
+If you use PF5 mirrors, patches, or annotations, verify PF5 components exist first:
+
+```bash
+NS=ocp-network-observab-tenant
+for c in \
+  network-observability-console-plugin-pf5-ystream \
+  network-observability-console-plugin-pf5-zstream
+do
+  if oc get "components.appstudio.redhat.com/$c" -n "$NS" &>/dev/null; then
+    echo "ok: $c"
+  else
+    echo "MISSING: $c" >&2
+    echo "  Onboard PF5 in Konflux first, or remove the PF5 ImageDigestMirrorSet block and omit every command referencing network-observability-console-plugin-pf5-*." >&2
+    exit 1
+  fi
+done
+```
+
+Skip the second script (and omit PF5 lines in later sections) until PF5 `Component` resources exist.
+
 ### Branching
 
 After creating a new release branch, the following steps need to be done:
-- update the konflux components source branches (e.g. below for release-10):
+- update the konflux components source branches (e.g. below for release-10). Skip any `network-observability-console-plugin-pf5-*` line if those components are not onboarded yet (see [Konflux PF4 and PF5 console plugin prerequisite](#konflux-pf4-and-pf5-console-plugin-prerequisite)).
 
 ```bash
 oc patch components flowlogs-pipeline-ystream --type='json' -p "[{'op': 'replace', 'path': '/spec/source/git/revision', 'value': 'release-1.10'}]"
@@ -122,6 +170,7 @@ oc patch components network-observability-console-plugin-ystream --type='json' -
 oc patch components network-observability-operator-bundle-ystream --type='json' -p "[{'op': 'replace', 'path': '/spec/source/git/revision', 'value': 'release-1.10'}]"
 oc patch components network-observability-operator-ystream --type='json' -p "[{'op': 'replace', 'path': '/spec/source/git/revision', 'value': 'release-1.10'}]"
 oc patch components network-observability-console-plugin-pf4-ystream --type='json' -p "[{'op': 'replace', 'path': '/spec/source/git/revision', 'value': 'release-1.10-pf4'}]"
+oc patch components network-observability-console-plugin-pf5-ystream --type='json' -p "[{'op': 'replace', 'path': '/spec/source/git/revision', 'value': 'release-1.10-pf5'}]"
 ```
 
 - update main branches on every repo to disable on-push jobs:
@@ -193,7 +242,7 @@ After a release, the following steps should be done:
 
 ### Redirecting branches (after ystream release)
 
-After release, we need to repurpose zstream to the just released branch, and ystream to main:
+After release, we need to repurpose zstream to the just released branch, and ystream to main. Skip `network-observability-console-plugin-pf5-*` patches if those components do not exist (see [Konflux PF4 and PF5 console plugin prerequisite](#konflux-pf4-and-pf5-console-plugin-prerequisite)).
 
 ```bash
 oc patch components flowlogs-pipeline-ystream --type='json' -p "[{'op': 'replace', 'path': '/spec/source/git/revision', 'value': 'main'}]"
@@ -203,6 +252,7 @@ oc patch components network-observability-console-plugin-ystream --type='json' -
 oc patch components network-observability-operator-bundle-ystream --type='json' -p "[{'op': 'replace', 'path': '/spec/source/git/revision', 'value': 'main'}]"
 oc patch components network-observability-operator-ystream --type='json' -p "[{'op': 'replace', 'path': '/spec/source/git/revision', 'value': 'main'}]"
 oc patch components network-observability-console-plugin-pf4-ystream --type='json' -p "[{'op': 'replace', 'path': '/spec/source/git/revision', 'value': 'main-pf4'}]"
+oc patch components network-observability-console-plugin-pf5-ystream --type='json' -p "[{'op': 'replace', 'path': '/spec/source/git/revision', 'value': 'main-pf5'}]"
 
 oc patch components flowlogs-pipeline-zstream --type='json' -p "[{'op': 'replace', 'path': '/spec/source/git/revision', 'value': 'release-1.9'}]"
 oc patch components netobserv-ebpf-agent-zstream --type='json' -p "[{'op': 'replace', 'path': '/spec/source/git/revision', 'value': 'release-1.9'}]"
@@ -211,17 +261,19 @@ oc patch components network-observability-console-plugin-zstream --type='json' -
 oc patch components network-observability-operator-bundle-zstream --type='json' -p "[{'op': 'replace', 'path': '/spec/source/git/revision', 'value': 'release-1.9'}]"
 oc patch components network-observability-operator-zstream --type='json' -p "[{'op': 'replace', 'path': '/spec/source/git/revision', 'value': 'release-1.9'}]"
 oc patch components network-observability-console-plugin-pf4-zstream --type='json' -p "[{'op': 'replace', 'path': '/spec/source/git/revision', 'value': 'release-1.9-pf4'}]"
+oc patch components network-observability-console-plugin-pf5-zstream --type='json' -p "[{'op': 'replace', 'path': '/spec/source/git/revision', 'value': 'release-1.9-pf5'}]"
 ```
 
 ### Freezing zstream
 
-You may want to freeze a branch (stop mintmaker from opening PRs) after it was released on zstream, if you don't plan more releases there at the moment. To do so, log in the Konflux' OpenShift and run:
+You may want to freeze a branch (stop mintmaker from opening PRs) after it was released on zstream, if you don't plan more releases there at the moment. To do so, log in the Konflux' OpenShift and run (skip PF5 annotate lines if those components are not onboarded; see [Konflux PF4 and PF5 console plugin prerequisite](#konflux-pf4-and-pf5-console-plugin-prerequisite)):
 
 ```bash
 oc -n ocp-network-observab-tenant annotate component/flowlogs-pipeline-zstream mintmaker.appstudio.redhat.com/disabled=true
 oc -n ocp-network-observab-tenant annotate component/netobserv-ebpf-agent-zstream mintmaker.appstudio.redhat.com/disabled=true
 oc -n ocp-network-observab-tenant annotate component/network-observability-console-plugin-zstream mintmaker.appstudio.redhat.com/disabled=true
 oc -n ocp-network-observab-tenant annotate component/network-observability-console-plugin-pf4-zstream mintmaker.appstudio.redhat.com/disabled=true
+oc -n ocp-network-observab-tenant annotate component/network-observability-console-plugin-pf5-zstream mintmaker.appstudio.redhat.com/disabled=true
 oc -n ocp-network-observab-tenant annotate component/network-observability-operator-zstream mintmaker.appstudio.redhat.com/disabled=true
 oc -n ocp-network-observab-tenant annotate component/network-observability-operator-bundle-zstream mintmaker.appstudio.redhat.com/disabled=true
 oc -n ocp-network-observab-tenant annotate component/network-observability-cli-zstream mintmaker.appstudio.redhat.com/disabled=true
@@ -234,6 +286,7 @@ oc -n ocp-network-observab-tenant annotate component/flowlogs-pipeline-zstream m
 oc -n ocp-network-observab-tenant annotate component/netobserv-ebpf-agent-zstream mintmaker.appstudio.redhat.com/disabled-
 oc -n ocp-network-observab-tenant annotate component/network-observability-console-plugin-zstream mintmaker.appstudio.redhat.com/disabled-
 oc -n ocp-network-observab-tenant annotate component/network-observability-console-plugin-pf4-zstream mintmaker.appstudio.redhat.com/disabled-
+oc -n ocp-network-observab-tenant annotate component/network-observability-console-plugin-pf5-zstream mintmaker.appstudio.redhat.com/disabled-
 oc -n ocp-network-observab-tenant annotate component/network-observability-operator-zstream mintmaker.appstudio.redhat.com/disabled-
 oc -n ocp-network-observab-tenant annotate component/network-observability-operator-bundle-zstream mintmaker.appstudio.redhat.com/disabled-
 oc -n ocp-network-observab-tenant annotate component/network-observability-cli-zstream mintmaker.appstudio.redhat.com/disabled-
