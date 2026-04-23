@@ -908,6 +908,155 @@ func TestValidateFLP(t *testing.T) {
 			},
 			expectedError: "missing configuration in spec.processor.providedCertificates despite spec.processor.tlsType being set to Provided",
 		},
+		{
+			name:       "Console plugin with Loki disabled and includeList missing defaults",
+			ocpVersion: "4.18.0",
+			fc: &FlowCollector{
+				Spec: FlowCollectorSpec{
+					Loki: FlowCollectorLoki{
+						Enable: ptr.To(false),
+					},
+					ConsolePlugin: FlowCollectorConsolePlugin{
+						Enable: ptr.To(true),
+					},
+					Processor: FlowCollectorFLP{
+						Metrics: FLPMetrics{
+							IncludeList:   &[]FLPMetric{"custom_metric_1", "custom_metric_2"},
+							DisableAlerts: []AlertTemplate{HealthRuleExternalEgressHighTrend, HealthRuleExternalIngressHighTrend},
+						},
+					},
+				},
+			},
+			expectedWarnings: admission.Warnings{
+				"Console plugin is enabled with Loki disabled (Prometheus-only mode) and spec.processor.metrics.includeList is set. " +
+					"Some default metrics required for console plugin queries are missing from your includeList: " +
+					"[node_ingress_bytes_total node_egress_bytes_total node_ingress_packets_total workload_ingress_bytes_total workload_egress_bytes_total " +
+					"workload_ingress_packets_total workload_egress_packets_total workload_flows_total node_to_node_ingress_flows_total]. " +
+					"This may cause some queries run from the console plugin to fail. " +
+					"Consider using spec.processor.metrics.additionalIncludeList to add metrics while preserving defaults, or ensure all required metrics are included in includeList.",
+			},
+		},
+		{
+			name:       "Console plugin with Loki disabled and includeList with all defaults",
+			ocpVersion: "4.18.0",
+			fc: &FlowCollector{
+				Spec: FlowCollectorSpec{
+					Loki: FlowCollectorLoki{
+						Enable: ptr.To(false),
+					},
+					ConsolePlugin: FlowCollectorConsolePlugin{
+						Enable: ptr.To(true),
+					},
+					Processor: FlowCollectorFLP{
+						Metrics: FLPMetrics{
+							IncludeList: &[]FLPMetric{
+								"node_ingress_bytes_total",
+								"node_egress_bytes_total",
+								"node_ingress_packets_total",
+								"workload_ingress_bytes_total",
+								"workload_egress_bytes_total",
+								"workload_sampling",
+								"workload_ingress_packets_total",
+								"workload_egress_packets_total",
+								"workload_flows_total",
+								"node_to_node_ingress_flows_total",
+								"custom_metric",
+							},
+							DisableAlerts: []AlertTemplate{HealthRuleExternalEgressHighTrend, HealthRuleExternalIngressHighTrend},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:       "Console plugin with Loki enabled and includeList",
+			ocpVersion: "4.18.0",
+			fc: &FlowCollector{
+				Spec: FlowCollectorSpec{
+					Loki: FlowCollectorLoki{
+						Enable: ptr.To(true),
+					},
+					ConsolePlugin: FlowCollectorConsolePlugin{
+						Enable: ptr.To(true),
+					},
+					Processor: FlowCollectorFLP{
+						Metrics: FLPMetrics{
+							IncludeList:   &[]FLPMetric{"custom_metric"},
+							DisableAlerts: []AlertTemplate{HealthRuleExternalEgressHighTrend, HealthRuleExternalIngressHighTrend},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:       "Console plugin disabled with Loki disabled and includeList",
+			ocpVersion: "4.18.0",
+			fc: &FlowCollector{
+				Spec: FlowCollectorSpec{
+					Loki: FlowCollectorLoki{
+						Enable: ptr.To(false),
+					},
+					ConsolePlugin: FlowCollectorConsolePlugin{
+						Enable: ptr.To(false),
+					},
+					Processor: FlowCollectorFLP{
+						Metrics: FLPMetrics{
+							IncludeList:   &[]FLPMetric{"custom_metric"},
+							DisableAlerts: []AlertTemplate{HealthRuleExternalEgressHighTrend, HealthRuleExternalIngressHighTrend},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:       "Console plugin with Loki disabled and includeList nil (uses defaults)",
+			ocpVersion: "4.18.0",
+			fc: &FlowCollector{
+				Spec: FlowCollectorSpec{
+					Loki: FlowCollectorLoki{
+						Enable: ptr.To(false),
+					},
+					ConsolePlugin: FlowCollectorConsolePlugin{
+						Enable: ptr.To(true),
+					},
+					Processor: FlowCollectorFLP{
+						Metrics: FLPMetrics{
+							IncludeList:   nil,
+							DisableAlerts: []AlertTemplate{HealthRuleExternalEgressHighTrend, HealthRuleExternalIngressHighTrend},
+						},
+					},
+				},
+			},
+			// No warning expected because nil includeList means defaults are used
+		},
+		{
+			name:       "Console plugin with Loki disabled and includeList empty slice",
+			ocpVersion: "4.18.0",
+			fc: &FlowCollector{
+				Spec: FlowCollectorSpec{
+					Loki: FlowCollectorLoki{
+						Enable: ptr.To(false),
+					},
+					ConsolePlugin: FlowCollectorConsolePlugin{
+						Enable: ptr.To(true),
+					},
+					Processor: FlowCollectorFLP{
+						Metrics: FLPMetrics{
+							IncludeList:   &[]FLPMetric{},
+							DisableAlerts: []AlertTemplate{HealthRuleExternalEgressHighTrend, HealthRuleExternalIngressHighTrend},
+						},
+					},
+				},
+			},
+			expectedWarnings: admission.Warnings{
+				"Console plugin is enabled with Loki disabled (Prometheus-only mode) and spec.processor.metrics.includeList is set. " +
+					"Some default metrics required for console plugin queries are missing from your includeList: " +
+					"[node_ingress_bytes_total node_egress_bytes_total node_ingress_packets_total workload_ingress_bytes_total workload_egress_bytes_total " +
+					"workload_ingress_packets_total workload_egress_packets_total workload_flows_total node_to_node_ingress_flows_total]. " +
+					"This may cause some queries run from the console plugin to fail. " +
+					"Consider using spec.processor.metrics.additionalIncludeList to add metrics while preserving defaults, or ensure all required metrics are included in includeList.",
+			},
+		},
 	}
 
 	r := FlowCollector{}

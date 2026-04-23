@@ -260,6 +260,7 @@ func (v *validator) validateFLP() {
 	v.validateFLPFilters()
 	v.validateFLPAlerts()
 	v.validateFLPMetricsForAlerts()
+	v.validateFLPMetricsForConsolePlugin()
 	v.validateFLPTLS()
 }
 
@@ -431,6 +432,42 @@ func (v *validator) validateFLPMetricsForAlerts() {
 					)
 				}
 			}
+		}
+	}
+}
+
+func (v *validator) validateFLPMetricsForConsolePlugin() {
+	// Warn when using includeList in Loki-less mode with console plugin enabled
+	if !v.fc.UseLoki() && v.fc.UseWebConsole() && v.fc.Processor.Metrics.IncludeList != nil {
+		// Get the defaults that would be used
+		defaults := v.fc.GetDefaultMetrics()
+
+		// Convert user's includeList to map for comparison
+		userMetrics := make(map[string]bool)
+		for _, m := range *v.fc.Processor.Metrics.IncludeList {
+			userMetrics[string(m)] = true
+		}
+
+		// Check if any required defaults are missing
+		var missingMetrics []string
+		for _, metric := range defaults {
+			if !userMetrics[metric] {
+				missingMetrics = append(missingMetrics, metric)
+			}
+		}
+
+		// Only warn if defaults are missing
+		if len(missingMetrics) > 0 {
+			v.warnings = append(
+				v.warnings,
+				fmt.Sprintf(
+					"Console plugin is enabled with Loki disabled (Prometheus-only mode) and spec.processor.metrics.includeList is set. "+
+						"Some default metrics required for console plugin queries are missing from your includeList: %v. "+
+						"This may cause some queries run from the console plugin to fail. "+
+						"Consider using spec.processor.metrics.additionalIncludeList to add metrics while preserving defaults, or ensure all required metrics are included in includeList.",
+					missingMetrics,
+				),
+			)
 		}
 	}
 }
