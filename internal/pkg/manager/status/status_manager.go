@@ -158,8 +158,12 @@ func (s *Manager) getConditions() []metav1.Condition {
 }
 
 // populateComponentStatuses maps internal ComponentStatus instances to the CRD status fields.
-// Always start fresh to avoid stale data from a previous API server fetch influencing the merge.
-func (s *Manager) populateComponentStatuses(fc *flowslatest.FlowCollector) {
+// Integrations are always rebuilt from the in-memory map. Component fields are rebuilt from the map,
+// then agent/plugin may be merged from prevComponents (see preserveAgentOrPluginSnapshot).
+// prevComponents is the FlowCollector's status.components from the API before this update; when
+// another controller commits while the legacy reconciler is between ForComponent (placeholder Unknown)
+// and the real status, we keep agent/plugin from prev so users do not see transient Unknown.
+func (s *Manager) populateComponentStatuses(fc *flowslatest.FlowCollector, prevComponents *flowslatest.FlowCollectorComponentsStatus) {
 	fc.Status.Components = &flowslatest.FlowCollectorComponentsStatus{}
 	fc.Status.Integrations = &flowslatest.FlowCollectorIntegrationsStatus{}
 
@@ -194,6 +198,26 @@ func (s *Manager) populateComponentStatuses(fc *flowslatest.FlowCollector) {
 		return true
 	})
 	fc.Status.Integrations.Exporters = exporters
+
+	if prevComponents != nil {
+		fc.Status.Components.Agent = preserveAgentOrPluginSnapshot(fc.Status.Components.Agent, prevComponents.Agent)
+		fc.Status.Components.Plugin = preserveAgentOrPluginSnapshot(fc.Status.Components.Plugin, prevComponents.Plugin)
+	}
+}
+
+// preserveAgentOrPluginSnapshot avoids publishing a transient Unknown written by ForComponent before
+// the owning controller finishes, or losing agent/plugin when their keys are absent from the map.
+func preserveAgentOrPluginSnapshot(cur, prev *flowslatest.FlowCollectorComponentStatus) *flowslatest.FlowCollectorComponentStatus {
+	if prev == nil {
+		return cur
+	}
+	if cur == nil {
+		return prev
+	}
+	if cur.State == string(StatusUnknown) && cur.Reason == "" && cur.Message == "" {
+		return prev
+	}
+	return cur
 }
 
 // mergeProcessorStatus handles FLP processor status aggregation from parent, monolith, and transformer.
@@ -288,11 +312,18 @@ func (s *Manager) updateStatus(ctx context.Context, c client.Client) {
 		conditions = append(conditions, checkValidation(ctx, &fc))
 		if kafkaCond := s.GetKafkaCondition(); kafkaCond != nil {
 			conditions = append(conditions, *kafkaCond)
+		} else if ts := s.getStatus(FLPTransformer); ts == nil || ts.Status != StatusUnknown {
+			// Skip removal while FLPTransformer is placeholder Unknown (GetKafkaCondition is nil then too).
+			meta.RemoveStatusCondition(&fc.Status.Conditions, "KafkaReady")
 		}
 		for _, cond := range conditions {
 			meta.SetStatusCondition(&fc.Status.Conditions, cond)
 		}
-		s.populateComponentStatuses(&fc)
+		var prevComponents *flowslatest.FlowCollectorComponentsStatus
+		if fc.Status.Components != nil {
+			prevComponents = fc.Status.Components.DeepCopy()
+		}
+		s.populateComponentStatuses(&fc, prevComponents)
 		if err := c.Status().Update(ctx, &fc); err != nil {
 			return err
 		}
@@ -395,8 +426,9 @@ func (s *Manager) GetKafkaCondition() *metav1.Condition {
 				Message: "Kafka transformer is rolling out",
 			}
 		case StatusUnknown, StatusUnused, StatusFailure, StatusDegraded:
-			// Failure/Degraded already handled above via hasKafkaIssue;
-			// Unknown/Unused mean Kafka mode is not active.
+			// Failure/Degraded already handled above via hasKafkaIssue.
+			// Unused means transformer not used (e.g. direct mode). Unknown is either not yet
+			// reconciled (ForComponent placeholder) or indeterminate — no KafkaReady row in either case.
 		}
 	}
 

@@ -119,7 +119,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Result
 		return ctrl.Result{}, err
 	}
 
-	r.status.SetReady()
+	if fc.Spec.OnHold() {
+		r.status.SetUnused("FlowCollector is on hold")
+	} else {
+		r.status.SetReady()
+	}
 	if r.mgr.Status.NeedsRequeue() {
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}

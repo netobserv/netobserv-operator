@@ -95,12 +95,39 @@ func TestUnusedStatusInCRD(t *testing.T) {
 	assert.Equal(t, StatusUnused, cs.Status)
 
 	fc := &flowslatest.FlowCollector{}
-	s.populateComponentStatuses(fc)
+	s.populateComponentStatuses(fc, nil)
 	require.NotNil(t, fc.Status.Components)
 	require.NotNil(t, fc.Status.Components.Agent)
 	assert.Equal(t, "Unused", fc.Status.Components.Agent.State)
 	assert.Equal(t, "ComponentUnused", fc.Status.Components.Agent.Reason)
 	assert.Equal(t, "FlowCollector is on hold", fc.Status.Components.Agent.Message)
+}
+
+func TestPopulatePreservesAgentPluginAgainstPlaceholderUnknown(t *testing.T) {
+	s := NewManager()
+	_ = s.ForComponent(EBPFAgents)
+	_ = s.ForComponent(WebConsole)
+
+	prev := &flowslatest.FlowCollectorComponentsStatus{
+		Agent: &flowslatest.FlowCollectorComponentStatus{
+			State:   "Unused",
+			Reason:  "ComponentUnused",
+			Message: "FlowCollector is on hold",
+		},
+		Plugin: &flowslatest.FlowCollectorComponentStatus{
+			State:   "Unused",
+			Reason:  "ComponentUnused",
+			Message: "FlowCollector is on hold",
+		},
+	}
+
+	fc := &flowslatest.FlowCollector{}
+	s.populateComponentStatuses(fc, prev)
+
+	require.NotNil(t, fc.Status.Components.Agent)
+	assert.Equal(t, "Unused", fc.Status.Components.Agent.State)
+	require.NotNil(t, fc.Status.Components.Plugin)
+	assert.Equal(t, "Unused", fc.Status.Components.Plugin.State)
 }
 
 func TestReplicaCounts(t *testing.T) {
@@ -366,7 +393,7 @@ func TestPopulateComponentStatuses(t *testing.T) {
 	monitoring.SetFailure("DashboardError", "dashboard CM missing")
 
 	fc := &flowslatest.FlowCollector{}
-	s.populateComponentStatuses(fc)
+	s.populateComponentStatuses(fc, nil)
 
 	require.NotNil(t, fc.Status.Components)
 	require.NotNil(t, fc.Status.Components.Agent)
@@ -405,7 +432,7 @@ func TestPopulateProcessorAggregation(t *testing.T) {
 		})
 
 		fc := &flowslatest.FlowCollector{}
-		s.populateComponentStatuses(fc)
+		s.populateComponentStatuses(fc, nil)
 
 		require.NotNil(t, fc.Status.Components)
 		require.NotNil(t, fc.Status.Components.Processor)
@@ -424,7 +451,7 @@ func TestPopulateProcessorAggregation(t *testing.T) {
 		transformer.SetFailure("KafkaConnectionError", "cannot connect to broker")
 
 		fc := &flowslatest.FlowCollector{}
-		s.populateComponentStatuses(fc)
+		s.populateComponentStatuses(fc, nil)
 
 		require.NotNil(t, fc.Status.Components)
 		require.NotNil(t, fc.Status.Components.Processor)
@@ -443,11 +470,29 @@ func TestPopulateProcessorAggregation(t *testing.T) {
 		trans.SetUnused("direct mode")
 
 		fc := &flowslatest.FlowCollector{}
-		s.populateComponentStatuses(fc)
+		s.populateComponentStatuses(fc, nil)
 
 		require.NotNil(t, fc.Status.Components)
 		require.NotNil(t, fc.Status.Components.Processor)
 		assert.Equal(t, "Ready", fc.Status.Components.Processor.State)
+	})
+
+	t.Run("on hold parent unused with unused subs yields processor unused", func(t *testing.T) {
+		s := NewManager()
+		parent := s.ForComponent(FLPParent)
+		mono := s.ForComponent(FLPMonolith)
+		trans := s.ForComponent(FLPTransformer)
+
+		parent.SetUnused("FlowCollector is on hold")
+		mono.SetUnused("FlowCollector is on hold")
+		trans.SetUnused("FlowCollector is on hold")
+
+		fc := &flowslatest.FlowCollector{}
+		s.populateComponentStatuses(fc, nil)
+
+		require.NotNil(t, fc.Status.Components)
+		require.NotNil(t, fc.Status.Components.Processor)
+		assert.Equal(t, "Unused", fc.Status.Components.Processor.State)
 	})
 }
 
@@ -458,7 +503,7 @@ func TestPopulateLokiStatus(t *testing.T) {
 		ls.SetReady()
 
 		fc := &flowslatest.FlowCollector{}
-		s.populateComponentStatuses(fc)
+		s.populateComponentStatuses(fc, nil)
 
 		require.NotNil(t, fc.Status.Integrations)
 		require.NotNil(t, fc.Status.Integrations.Loki)
@@ -471,7 +516,7 @@ func TestPopulateLokiStatus(t *testing.T) {
 		demo.SetFailure("DeployFailed", "cannot create PVC")
 
 		fc := &flowslatest.FlowCollector{}
-		s.populateComponentStatuses(fc)
+		s.populateComponentStatuses(fc, nil)
 
 		require.NotNil(t, fc.Status.Integrations)
 		require.NotNil(t, fc.Status.Integrations.Loki)
@@ -485,7 +530,7 @@ func TestPopulateLokiStatus(t *testing.T) {
 		ls.SetUnused("Loki is disabled")
 
 		fc := &flowslatest.FlowCollector{}
-		s.populateComponentStatuses(fc)
+		s.populateComponentStatuses(fc, nil)
 
 		require.NotNil(t, fc.Status.Integrations)
 		require.NotNil(t, fc.Status.Integrations.Loki)
@@ -504,7 +549,7 @@ func TestControllerComponentsNotInCRDStatus(t *testing.T) {
 	np.SetReady()
 
 	fc := &flowslatest.FlowCollector{}
-	s.populateComponentStatuses(fc)
+	s.populateComponentStatuses(fc, nil)
 
 	assert.Nil(t, fc.Status.Components.Agent)
 	assert.Nil(t, fc.Status.Components.Plugin)
@@ -519,7 +564,7 @@ func TestExporterStatus(t *testing.T) {
 	s.SetExporterStatus("ipfix-export-0", "IPFIX", "Failure", "ConnectionRefused", "cannot connect")
 
 	fc := &flowslatest.FlowCollector{}
-	s.populateComponentStatuses(fc)
+	s.populateComponentStatuses(fc, nil)
 
 	require.NotNil(t, fc.Status.Integrations)
 	assert.Len(t, fc.Status.Integrations.Exporters, 2)
@@ -539,7 +584,7 @@ func TestExporterStatus(t *testing.T) {
 
 	s.ClearExporters()
 	fc2 := &flowslatest.FlowCollector{}
-	s.populateComponentStatuses(fc2)
+	s.populateComponentStatuses(fc2, nil)
 	assert.Empty(t, fc2.Status.Integrations.Exporters)
 }
 
@@ -552,6 +597,20 @@ func TestKafkaCondition(t *testing.T) {
 		mono.SetReady()
 
 		assert.Nil(t, s.GetKafkaCondition())
+	})
+
+	t.Run("transformer placeholder unknown implies do not strip kafka ready from API", func(t *testing.T) {
+		s := NewManager()
+		tr := s.ForComponent(FLPTransformer)
+		ts := s.getStatus(FLPTransformer)
+		require.NotNil(t, ts)
+		assert.Equal(t, StatusUnknown, ts.Status)
+		assert.Nil(t, s.GetKafkaCondition())
+
+		tr.SetUnused("direct mode")
+		ts = s.getStatus(FLPTransformer)
+		require.NotNil(t, ts)
+		assert.NotEqual(t, StatusUnknown, ts.Status)
 	})
 
 	t.Run("healthy transformer returns KafkaReady=True", func(t *testing.T) {
