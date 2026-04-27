@@ -19,17 +19,24 @@ package api
 
 import (
 	"fmt"
-
-	"github.com/netsampler/goflow2/producer"
 )
 
 type IngestIpfix struct {
-	HostName   string                     `yaml:"hostName,omitempty" json:"hostName,omitempty" doc:"the hostname to listen on; defaults to 0.0.0.0"`
-	Port       uint                       `yaml:"port,omitempty" json:"port,omitempty" doc:"the port number to listen on, for IPFIX/NetFlow v9. Omit or set to 0 to disable IPFIX/NetFlow v9 ingestion. If both port and portLegacy are omitted, defaults to 2055"`
-	PortLegacy uint                       `yaml:"portLegacy,omitempty" json:"portLegacy,omitempty" doc:"the port number to listen on, for legacy NetFlow v5. Omit or set to 0 to disable NetFlow v5 ingestion"`
-	Workers    uint                       `yaml:"workers,omitempty" json:"workers,omitempty" doc:"the number of netflow/ipfix decoding workers"`
-	Sockets    uint                       `yaml:"sockets,omitempty" json:"sockets,omitempty" doc:"the number of listening sockets"`
-	Mapping    []producer.NetFlowMapField `yaml:"mapping,omitempty" json:"mapping,omitempty" doc:"custom field mapping"`
+	HostName   string            `yaml:"hostName,omitempty" json:"hostName,omitempty" doc:"the hostname to listen on; defaults to 0.0.0.0"`
+	Port       uint              `yaml:"port,omitempty" json:"port,omitempty" doc:"the port number to listen on, for IPFIX/NetFlow v9. Omit or set to 0 to disable IPFIX/NetFlow v9 ingestion. If both port and portLegacy are omitted, defaults to 2055"`
+	PortLegacy uint              `yaml:"portLegacy,omitempty" json:"portLegacy,omitempty" doc:"the port number to listen on, for legacy NetFlow v5. Omit or set to 0 to disable NetFlow v5 ingestion"`
+	Workers    uint              `yaml:"workers,omitempty" json:"workers,omitempty" doc:"the number of netflow/ipfix decoding workers"`
+	Sockets    uint              `yaml:"sockets,omitempty" json:"sockets,omitempty" doc:"the number of listening sockets"`
+	Mapping    []NetFlowMapField `yaml:"mapping,omitempty" json:"mapping,omitempty" doc:"custom field mapping"`
+}
+
+// NetFlowMapField copied from github.com/netsampler/goflow2/producer (we don't want this hard dependency in api)
+type NetFlowMapField struct {
+	PenProvided bool   `json:"penprovided" yaml:"penprovided"`
+	Type        uint16 `json:"field" yaml:"field"`
+	Pen         uint32 `json:"pen" yaml:"pen"`
+	Destination string `json:"destination" yaml:"destination"`
+	Endian      string `json:"endianness" yaml:"endianness"`
 }
 
 func (i *IngestIpfix) SetDefaults() {

@@ -69,7 +69,7 @@ clustercsidrivers.operator.openshift.io:
   Capability: ""
   Category: ""
   FeatureGates:
-  - AWSEFSDriverVolumeMetrics
+  - AWSEuropeanSovereignCloudInstall
   - VSphereConfigurableMaxAllowedBlockVolumesPerNode
   FilenameOperatorName: csi-driver
   FilenameOperatorOrdering: "01"
@@ -156,7 +156,6 @@ etcds.operator.openshift.io:
   Category: coreoperators
   FeatureGates:
   - EtcdBackendQuota
-  - HardwareSpeed
   FilenameOperatorName: etcd
   FilenameOperatorOrdering: "01"
   FilenameRunLevel: "0000_12"
@@ -178,9 +177,7 @@ ingresscontrollers.operator.openshift.io:
   Capability: Ingress
   Category: ""
   FeatureGates:
-  - IngressControllerLBSubnetsAWS
-  - SetEIPForNLBIngressController
-  - SetEIPForNLBIngressController+IngressControllerLBSubnetsAWS
+  - IngressControllerDynamicConfigurationManager
   FilenameOperatorName: ingress
   FilenameOperatorOrdering: "00"
   FilenameRunLevel: "0000_50"
@@ -222,7 +219,8 @@ kubeapiservers.operator.openshift.io:
   CRDName: kubeapiservers.operator.openshift.io
   Capability: ""
   Category: coreoperators
-  FeatureGates: []
+  FeatureGates:
+  - EventTTL
   FilenameOperatorName: kube-apiserver
   FilenameOperatorOrdering: "01"
   FilenameRunLevel: "0000_20"
@@ -307,7 +305,9 @@ machineconfigurations.operator.openshift.io:
   Capability: ""
   Category: ""
   FeatureGates:
-  - ManagedBootImages
+  - BootImageSkewEnforcement
+  - IrreconcilableMachineConfig
+  - ManagedBootImagesCPMS
   FilenameOperatorName: machine-config
   FilenameOperatorOrdering: "01"
   FilenameRunLevel: "0000_80"
@@ -329,9 +329,7 @@ networks.operator.openshift.io:
   Capability: ""
   Category: ""
   FeatureGates:
-  - AdditionalRoutingCapabilities
-  - NetworkLiveMigration
-  - RouteAdvertisements
+  - NoOverlayMode
   FilenameOperatorName: network
   FilenameOperatorOrdering: "01"
   FilenameRunLevel: "0000_70"
