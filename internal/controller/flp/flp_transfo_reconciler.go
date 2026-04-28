@@ -32,7 +32,6 @@ type transformerReconciler struct {
 	dynamicConfigMap *corev1.ConfigMap
 	rbConfigWatcher  *rbacv1.RoleBinding
 	rbLokiWriter     *rbacv1.ClusterRoleBinding
-	rbInformer       *rbacv1.ClusterRoleBinding
 	serviceMonitor   *monitoringv1.ServiceMonitor
 	prometheusRule   *monitoringv1.PrometheusRule
 }
@@ -48,7 +47,6 @@ func newTransformerReconciler(cmn *reconcilers.Instance) *transformerReconciler 
 		dynamicConfigMap: cmn.Managed.NewConfigMap(transfoDynConfigMap),
 		rbConfigWatcher:  cmn.Managed.NewRB(resources.GetRoleBindingName(transfoShortName, constants.ConfigWatcherRole)),
 		rbLokiWriter:     cmn.Managed.NewCRB(resources.GetClusterRoleBindingName(transfoShortName, constants.LokiWriterRole)),
-		rbInformer:       cmn.Managed.NewCRB(resources.GetClusterRoleBindingName(transfoShortName, constants.FLPInformersRole)),
 	}
 	if cmn.ClusterInfo.HasSvcMonitor() {
 		rec.serviceMonitor = cmn.Managed.NewServiceMonitor(transfoServiceMonitor)
@@ -218,12 +216,6 @@ func (r *transformerReconciler) reconcilePermissions(ctx context.Context, builde
 	if !r.Managed.Exists(r.serviceAccount) {
 		return r.CreateOwned(ctx, builder.serviceAccount())
 	} // We only configure name, update is not needed for now
-
-	// Informers
-	r.rbInformer = resources.GetClusterRoleBinding(r.Namespace, transfoShortName, transfoName, transfoName, constants.FLPInformersRole)
-	if err := r.ReconcileClusterRoleBinding(ctx, r.rbInformer); err != nil {
-		return err
-	}
 
 	// Loki writer
 	if builder.desired.UseLoki() && builder.desired.Loki.Mode == flowslatest.LokiModeLokiStack {

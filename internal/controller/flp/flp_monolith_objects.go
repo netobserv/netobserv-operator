@@ -37,6 +37,11 @@ type monolithBuilder struct {
 }
 
 func newMonolithBuilder(info *reconcilers.Instance, desired *flowslatest.FlowCollectorSpec, flowMetrics *metricslatest.FlowMetricList, fcSlices []sliceslatest.FlowCollectorSlice, detectedSubnets []flowslatest.SubnetLabel) (monolithBuilder, error) {
+	// Validate port conflicts early
+	if err := validatePortConflicts(desired); err != nil {
+		return monolithBuilder{}, err
+	}
+
 	version := helper.ExtractVersion(info.Images[reconcilers.MainImage])
 	promTLS, err := getPromTLS(desired, constants.FLPMetricsSvcName)
 	if err != nil {
@@ -168,12 +173,20 @@ func (b *monolithBuilder) service() *corev1.Service {
 		},
 		Spec: corev1.ServiceSpec{
 			Selector: map[string]string{"app": monoName},
-			Ports: []corev1.ServicePort{{
-				Name:       constants.FLPPortName,
-				Port:       port,
-				Protocol:   corev1.ProtocolTCP,
-				TargetPort: intstr.FromInt32(port),
-			}},
+			Ports: []corev1.ServicePort{
+				{
+					Name:       constants.FLPPortName,
+					Port:       port,
+					Protocol:   corev1.ProtocolTCP,
+					TargetPort: intstr.FromInt32(port),
+				},
+				{
+					Name:       "k8scache",
+					Port:       k8scachePort,
+					Protocol:   corev1.ProtocolTCP,
+					TargetPort: intstr.FromInt(k8scachePort),
+				},
+			},
 		},
 	}
 	if b.info.ClusterInfo.IsOpenShift() && (b.desired.Processor.Service == nil || b.desired.Processor.Service.TLSType == flowslatest.TLSAuto) {

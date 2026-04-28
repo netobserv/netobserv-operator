@@ -37,6 +37,11 @@ type transfoBuilder struct {
 }
 
 func newTransfoBuilder(info *reconcilers.Instance, desired *flowslatest.FlowCollectorSpec, flowMetrics *metricslatest.FlowMetricList, fcSlices []sliceslatest.FlowCollectorSlice, detectedSubnets []flowslatest.SubnetLabel) (transfoBuilder, error) {
+	// Validate port conflicts early
+	if err := validatePortConflicts(desired); err != nil {
+		return transfoBuilder{}, err
+	}
+
 	version := helper.ExtractVersion(info.Images[reconcilers.MainImage])
 	promTLS, err := getPromTLS(desired, constants.FLPTransfoMetricsSvcName)
 	if err != nil {

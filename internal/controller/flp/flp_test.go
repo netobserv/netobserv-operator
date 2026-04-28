@@ -52,7 +52,7 @@ func getConfig() flowslatest.FlowCollectorSpec {
 			Resources:       rs,
 			Metrics: flowslatest.FLPMetrics{
 				Server: flowslatest.MetricsServerConfig{
-					Port: ptr.To(int32(9090)),
+					Port: ptr.To(int32(9401)),
 					TLS: flowslatest.ServerTLS{
 						Type: flowslatest.TLSDisabled,
 					},
@@ -809,4 +809,42 @@ func TestToleration(t *testing.T) {
 	ds := builder.daemonSet(annotate("digest"))
 	assert.Len(ds.Spec.Template.Spec.Tolerations, 1)
 	assert.Equal(corev1.Toleration{Operator: "Exists"}, ds.Spec.Template.Spec.Tolerations[0])
+}
+
+func TestPortConflictValidation(t *testing.T) {
+	assert := assert.New(t)
+	info := reconcilers.Common{Namespace: "ns", ClusterInfo: &cluster.Info{}}
+
+	// Test FLP port conflict
+	cfg := getConfig()
+	cfg.Processor.Advanced.Port = ptr.To(int32(9090))
+	_, err := newMonolithBuilder(info.NewInstance(image, status.Instance{}), &cfg, &metricslatest.FlowMetricList{}, nil, nil)
+	assert.Error(err)
+	assert.Contains(err.Error(), "flowlogs-pipeline port 9090 conflicts with reserved k8scache port")
+
+	// Test health port conflict
+	cfg = getConfig()
+	cfg.Processor.Advanced.HealthPort = ptr.To(int32(9090))
+	_, err = newMonolithBuilder(info.NewInstance(image, status.Instance{}), &cfg, &metricslatest.FlowMetricList{}, nil, nil)
+	assert.Error(err)
+	assert.Contains(err.Error(), "flowlogs-pipeline health port 9090 conflicts with reserved k8scache port")
+
+	// Test metrics port conflict
+	cfg = getConfig()
+	cfg.Processor.Metrics.Server.Port = ptr.To(int32(9090))
+	_, err = newMonolithBuilder(info.NewInstance(image, status.Instance{}), &cfg, &metricslatest.FlowMetricList{}, nil, nil)
+	assert.Error(err)
+	assert.Contains(err.Error(), "flowlogs-pipeline metrics port 9090 conflicts with reserved k8scache port")
+
+	// Test profile port conflict
+	cfg = getConfig()
+	cfg.Processor.Advanced.ProfilePort = ptr.To(int32(9090))
+	_, err = newMonolithBuilder(info.NewInstance(image, status.Instance{}), &cfg, &metricslatest.FlowMetricList{}, nil, nil)
+	assert.Error(err)
+	assert.Contains(err.Error(), "flowlogs-pipeline profile port 9090 conflicts with reserved k8scache port")
+
+	// Test valid configuration (no conflicts)
+	cfg = getConfig()
+	_, err = newMonolithBuilder(info.NewInstance(image, status.Instance{}), &cfg, &metricslatest.FlowMetricList{}, nil, nil)
+	assert.NoError(err)
 }

@@ -8557,6 +8557,15 @@ but with a lesser improvement in performance.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#flowcollectorspecprocessorinformers">informers</a></b></td>
+        <td>object</td>
+        <td>
+          `informers` configuration for centralized Kubernetes informers that push cache updates to flowlogs-pipeline processors.
+This reduces load on the Kubernetes API server by having a single component (flp-informers) query the API instead of N FLP processors.
+When enabled, a dedicated `flp-informers` deployment is created that watches Kubernetes resources and pushes updates via gRPC.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#flowcollectorspecprocessorkafkaconsumerautoscaler">kafkaConsumerAutoscaler</a></b></td>
         <td>object</td>
         <td>
@@ -10673,6 +10682,230 @@ Fields absent from the 'k8s.v1.cni.cncf.io/network-status' annotation must not b
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### FlowCollector.spec.processor.informers
+<sup><sup>[↩ Parent](#flowcollectorspecprocessor)</sup></sup>
+
+
+
+`informers` configuration for centralized Kubernetes informers that push cache updates to flowlogs-pipeline processors.
+This reduces load on the Kubernetes API server by having a single component (flp-informers) query the API instead of N FLP processors.
+When enabled, a dedicated `flp-informers` deployment is created that watches Kubernetes resources and pushes updates via gRPC.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#flowcollectorspecprocessorinformersadvanced">advanced</a></b></td>
+        <td>object</td>
+        <td>
+          `advanced` allows setting some technical parameters of the informers component.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>enabled</b></td>
+        <td>boolean</td>
+        <td>
+          `enabled` controls whether to deploy centralized Kubernetes informers.
+When `true`, a dedicated `flp-informers` deployment watches K8s resources and pushes cache updates via gRPC to FLP processors.
+When `false`, each FLP processor uses local informers (previous behavior).<br/>
+          <br/>
+            <i>Default</i>: true<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>replicas</b></td>
+        <td>integer</td>
+        <td>
+          `replicas` defines the number of replicas for the flp-informers deployment.
+For high availability, a minimum of 2 replicas is required when `enabled` is `true`.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Default</i>: 2<br/>
+            <i>Minimum</i>: 1<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#flowcollectorspecprocessorinformersresources">resources</a></b></td>
+        <td>object</td>
+        <td>
+          `resources` are the compute resources required by the informers container.
+For more information, see https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/<br/>
+          <br/>
+            <i>Default</i>: map[limits:map[cpu:200m memory:256Mi] requests:map[cpu:50m memory:128Mi]]<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### FlowCollector.spec.processor.informers.advanced
+<sup><sup>[↩ Parent](#flowcollectorspecprocessorinformers)</sup></sup>
+
+
+
+`advanced` allows setting some technical parameters of the informers component.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>batchSize</b></td>
+        <td>integer</td>
+        <td>
+          `batchSize` defines the maximum number of cache entries to send in a single update batch.<br/>
+          <br/>
+            <i>Default</i>: 100<br/>
+            <i>Minimum</i>: 1<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>processorPort</b></td>
+        <td>integer</td>
+        <td>
+          `processorPort` defines the gRPC port where flowlogs-pipeline processors listen for k8s cache updates.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Default</i>: 9090<br/>
+            <i>Minimum</i>: 1<br/>
+            <i>Maximum</i>: 65535<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>resyncInterval</b></td>
+        <td>integer</td>
+        <td>
+          `resyncInterval` defines the interval in seconds to rediscover processors and sync state.<br/>
+          <br/>
+            <i>Default</i>: 60<br/>
+            <i>Minimum</i>: 1<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>sendTimeout</b></td>
+        <td>integer</td>
+        <td>
+          `sendTimeout` defines the timeout in seconds for sending updates to processors.<br/>
+          <br/>
+            <i>Default</i>: 10<br/>
+            <i>Minimum</i>: 1<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>updateBufferSize</b></td>
+        <td>integer</td>
+        <td>
+          `updateBufferSize` defines the size of the internal update channel buffer.<br/>
+          <br/>
+            <i>Default</i>: 100<br/>
+            <i>Minimum</i>: 1<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### FlowCollector.spec.processor.informers.resources
+<sup><sup>[↩ Parent](#flowcollectorspecprocessorinformers)</sup></sup>
+
+
+
+`resources` are the compute resources required by the informers container.
+For more information, see https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#flowcollectorspecprocessorinformersresourcesclaimsindex">claims</a></b></td>
+        <td>[]object</td>
+        <td>
+          Claims lists the names of resources, defined in spec.resourceClaims,
+that are used by this container.
+
+This field depends on the
+DynamicResourceAllocation feature gate.
+
+This field is immutable. It can only be set for containers.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>limits</b></td>
+        <td>map[string]int or string</td>
+        <td>
+          Limits describes the maximum amount of compute resources allowed.
+More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>requests</b></td>
+        <td>map[string]int or string</td>
+        <td>
+          Requests describes the minimum amount of compute resources required.
+If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+otherwise to an implementation-defined value. Requests cannot exceed Limits.
+More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### FlowCollector.spec.processor.informers.resources.claims[index]
+<sup><sup>[↩ Parent](#flowcollectorspecprocessorinformersresources)</sup></sup>
+
+
+
+ResourceClaim references one entry in PodSpec.ResourceClaims.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name must match the name of one entry in pod.spec.resourceClaims of
+the Pod where this field is used. It makes that resource available
+inside a container.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>request</b></td>
+        <td>string</td>
+        <td>
+          Request is the name chosen for a request in the referenced claim.
+If empty, everything from the claim is made available, otherwise
+only the result of this request.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
