@@ -1,0 +1,16 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Connect to Delve (Operator Debug)",
+            "type": "go",
+            "request": "attach",
+            "mode": "remote",
+            "remotePath": "${workspaceFolder}",
+            "port": 2345,
+            "host": "localhost",
+            "showLog": true,
+            "trace": "verbose"
+        }
+    ]
+}
