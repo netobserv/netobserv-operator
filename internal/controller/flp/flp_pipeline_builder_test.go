@@ -270,10 +270,10 @@ func TestMergeMetricsConfiguration_WithAdditionalList_Dedup(t *testing.T) {
 
 	cfg := getConfig()
 	cfg.Processor.Metrics.AdditionalIncludeList = &[]flowslatest.FLPMetric{
-		"node_ingress_bytes_total",        // Already in defaults
-		"namespace_egress_bytes_total",    // New metric
-		"namespace_egress_bytes_total",    // Duplicate in additional
-		"node_ingress_bytes_total",        // Duplicate overlap with default
+		"node_ingress_bytes_total",     // Already in defaults
+		"namespace_egress_bytes_total", // New metric
+		"namespace_egress_bytes_total", // Duplicate in additional
+		"node_ingress_bytes_total",     // Duplicate overlap with default
 	}
 
 	names, cfs := buildAndGetMetricNames(t, &cfg)

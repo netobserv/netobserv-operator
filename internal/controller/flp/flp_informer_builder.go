@@ -155,7 +155,8 @@ func (b *informerBuilder) deployment() (*appsv1.Deployment, error) {
 				Name: "POD_NAMESPACE",
 				ValueFrom: &corev1.EnvVarSource{
 					FieldRef: &corev1.ObjectFieldSelector{
-						FieldPath: "metadata.namespace",
+						APIVersion: "v1",
+						FieldPath:  "metadata.namespace",
 					},
 				},
 			},
@@ -163,7 +164,8 @@ func (b *informerBuilder) deployment() (*appsv1.Deployment, error) {
 				Name: "POD_NAME",
 				ValueFrom: &corev1.EnvVarSource{
 					FieldRef: &corev1.ObjectFieldSelector{
-						FieldPath: "metadata.name",
+						APIVersion: "v1",
+						FieldPath:  "metadata.name",
 					},
 				},
 			},
