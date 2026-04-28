@@ -267,6 +267,7 @@ type PodMetricsEndpoint struct {
 
 	// params define optional HTTP URL parameters.
 	// +optional
+	//nolint:kubeapilinter
 	Params map[string][]string `json:"params,omitempty"`
 
 	// interval at which Prometheus scrapes the metrics from the target.
@@ -286,13 +287,13 @@ type PodMetricsEndpoint struct {
 	// honorLabels when true preserves the metric's labels when they collide
 	// with the target's labels.
 	// +optional
-	HonorLabels bool `json:"honorLabels,omitempty"`
+	HonorLabels bool `json:"honorLabels,omitempty"` // nolint:kubeapilinter
 
 	// honorTimestamps defines whether Prometheus preserves the timestamps
 	// when exposed by the target.
 	//
 	// +optional
-	HonorTimestamps *bool `json:"honorTimestamps,omitempty"`
+	HonorTimestamps *bool `json:"honorTimestamps,omitempty"` // nolint:kubeapilinter
 
 	// trackTimestampsStaleness defines whether Prometheus tracks staleness of
 	// the metrics that have an explicit timestamp present in scraped data.
@@ -301,7 +302,7 @@ type PodMetricsEndpoint struct {
 	// It requires Prometheus >= v2.48.0.
 	//
 	// +optional
-	TrackTimestampsStaleness *bool `json:"trackTimestampsStaleness,omitempty"`
+	TrackTimestampsStaleness *bool `json:"trackTimestampsStaleness,omitempty"` // nolint:kubeapilinter
 
 	// metricRelabelings defines the relabeling rules to apply to the
 	// samples before ingestion.
@@ -329,7 +330,7 @@ type PodMetricsEndpoint struct {
 	// More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-phase
 	//
 	// +optional
-	FilterRunning *bool `json:"filterRunning,omitempty"`
+	FilterRunning *bool `json:"filterRunning,omitempty"` // nolint:kubeapilinter
 
-	HTTPConfig `json:",inline"`
+	HTTPConfigWithProxy `json:",inline"`
 }
