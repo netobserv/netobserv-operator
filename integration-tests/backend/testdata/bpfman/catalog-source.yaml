@@ -1,0 +1,23 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: bpfman-catalog-source-template
+objects:
+- apiVersion: operators.coreos.com/v1alpha1
+  kind: CatalogSource
+  metadata:
+    name: "${CATALOG_NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    displayName: eBPF Manager Konflux
+    image: "${IMAGE}"
+    sourceType: grpc
+    grpcPodConfig:
+      securityContextConfig: legacy
+parameters:
+- name: CATALOG_NAME
+  value: "bpfman-konflux-fbc"
+- name: IMAGE
+  value: "quay.io/redhat-user-workloads/ocp-bpfman-tenant/catalog-ystream:latest"
+- name: NAMESPACE
+  value: openshift-marketplace

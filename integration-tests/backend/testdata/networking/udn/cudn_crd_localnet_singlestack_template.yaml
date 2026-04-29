@@ -1,0 +1,30 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: cudn-crd-localnet-singlestack-template
+objects:
+  - apiVersion: k8s.ovn.org/v1
+    kind: ClusterUserDefinedNetwork
+    metadata:
+      name: "${CRDNAME}"
+    spec:
+      namespaceSelector:
+        matchLabels:
+          "${LABELKEY}": "${LABELVALUE}"
+      network:
+        topology: Localnet
+        localnet:
+          role: "${ROLE}"
+          physicalNetworkName: "${PHYSICALNETWORK}"
+          subnets:
+          - ${{SUBNET}}
+          excludeSubnets:
+          - ${{EXCLUDESUBNET}}
+parameters:
+- name: CRDNAME
+- name: LABELVALUE
+- name: LABELKEY
+- name: ROLE
+- name: PHYSICALNETWORK
+- name: SUBNET
+- name: EXCLUDESUBNET

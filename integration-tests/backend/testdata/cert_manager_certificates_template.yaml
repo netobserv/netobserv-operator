@@ -1,0 +1,66 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: netobserv-certificates-template
+objects:
+  - apiVersion: cert-manager.io/v1
+    kind: Issuer
+    metadata:
+      name: netobserv-self-signed
+      namespace: "${Namespace}"
+    spec:
+      selfSigned: {}
+  - apiVersion: cert-manager.io/v1
+    kind: Certificate
+    metadata:
+      name: netobserv-ca
+      namespace: "${Namespace}"
+    spec:
+      isCA: true
+      commonName: netobserv-ca
+      secretName: prov-netobserv-ca-secret
+      privateKey:
+        algorithm: ECDSA
+        size: 256
+      issuerRef:
+        name: netobserv-self-signed
+        kind: Issuer
+        group: cert-manager.io
+  - apiVersion: cert-manager.io/v1
+    kind: Issuer
+    metadata:
+      name: netobserv-issuer
+      namespace: "${Namespace}"
+    spec:
+      ca:
+        secretName: prov-netobserv-ca-secret
+  - apiVersion: cert-manager.io/v1
+    kind: Certificate
+    metadata:
+      name: flowlogs-pipeline-cert
+      namespace: "${Namespace}"
+    spec:
+      secretName: prov-flowlogs-pipeline-cert
+      dnsNames:
+      - flowlogs-pipeline.${Namespace}.svc
+      - flowlogs-pipeline.${Namespace}.svc.cluster.local
+      issuerRef:
+        name: netobserv-issuer
+        kind: Issuer
+        group: cert-manager.io
+  - apiVersion: cert-manager.io/v1
+    kind: Certificate
+    metadata:
+      name: ebpf-agent-cert
+      namespace: "${Namespace}"
+    spec:
+      secretName: prov-ebpf-agent-cert
+      commonName: netobserv-ebpf-agent
+      issuerRef:
+        name: netobserv-issuer
+        kind: Issuer
+        group: cert-manager.io
+parameters:
+  - name: Namespace
+    description: "namespace where certificates will be created"
+    value: "netobserv"

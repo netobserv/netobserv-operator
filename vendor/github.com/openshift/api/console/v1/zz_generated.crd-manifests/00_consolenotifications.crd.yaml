@@ -70,9 +70,9 @@ spec:
                 description: link is an object that holds notification link details.
                 properties:
                   href:
-                    description: href is the absolute secure URL for the link (must
-                      use https)
-                    pattern: ^https://
+                    description: 'href is the absolute URL for the link. Must use
+                      https:// for web URLs or mailto: for email links.'
+                    pattern: ^(https://|mailto:)
                     type: string
                   text:
                     description: text is the display text for the link

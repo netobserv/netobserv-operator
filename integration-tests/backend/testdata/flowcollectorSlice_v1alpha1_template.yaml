@@ -1,0 +1,23 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: flowcollectorslice-template
+objects:
+  - apiVersion: flows.netobserv.io/v1alpha1
+    kind: FlowCollectorSlice
+    metadata:
+      name: "${Name}"
+      namespace: "${Namespace}"
+    spec:
+      sampling: ${{Sampling}}
+      subnetLabels: "${{SubnetLabels}}"
+parameters:
+  - name: Name
+    value: "slice-sample"
+  - name: Namespace
+    description: "namespace where you want flowCollectorSlice to be deployed"
+    value: "netobserv"
+  - name: Sampling
+    value: "1"
+  - name: SubnetLabels
+    value: '[]'

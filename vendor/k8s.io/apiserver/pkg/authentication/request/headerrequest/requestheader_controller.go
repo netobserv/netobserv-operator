@@ -183,7 +183,7 @@ func (c *RequestHeaderAuthRequestController) Run(ctx context.Context, workers in
 	go c.configmapInformer.Run(ctx.Done())
 
 	// wait for caches to fill before starting your work
-	if !cache.WaitForNamedCacheSyncWithContext(ctx, c.configmapInformerSynced) {
+	if !cache.WaitForNamedCacheSync(c.name, ctx.Done(), c.configmapInformerSynced) {
 		return
 	}
 

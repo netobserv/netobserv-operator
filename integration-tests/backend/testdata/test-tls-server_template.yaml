@@ -1,0 +1,123 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: netobserv-test-tls-server
+objects:
+- apiVersion: v1
+  kind: Namespace
+  metadata:
+    name: ${SERVER_NS}
+    labels:
+      name: ${SERVER_NS}
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: nginx-tls-config
+    namespace: ${SERVER_NS}
+  data:
+    nginx.conf: |
+      events {
+          worker_connections 1024;
+      }
+      http {
+          server {
+              listen 8080;
+              location / {
+                  return 200 'HTTP OK - Non-TLS\n';
+                  add_header Content-Type text/plain;
+              }
+          }
+          server {
+              listen 8443 ssl;
+              ssl_certificate /etc/nginx/ssl/tls.crt;
+              ssl_certificate_key /etc/nginx/ssl/tls.key;
+              ssl_protocols TLSv1.2 TLSv1.3;
+              ssl_ecdh_curve X25519:P-256;
+              location / {
+                  return 200 'HTTPS OK - TLS Enabled\n';
+                  add_header Content-Type text/plain;
+              }
+          }
+      }
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: tls-server
+    namespace: ${SERVER_NS}
+    labels:
+      app: tls-server
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: tls-server
+    template:
+      metadata:
+        labels:
+          app: tls-server
+      spec:
+        securityContext:
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+        initContainers:
+        - name: cert-generator
+          image: registry.access.redhat.com/ubi9/ubi:latest
+          command:
+            - /bin/bash
+            - -c
+            - |
+              openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+                -keyout /etc/nginx/ssl/tls.key -out /etc/nginx/ssl/tls.crt \
+                -subj "/CN=tls-server.${SERVER_NS}.svc.cluster.local"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+          - name: ssl-certs
+            mountPath: /etc/nginx/ssl
+        containers:
+        - name: nginx
+          image: quay.io/openshifttest/nginx-alpine:1.2.3
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          ports:
+          - containerPort: 8080
+            name: http
+          - containerPort: 8443
+            name: https
+          volumeMounts:
+          - name: nginx-config
+            mountPath: /etc/nginx/nginx.conf
+            subPath: nginx.conf
+          - name: ssl-certs
+            mountPath: /etc/nginx/ssl
+        volumes:
+        - name: nginx-config
+          configMap:
+            name: nginx-tls-config
+        - name: ssl-certs
+          emptyDir: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    namespace: ${SERVER_NS}
+    name: tls-server-service
+  spec:
+    selector:
+      app: tls-server
+    ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 8080
+    - name: https
+      protocol: TCP
+      port: 443
+      targetPort: 8443
+parameters:
+- name: SERVER_NS
+  value: test-tls-server

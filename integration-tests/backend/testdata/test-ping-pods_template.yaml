@@ -1,0 +1,76 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: netobserv-test-ping-pods
+objects:
+- apiVersion: v1
+  kind: Namespace
+  metadata:
+    name: ${SERVER_NS}
+    labels:
+      name: ${SERVER_NS}
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    creationTimestamp: null
+    labels:
+      run: ${SERVER_POD_NAME}
+    name: ${SERVER_POD_NAME}
+    namespace: ${SERVER_NS}
+  spec:
+    containers:
+    - command:
+        - sh
+        - -c
+        - |
+          for target in ${PING_TARGETS}; do
+            ping $target &
+          done
+          wait
+      image: quay.io/openshifttest/hello-openshift:1.2.0
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      name: ${SERVER_POD_NAME}
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    creationTimestamp: null
+    labels:
+      run: ${CLIENT_POD_NAME}
+    name: ${CLIENT_POD_NAME}
+    namespace: ${CLIENT_NS}
+  spec:
+    containers:
+    - command:
+        - sh
+        - -c
+        - |
+          for target in ${PING_TARGETS}; do
+            ping $target &
+          done
+          wait
+      image: quay.io/openshifttest/hello-openshift:1.2.0
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      name: ${CLIENT_POD_NAME}
+parameters:
+- name: SERVER_POD_NAME
+  value: ping-server
+- name: CLIENT_POD_NAME
+  value: ping-client
+- name: SERVER_NS
+  value: test-ping-server
+- name: CLIENT_NS
+  value: test-ping-client
+- name: PING_TARGETS
+  value: "8.8.8.8"

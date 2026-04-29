@@ -88,7 +88,7 @@ spec:
                     description: |-
                       capabilities defines an array of capabilities that can be interacted with in the console UI.
                       Each capability defines a visual state that can be interacted with the console to render in the UI.
-                      Available capabilities are LightspeedButton and GettingStartedBanner.
+                      Available capabilities are LightspeedButton, GettingStartedBanner, and GuidedTour.
                       Each of the available capabilities may appear only once in the list.
                     items:
                       description: Capabilities contains set of UI capabilities and
@@ -97,10 +97,11 @@ spec:
                         name:
                           description: |-
                             name is the unique name of a capability.
-                            Available capabilities are LightspeedButton and GettingStartedBanner.
+                            Available capabilities are LightspeedButton, GettingStartedBanner, and GuidedTour.
                           enum:
                           - LightspeedButton
                           - GettingStartedBanner
+                          - GuidedTour
                           type: string
                         visibility:
                           description: visibility defines the visibility state of
@@ -122,7 +123,7 @@ spec:
                       - name
                       - visibility
                       type: object
-                    maxItems: 2
+                    maxItems: 3
                     minItems: 1
                     type: array
                     x-kubernetes-list-map-keys:
@@ -480,11 +481,9 @@ spec:
                                       the Authorizer interface
                                     properties:
                                       fieldSelector:
-                                        description: |-
-                                          fieldSelector describes the limitation on access based on field.  It can only limit access, not broaden it.
-
-                                          This field  is alpha-level. To use this field, you must enable the
-                                          `AuthorizeWithSelectors` feature gate (disabled by default).
+                                        description: fieldSelector describes the limitation
+                                          on access based on field.  It can only limit
+                                          access, not broaden it.
                                         properties:
                                           rawSelector:
                                             description: |-
@@ -536,11 +535,9 @@ spec:
                                           Resource.  "*" means all.
                                         type: string
                                       labelSelector:
-                                        description: |-
-                                          labelSelector describes the limitation on access based on labels.  It can only limit access, not broaden it.
-
-                                          This field  is alpha-level. To use this field, you must enable the
-                                          `AuthorizeWithSelectors` feature gate (disabled by default).
+                                        description: labelSelector describes the limitation
+                                          on access based on labels.  It can only
+                                          limit access, not broaden it.
                                         properties:
                                           rawSelector:
                                             description: |-
@@ -631,11 +628,9 @@ spec:
                                       the Authorizer interface
                                     properties:
                                       fieldSelector:
-                                        description: |-
-                                          fieldSelector describes the limitation on access based on field.  It can only limit access, not broaden it.
-
-                                          This field  is alpha-level. To use this field, you must enable the
-                                          `AuthorizeWithSelectors` feature gate (disabled by default).
+                                        description: fieldSelector describes the limitation
+                                          on access based on field.  It can only limit
+                                          access, not broaden it.
                                         properties:
                                           rawSelector:
                                             description: |-
@@ -687,11 +682,9 @@ spec:
                                           Resource.  "*" means all.
                                         type: string
                                       labelSelector:
-                                        description: |-
-                                          labelSelector describes the limitation on access based on labels.  It can only limit access, not broaden it.
-
-                                          This field  is alpha-level. To use this field, you must enable the
-                                          `AuthorizeWithSelectors` feature gate (disabled by default).
+                                        description: labelSelector describes the limitation
+                                          on access based on labels.  It can only
+                                          limit access, not broaden it.
                                         properties:
                                           rawSelector:
                                             description: |-

@@ -216,14 +216,10 @@ spec:
                     - repository
                     type: object
                   type:
-                    allOf:
-                    - enum:
-                      - GitImport
-                      - ContainerImport
-                    - enum:
-                      - GitImport
-                      - ContainerImport
                     description: 'type of the sample, currently supported: "GitImport";"ContainerImport"'
+                    enum:
+                    - GitImport
+                    - ContainerImport
                     type: string
                 required:
                 - type

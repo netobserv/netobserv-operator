@@ -337,12 +337,15 @@ fmt: ## Run go fmt against code.
 	go fmt ./...
 
 .PHONY: lint
-lint: prereqs ## Run linter (golangci-lint).
+lint: prereqs ## Run linter (golangci-lint)
 	@echo "### Linting code"
-	./bin/golangci-lint-${GOLANGCI_LINT_VERSION} run --timeout 5m ./...
+	./bin/golangci-lint-${GOLANGCI_LINT_VERSION} --config .golangci.yml run --timeout 15m ./...
+
+lint-e2e: prereqs ## Run linter (golangci-lint) on the e2e tests only
+	./bin/golangci-lint-${GOLANGCI_LINT_VERSION} --config .golangci-e2e.yaml run --timeout 15m integration-tests/backend
 
 test: envtest ## Run tests.
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverpkg=./... -coverprofile cover.out
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test $$(go list ./... | grep -v integration-tests/backend) -coverpkg=$$(go list ./... | grep -v integration-tests/backend | tr '\n' ',') -coverprofile cover.out
 
 coverage-report: ## Generate coverage report
 	go tool cover --func=./cover.out

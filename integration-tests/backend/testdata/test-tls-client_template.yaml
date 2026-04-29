@@ -1,0 +1,47 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: netobserv-test-tls-client
+objects:
+- apiVersion: v1
+  kind: Namespace
+  metadata:
+    name: ${CLIENT_NS}
+    labels:
+      name: ${CLIENT_NS}
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    labels:
+      run: tls-client
+    name: tls-client
+    namespace: ${CLIENT_NS}
+  spec:
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+    containers:
+    - name: client
+      image: quay.io/openshifttest/hello-openshift:1.2.0
+      command:
+        - sh
+        - -c
+        - |
+          while : ; do
+            curl -sk --tlsv1.3 https://tls-server-service.${SERVER_NS}.svc:443/ 2>&1 > /dev/null
+            sleep 5
+            curl -sk --tlsv1.2 --tls-max 1.2 https://tls-server-service.${SERVER_NS}.svc:443/ 2>&1 > /dev/null
+            sleep 5
+            curl -s http://tls-server-service.${SERVER_NS}.svc:80/ 2>&1 > /dev/null
+            sleep 5
+          done
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]
+parameters:
+- name: SERVER_NS
+  value: test-tls-server
+- name: CLIENT_NS
+  value: test-tls-client

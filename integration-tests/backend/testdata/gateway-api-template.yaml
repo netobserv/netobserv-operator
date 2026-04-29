@@ -1,0 +1,97 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: gateway-api-resources
+objects:
+- apiVersion: v1
+  kind: Namespace
+  metadata:
+    name: ${NAMESPACE}
+    labels:
+      app: ${NAMESPACE_LABEL}
+- apiVersion: gateway.networking.k8s.io/v1
+  kind: GatewayClass
+  metadata:
+    name: openshift-default
+  spec:
+    controllerName: openshift.io/gateway-controller/v1
+- apiVersion: gateway.networking.k8s.io/v1
+  kind: Gateway
+  metadata:
+    name: ${GATEWAY_NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    gatewayClassName: openshift-default
+    listeners:
+    - name: demo
+      hostname: ${HOSTNAME}
+      port: 80
+      protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              app: ${NAMESPACE_LABEL}
+- apiVersion: gateway.networking.k8s.io/v1
+  kind: HTTPRoute
+  metadata:
+    name: ${HTTPROUTE_NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    parentRefs:
+    - name: ${GATEWAY_NAME}
+      namespace: ${NAMESPACE}
+    hostnames: ["${HOSTNAME}"]
+    rules:
+    - backendRefs:
+      - name: service-unsecure
+        port: 27017
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: traffic-generator
+    namespace: ${NAMESPACE}
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: traffic-generator
+    template:
+      metadata:
+        labels:
+          app: traffic-generator
+      spec:
+        containers:
+        - name: traffic-gen
+          image: registry.access.redhat.com/ubi8/ubi-minimal
+          command:
+          - /bin/sh
+          - -c
+          - |
+            while true; do
+              curl -s http://${GATEWAY_NAME}-openshift-default.${NAMESPACE}.svc.cluster.local:8080 || true
+              wget -q -O- http://${GATEWAY_NAME}-openshift-default.${NAMESPACE}.svc.cluster.local:8080 || true
+              sleep 5
+            done
+parameters:
+  - name: GATEWAY_NAME
+    description: Name of the Gateway resource
+    value: test-gateway-owner
+    required: true
+  - name: HTTPROUTE_NAME
+    description: Name of the HTTPRoute resource
+    value: test-httproute
+    required: true
+  - name: NAMESPACE
+    description: Namespace for Gateway and HTTPRoute resources
+    value: netobserv-gateway-test
+    required: true
+  - name: HOSTNAME
+    description: Hostname for the Gateway listener and HTTPRoute
+    value: gwapi.example.com
+    required: true
+  - name: NAMESPACE_LABEL
+    description: Label value for namespace app label
+    value: gwapi
+    required: true

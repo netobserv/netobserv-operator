@@ -1,0 +1,21 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: kubenetes-nmstate-catalogsource-template
+objects:
+- apiVersion: operators.coreos.com/v1alpha1
+  kind: CatalogSource
+  metadata:
+    name: "${CATALOGSOURCENAME}"
+    namespace: "${CATALOGNAMESPACE}"
+  spec:
+    displayName: Kubernetes nmstate FBC Operator Catalog
+    image: "${IMAGE}"
+    sourceType: grpc
+    updateStrategy:
+      registryPoll:
+        interval: 10m
+parameters:
+- name: CATALOGSOURCENAME
+- name: CATALOGNAMESPACE
+- name: IMAGE

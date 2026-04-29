@@ -1,0 +1,47 @@
+version: "2"
+run:
+  go: "1.23"
+  skip-dirs:
+    - api
+    - cmd
+    - config
+    - docs
+    - hack
+    - internal
+    - pkg
+    - vendor
+linters:
+  enable:
+    - copyloopvar
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+    rules:
+      - linters:
+        - staticcheck
+        text: "QF1003:"
+      - linters:
+        - staticcheck
+        text: "QF1008:"
+formatters:
+  enable:
+    - gofmt
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

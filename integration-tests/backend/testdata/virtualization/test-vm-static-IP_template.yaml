@@ -1,0 +1,79 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: virtual-machine-static-ip-template
+objects:
+- apiVersion: kubevirt.io/v1
+  kind: VirtualMachine
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    instancetype:
+      name: u1.medium
+    preference:
+      name: rhel.9
+    runStrategy: Always
+    template:
+      spec:
+        architecture: amd64
+        domain:
+          devices:
+            disks:
+              - disk:
+                  bus: virtio
+                name: rootdisk
+              - disk:
+                  bus: virtio
+                name: cloudinitdisk
+            interfaces:
+              - name: default
+                masquerade: {}
+              - name: secondary
+                bridge: {}
+                macAddress: ${MAC}
+            networkInterfaceMultiqueue: true
+            rng: {}
+          resources: {}
+        hostname: ${NAME}
+        terminationGracePeriodSeconds: 180
+        volumes:
+          - containerDisk:
+              image: quay.io/containerdisks/fedora
+            name: rootdisk
+          - cloudInitNoCloud:
+              networkData: |
+                network:
+                  version: 2
+                  ethernets:
+                    eth1:
+                      match:
+                        macaddress: ${MAC}
+                      addresses:
+                      - ${STATIC_IP}
+              userData: |-
+                #cloud-config
+                user: cloud-user
+                password: byje-7cd2-i8et
+                chpasswd: { expire: False }
+                runcmd: ${RUN_CMD}
+            name: cloudinitdisk
+        networks:
+          - name: default
+            pod: {}
+          - multus:
+              networkName: ${NETWORK_NAME}
+            name: secondary
+parameters:
+- name: NAME
+  value: "test-vm1"
+- name: NAMESPACE
+  value: "test-76537"
+- name: NETWORK_NAME
+  value: "l2-network"
+- name: MAC
+  value: "02:00:00:00:00:01"
+- name: STATIC_IP
+  value: "10.10.10.15/24"
+- name: RUN_CMD
+  value: "[[ping, 8.8.8.8]]"

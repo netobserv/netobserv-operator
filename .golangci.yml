@@ -38,6 +38,7 @@ linters:
       - third_party$
       - builtin$
       - examples$
+      - integration-tests/backend
     rules:
       - linters:
         - staticcheck
@@ -54,3 +55,4 @@ formatters:
       - third_party$
       - builtin$
       - examples$
+      - integration-tests/backend

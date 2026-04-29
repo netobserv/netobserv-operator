@@ -1,0 +1,21 @@
+apiVersion: config.openshift.io/v1
+kind: ImageDigestMirrorSet
+metadata:
+  name: kubernetes-nmstate-images-mirror-set
+spec:
+  imageDigestMirrors:
+  - mirrors:
+    - quay.io/redhat-user-workloads/ocp-art-tenant/art-images-share
+    source: registry.redhat.io/openshift4/kubernetes-nmstate-operator-bundle
+  - mirrors:
+    - quay.io/redhat-user-workloads/ocp-art-tenant/art-images-share
+    source: registry.redhat.io/openshift4/kubernetes-nmstate-rhel9-operator
+  - mirrors:
+    - quay.io/redhat-user-workloads/ocp-art-tenant/art-images-share
+    source: registry.redhat.io/openshift4/nmstate-console-plugin-rhel9
+  - mirrors:
+    - quay.io/redhat-user-workloads/ocp-art-tenant/art-images-share
+    source: registry.redhat.io/openshift4/ose-kube-rbac-proxy-rhel9
+  - mirrors:
+    - quay.io/redhat-user-workloads/ocp-art-tenant/art-images-share
+    source: registry.redhat.io/openshift4/ose-kubernetes-nmstate-handler-rhel9

@@ -1,0 +1,63 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: virtual-machine-udn-template
+objects:
+- apiVersion: kubevirt.io/v1
+  kind: VirtualMachine
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    instancetype:
+      kind: virtualmachineclusterinstancetype
+      name: u1.medium
+    preference:
+      kind: virtualmachineclusterpreference
+      name: rhel.9
+    runStrategy: Always
+    template:
+      spec:
+        architecture: amd64
+        domain:
+          devices:
+            disks:
+              - disk:
+                  bus: virtio
+                name: rootdisk
+              - disk:
+                  bus: virtio
+                name: cloudinitdisk
+            interfaces:
+              - binding:
+                  name: l2bridge
+                name: ${NETWORK_NAME}
+            networkInterfaceMultiqueue: true
+            rng: {}
+          resources: {}
+        hostname: ${NAME}
+        networks:
+          - name: ${NETWORK_NAME}
+            pod: {}
+        terminationGracePeriodSeconds: 180
+        volumes:
+          - containerDisk:
+              image: quay.io/containerdisks/fedora
+            name: rootdisk
+          - cloudInitNoCloud:
+              userData: |-
+                #cloud-config
+                user: cloud-user
+                password: byje-7cd2-i8et
+                chpasswd: { expire: False }
+                runcmd: ${RUN_CMD}
+            name: cloudinitdisk
+parameters:
+- name: NAME
+  value: "test-vm3"
+- name: NAMESPACE
+  value: "netobserv-udn-85887"
+- name: NETWORK_NAME
+  value: "udn-network-85887"
+- name: RUN_CMD
+  value: "[[ping, 8.8.8.8]]"
