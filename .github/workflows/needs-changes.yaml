@@ -1,0 +1,64 @@
+name: PR Review Label Management
+
+on:
+  pull_request_review:
+    types: [submitted]
+  issue_comment:
+    types: [created]
+  pull_request_target:
+    types: [labeled]
+
+jobs:
+  manage-review-labels:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Handle review submission
+        if: github.event_name == 'pull_request_review'
+        run: |
+          echo "Event name: ${{ github.event_name }}"
+          echo "PR number: ${{ github.event.pull_request.number }}"
+          echo "Review state: ${{ github.event.review.state }}"
+          echo "Repository: ${{ github.repository }}"
+          
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          REVIEW_STATE="${{ github.event.review.state }}"
+          
+          # Remove needs-review label when any review is submitted
+          echo "Removing needs-review label"
+          gh pr edit $PR_NUMBER --remove-label needs-review || echo "needs-review label not found or already removed"
+          
+          # Add needs-changes label for non-approved reviews
+          if [[ "$REVIEW_STATE" == "changes_requested" ]] || [[ "$REVIEW_STATE" == "commented" ]]; then
+            echo "Adding needs-changes label for $REVIEW_STATE review"
+            gh pr edit $PR_NUMBER --add-label needs-changes || echo "Failed to add needs-changes label or label already exists"
+          else
+            echo "Review state $REVIEW_STATE does not trigger needs-changes label"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+
+      - name: Handle manual needs-changes via comment
+        if: github.event_name == 'issue_comment' && github.event.issue.pull_request
+        run: |
+          COMMENT_BODY="${{ github.event.comment.body }}"
+          COMMENT_LOWER=$(echo "$COMMENT_BODY" | tr '[:upper:]' '[:lower:]')
+          
+          if [[ "$COMMENT_LOWER" == *"needs-changes"* ]] || [[ "$COMMENT_LOWER" == *"/needs-changes"* ]]; then
+            echo "Adding needs-changes label via comment"
+            gh pr edit ${{ github.event.issue.number }} --add-label needs-changes || echo "Failed to add needs-changes label or label already exists"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+
+      - name: Remove needs-changes when lgtm is added
+        if: github.event_name == 'pull_request_target' && github.event.action == 'labeled' && github.event.label.name == 'lgtm'
+        run: |
+          echo "Removing needs-changes label when lgtm was added"
+          gh pr edit ${{ github.event.pull_request.number }} --remove-label needs-changes || echo "needs-changes label not found or already removed"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
