@@ -52,11 +52,13 @@ func (l lokiStack) deployLokiStack(oc *exutil.CLI) error {
 				} else {
 					parameters = append(parameters, fmt.Sprintf("%s=%s", lokistack.Type().Field(i).Name, lokistack.Field(i).Interface()))
 				}
+			} else {
+				if lokistack.Type().Field(i).Name == "Template" {
+					continue
+				} else {
+					parameters = append(parameters, fmt.Sprintf("%s=%s", lokistack.Type().Field(i).Name, lokistack.Field(i).Interface()))
+				}
 			}
-			if lokistack.Type().Field(i).Name == "Template" {
-				continue
-			}
-			parameters = append(parameters, fmt.Sprintf("%s=%s", lokistack.Type().Field(i).Name, lokistack.Field(i).Interface()))
 		}
 	}
 

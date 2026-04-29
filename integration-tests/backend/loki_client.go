@@ -154,7 +154,7 @@ func (c *lokiClient) withToken(bearerToken string) *lokiClient {
 	return &nc
 }
 
-// buildURL concats a url `http:// foo/bar` with a path `/buzz`.
+// buildURL concats a url `http://foo/bar` with a path `/buzz`.
 func buildURL(u, p, q string) (string, error) {
 	url, err := url.Parse(u)
 	if err != nil {

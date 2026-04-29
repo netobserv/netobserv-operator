@@ -158,8 +158,7 @@ var _ = g.Describe("[sig-netobserv] Network_Observability", func() {
 		}
 	})
 
-	g.It("Author:memodi-High-74977-Verify OTEL exporter [Serial]", func() {
-		SkipIfOCPBelow(4, 13)
+	g.It("Author:memodi-High-74977-Verify OTEL exporter with TLS [Serial]", func() {
 		// don't delete the OTEL Operator at the end of the test
 		g.By("Subscribe to OTEL Operator")
 		OtelNS.DeployOperatorNamespace(oc)
@@ -169,46 +168,61 @@ var _ = g.Describe("[sig-netobserv] Network_Observability", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect((OTELStatus)).To(o.BeTrue())
 
-		g.By("Create OTEL Collector")
-		otelCollectorTemplatePath := filePath.Join(baseDir, "exporters", "otel-collector.yaml")
+		g.By("Create OTEL Collector with TLS enabled")
+		otelCollectorTemplatePath := filePath.Join(baseDir, "exporters", "otel-collector-tls.yaml")
 		otlpEndpoint := 4317
 		promEndpoint := "8889"
 		collectorname := "otel"
 		compat_otp.ApplyNsResourceFromTemplate(oc, namespace, "-f", otelCollectorTemplatePath, "-p", "NAME="+collectorname, "OTLP_GRPC_ENDPOINT="+strconv.Itoa(otlpEndpoint), "OTLP_PROM_PORT="+promEndpoint)
 		otelPodLabel := "app.kubernetes.io/component=opentelemetry-collector"
 		defer func() {
-			_ = oc.AsAdmin().WithoutNamespace().Run("delete").Args("opentelemetrycollector", collectorname, "-n", namespace).Execute()
+			oc.AsAdmin().WithoutNamespace().Run("delete").Args("opentelemetrycollector", collectorname, "-n", namespace).Execute()
+			oc.AsAdmin().WithoutNamespace().Run("delete").Args("service", collectorname+"-collector", "-n", namespace).Execute()
+			oc.AsAdmin().WithoutNamespace().Run("delete").Args("configmap", "service-ca", "-n", namespace).Execute()
 		}()
 		WaitForPodsReadyWithLabel(oc, namespace, otelPodLabel)
 
-		targetHost := fmt.Sprintf("otel-collector-headless.%s.svc", namespace)
-		otelConfig := map[string]interface{}{
+		g.By("Wait for service-ca configmap to be injected with CA bundle")
+		waitForConfigMapDataInjection(oc, namespace, "service-ca", "service-ca.crt")
+
+		targetHost := fmt.Sprintf("%s-collector.%s.svc", collectorname, namespace)
+		otel_config := map[string]interface{}{
 			"openTelemetry": map[string]interface{}{
 				"logs": map[string]bool{"enable": true},
 				"metrics": map[string]interface{}{"enable": true,
 					"pushTimeInterval": "20s"},
 				"targetHost": targetHost,
 				"targetPort": otlpEndpoint,
+				"protocol":   "grpc",
+				"tls": map[string]interface{}{
+					"enable":             true,
+					"insecureSkipVerify": false,
+					"caCert": map[string]interface{}{
+						"type":     "configmap",
+						"name":     "service-ca",
+						"certFile": "service-ca.crt",
+					},
+				},
 			},
 			"type": "OpenTelemetry",
 		}
-		config, err := json.Marshal(otelConfig)
+		config, err := json.Marshal(otel_config)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		configStr := string(config)
+		config_str := string(config)
 
-		g.By("Deploy FlowCollector with Loki disabled")
+		g.By("Deploy FlowCollector with OTEL TLS exporter and Loki disabled")
 		flow := Flowcollector{
 			Namespace:     namespace,
 			Template:      flowFixturePath,
 			LokiEnable:    "false",
 			LokiNamespace: namespace,
-			Exporters:     []string{configStr},
+			Exporters:     []string{config_str},
 		}
 
-		defer func() { _ = flow.DeleteFlowcollector(oc) }()
+		defer flow.DeleteFlowcollector(oc)
 		flow.CreateFlowcollector(oc)
 
-		g.By("Verify OTEL pods are receiving the logs")
+		g.By("Verify OTEL collector is receiving TLS-encrypted flows")
 		otelCollectorPod, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("pods", "-n", namespace, "-l", otelPodLabel, "-o=jsonpath={.items[0].metadata.name}").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
