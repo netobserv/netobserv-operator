@@ -5447,6 +5447,12 @@ spec:
                           type: object
                         type: array
                     type: object
+                  bgpEnrichment:
+                    description: |-
+                      `bgpEnrichment` enables BGP ASN enrichment by watching FRRConfiguration CRDs (frrk8s.metallb.io/v1beta1).
+                      When enabled, flows are enriched with `SrcASN` and `DstASN` fields based on longest-prefix match against
+                      advertised prefixes from FRRConfiguration resources. Requires frr-k8s to be installed in the cluster.
+                    type: boolean
                   clusterName:
                     default: ""
                     description: '`clusterName` is the name of the cluster to appear
