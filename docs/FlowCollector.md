@@ -8510,6 +8510,15 @@ such as `GOGC` and `GOMAXPROCS` environment variables. Set these values at your 
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>bgpEnrichment</b></td>
+        <td>boolean</td>
+        <td>
+          `bgpEnrichment` enables BGP ASN enrichment by watching FRRConfiguration CRDs (frrk8s.metallb.io/v1beta1).
+When enabled, flows are enriched with `SrcASN` and `DstASN` fields based on longest-prefix match against
+advertised prefixes from FRRConfiguration resources. Requires frr-k8s to be installed in the cluster.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>clusterName</b></td>
         <td>string</td>
         <td>

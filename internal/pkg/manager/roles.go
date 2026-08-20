@@ -80,4 +80,7 @@ package manager
 // Transitive: operator needs to grant UDN read permission to FLP at the cluster scope
 //+kubebuilder:rbac:groups=k8s.ovn.org,resources=userdefinednetworks;clusteruserdefinednetworks,verbs=get;list;watch
 
+// Transitive: operator needs to grant FRR read permission to FLP for BGP ASN enrichment
+//+kubebuilder:rbac:groups=frrk8s.metallb.io,resources=frrconfigurations,verbs=get;list;watch
+
 //+kubebuilder:rbac:groups=coordination.k8s.io,resources=leases,verbs=get;list;watch;create;update

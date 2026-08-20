@@ -14,8 +14,8 @@ patches:
 - path: manager_webhook_patch.yaml
 images:
 - name: controller
-  newName: quay.io/netobserv/network-observability-operator
-  newTag: 1.12.0-community
+  newName: quay.io/jpinsonn/network-observability-operator
+  newTag: bgp-1
 labels:
 - includeSelectors: true
   pairs:
