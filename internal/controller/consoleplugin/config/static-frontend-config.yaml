@@ -169,6 +169,15 @@ columns:
     default: false
     width: 10
     feature: subnetLabels
+  - id: SrcASN
+    group: Source
+    name: ASN
+    tooltip: Source Autonomous System Number from BGP advertised prefixes.
+    field: SrcASN
+    filter: src_asn
+    default: false
+    width: 10
+    feature: bgpEnrichment
   - id: SrcNetworkName
     group: Source
     name: Network Name
@@ -310,6 +319,15 @@ columns:
     default: false
     width: 10
     feature: subnetLabels
+  - id: DstASN
+    group: Destination
+    name: ASN
+    tooltip: Destination Autonomous System Number from BGP advertised prefixes.
+    field: DstASN
+    filter: dst_asn
+    default: false
+    width: 10
+    feature: bgpEnrichment
   - id: DstNetworkName
     group: Destination
     name: Network Name
@@ -926,6 +944,20 @@ filters:
     placeholder: 'E.g: Pods, Services, ExternalIP'
     hint: Add destination subnet label filter, or an empty string to get unmatched destinations.
     feature: subnetLabels
+  - id: src_asn
+    name: ASN
+    component: autocomplete
+    category: source
+    placeholder: 'E.g: 65001, 64512'
+    hint: Add source Autonomous System Number filter.
+    feature: bgpEnrichment
+  - id: dst_asn
+    name: ASN
+    component: autocomplete
+    category: destination
+    placeholder: 'E.g: 65001, 64512'
+    hint: Add destination Autonomous System Number filter.
+    feature: bgpEnrichment
   - id: resource
     name: Resource
     component: autocomplete
@@ -1529,6 +1561,9 @@ fields:
   - name: SrcSubnetLabel
     type: string
     description: Source subnet label
+  - name: SrcASN
+    type: string
+    description: Source Autonomous System Number from BGP advertised prefixes
   - name: SrcK8S_NetworkName
     type: string
     description: Source network name
@@ -1570,6 +1605,9 @@ fields:
   - name: DstSubnetLabel
     type: string
     description: Destination subnet label
+  - name: DstASN
+    type: string
+    description: Destination Autonomous System Number from BGP advertised prefixes
   - name: DstK8S_NetworkName
     type: string
     description: Destination network name

@@ -172,6 +172,10 @@ func (spec *FlowCollectorFLP) IsSubnetLabelsEnabled() bool {
 	return spec.HasAutoDetectNetworks() || len(spec.SubnetLabels.CustomLabels) > 0
 }
 
+func (spec *FlowCollectorFLP) IsBgpEnrichmentEnabled() bool {
+	return spec != nil && spec.BgpEnrichment != nil && *spec.BgpEnrichment
+}
+
 func (spec *FlowCollectorSpec) GetSecondaryIndexes() []SecondaryNetwork {
 	if spec.Processor.Advanced != nil && len(spec.Processor.Advanced.SecondaryNetworks) > 0 {
 		return spec.Processor.Advanced.SecondaryNetworks

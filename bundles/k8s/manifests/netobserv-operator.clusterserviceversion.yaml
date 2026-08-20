@@ -90,7 +90,7 @@ metadata:
     capabilities: Seamless Upgrades
     categories: Monitoring, Networking, Observability
     console.openshift.io/plugins: '["netobserv-plugin"]'
-    containerImage: quay.io/netobserv/network-observability-operator:1.12.0-community
+    containerImage: quay.io/julien/network-observability-operator:main
     createdAt: "2026-07-21T07:39:49Z"
     description: Network flows collector and monitoring solution
     operatorframework.io/initialization-resource: '{"apiVersion":"flows.netobserv.io/v1beta2",
@@ -458,6 +458,8 @@ spec:
         path: networkPolicy.additionalNamespaces
       - displayName: Enable
         path: networkPolicy.enable
+      - displayName: Bgp enrichment
+        path: processor.bgpEnrichment
       - displayName: Consumer replicas
         path: processor.consumerReplicas
       - displayName: Deduper
@@ -650,7 +652,7 @@ spec:
 
     ## Configuration
 
-    The `FlowCollector` resource is used to configure the operator and its managed components. A comprehensive documentation is [available here](https://github.com/netobserv/netobserv-operator/blob/1.12.0-community/docs/FlowCollector.md), and a full sample file [there](https://github.com/netobserv/netobserv-operator/blob/1.12.0-community/config/samples/flows_v1beta2_flowcollector.yaml).
+    The `FlowCollector` resource is used to configure the operator and its managed components. A comprehensive documentation is [available here](https://github.com/netobserv/netobserv-operator/blob/main/docs/FlowCollector.md), and a full sample file [there](https://github.com/netobserv/netobserv-operator/blob/main/config/samples/flows_v1beta2_flowcollector.yaml).
 
     To edit configuration in cluster, run:
 
@@ -703,7 +705,7 @@ spec:
     This documentation includes:
 
     - An [overview](https://github.com/netobserv/netobserv-operator#openshift-console) of the features, with screenshots
-    - More information on [configuring metrics](https://github.com/netobserv/netobserv-operator/blob/1.12.0-community/docs/Metrics.md).
+    - More information on [configuring metrics](https://github.com/netobserv/netobserv-operator/blob/main/docs/Metrics.md).
     - A [performance](https://github.com/netobserv/netobserv-operator#performance-fine-tuning) section, for fine-tuning
     - A [security](https://github.com/netobserv/netobserv-operator#securing-data-and-communications) section
     - An [F.A.Q.](https://github.com/netobserv/netobserv-operator#faq--troubleshooting) section
@@ -895,6 +897,14 @@ spec:
           - patch
           - update
         - apiGroups:
+          - frrk8s.metallb.io
+          resources:
+          - frrconfigurations
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
           - k8s.ovn.org
           resources:
           - clusteruserdefinednetworks
@@ -1052,7 +1062,7 @@ spec:
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.namespace
-                image: quay.io/netobserv/network-observability-operator:1.12.0-community
+                image: quay.io/julien/network-observability-operator:main
                 imagePullPolicy: Always
                 livenessProbe:
                   httpGet:

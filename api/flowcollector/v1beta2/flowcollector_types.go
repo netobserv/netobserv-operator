@@ -718,6 +718,12 @@ type FlowCollectorFLP struct {
 	SubnetLabels SubnetLabels `json:"subnetLabels,omitempty"`
 
 	//+optional
+	// `bgpEnrichment` enables BGP ASN enrichment by watching FRRConfiguration CRDs (frrk8s.metallb.io/v1beta1).
+	// When enabled, flows are enriched with `SrcASN` and `DstASN` fields based on longest-prefix match against
+	// advertised prefixes from FRRConfiguration resources. Requires frr-k8s to be installed in the cluster.
+	BgpEnrichment *bool `json:"bgpEnrichment,omitempty"`
+
+	//+optional
 	// `deduper` allows you to sample or drop flows identified as duplicates, in order to save on resource usage.
 	Deduper *FLPDeduper `json:"deduper,omitempty"`
 

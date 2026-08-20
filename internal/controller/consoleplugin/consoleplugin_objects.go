@@ -508,6 +508,9 @@ func (b *builder) setFrontendConfig(fconf *cfg.FrontendConfig, metrics []cfg.Met
 	if b.desired.Processor.IsSubnetLabelsEnabled() {
 		fconf.Features = append(fconf.Features, "subnetLabels")
 	}
+	if b.desired.Processor.IsBgpEnrichmentEnabled() {
+		fconf.Features = append(fconf.Features, "bgpEnrichment")
+	}
 
 	// Add health rules metadata for frontend
 	fconf.RecordingAnnotations = b.getHealthRecordingAnnotations()
