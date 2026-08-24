@@ -944,6 +944,13 @@ filters:
     placeholder: 'E.g: Pods, Services, ExternalIP'
     hint: Add destination subnet label filter, or an empty string to get unmatched destinations.
     feature: subnetLabels
+  - id: asn
+    name: ASN
+    component: autocomplete
+    category: endpoint
+    placeholder: 'E.g: 65001, 64512'
+    hint: Add Autonomous System Number filter.
+    feature: bgpEnrichment
   - id: src_asn
     name: ASN
     component: autocomplete
@@ -1404,6 +1411,7 @@ scopes:
       - SrcK8S_HostName
       - DstK8S_HostName
     groups:
+      - asns
       - networks
       - zones
       - clusters
@@ -1422,6 +1430,7 @@ scopes:
       - SrcK8S_Namespace
       - DstK8S_Namespace
     groups:
+      - asns
       - clusters
       - clusters+zones
       - clusters+hosts
@@ -1448,7 +1457,10 @@ scopes:
       - DstK8S_Namespace
       - SrcSubnetLabel
       - DstSubnetLabel
+      - SrcASN
+      - DstASN
     groups:
+      - asns
       - clusters
       - clusters+zones
       - clusters+hosts
@@ -1480,6 +1492,7 @@ scopes:
       - SrcAddr
       - SrcK8S_HostName
       - SrcSubnetLabel
+      - SrcASN
       - DstK8S_Name
       - DstK8S_Type
       - DstK8S_OwnerName
@@ -1488,7 +1501,9 @@ scopes:
       - DstAddr
       - DstK8S_HostName
       - DstSubnetLabel
+      - DstASN
     groups:
+      - asns
       - clusters
       - clusters+zones
       - clusters+hosts

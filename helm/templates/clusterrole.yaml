@@ -184,6 +184,14 @@ rules:
       - patch
       - update
   - apiGroups:
+      - frrk8s.metallb.io
+    resources:
+      - frrconfigurations
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
       - k8s.ovn.org
     resources:
       - clusteruserdefinednetworks
