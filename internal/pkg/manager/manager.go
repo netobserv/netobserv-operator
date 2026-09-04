@@ -12,7 +12,10 @@ import (
 	"github.com/netobserv/netobserv-operator/internal/pkg/migrator"
 	"github.com/netobserv/netobserv-operator/internal/pkg/narrowcache"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -152,6 +155,23 @@ func NewManager(
 		return postCreate(ctx)
 	})); err != nil {
 		return nil, fmt.Errorf("can't collect more cluster info: %w", err)
+	}
+
+	// Reserve the default operands namespace to prevent namespace-squatting:
+	// bundled CRBs grant permissions to SAs in this namespace, so it must exist to prevent an unprivileged user to create it.
+	if err := internalManager.Add(manager.RunnableFunc(func(ctx context.Context) error {
+		nsName := opcfg.DefaultOperandsNamespace
+		ns := &corev1.Namespace{}
+		if err := internalManager.GetClient().Get(ctx, types.NamespacedName{Name: nsName}, ns); err != nil {
+			if !apierrors.IsNotFound(err) {
+				return fmt.Errorf("can't check default operands namespace: %w", err)
+			}
+			log.Info("Reserving default operands namespace", "namespace", nsName)
+			return internalManager.GetClient().Create(ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: nsName}})
+		}
+		return nil
+	})); err != nil {
+		return nil, fmt.Errorf("can't register namespace reservation: %w", err)
 	}
 
 	return this, nil

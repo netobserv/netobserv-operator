@@ -21,7 +21,7 @@ import (
 	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
 	"github.com/netobserv/netobserv-operator/internal/controller/constants"
 	. "github.com/netobserv/netobserv-operator/internal/controller/envtest"
-	"github.com/netobserv/netobserv-operator/internal/pkg/resources"
+	"github.com/netobserv/netobserv-operator/internal/pkg/roles"
 	"github.com/netobserv/netobserv-operator/internal/pkg/test"
 	"github.com/netobserv/netobserv-operator/internal/pkg/tlsconfig"
 )
@@ -69,8 +69,8 @@ func ControllerSpecs(env test.Environment, ctxGetter test.ContextGetter) {
 		Name:      "flowlogs-pipeline-k8scache",
 		Namespace: operatorNamespace,
 	}
-	rbKeyConfigWatcherMono := types.NamespacedName{Name: resources.GetRoleBindingName(monoShortName, constants.ConfigWatcherRole), Namespace: operatorNamespace}
-	rbKeyConfigWatcherTransfo := types.NamespacedName{Name: resources.GetRoleBindingName(transfoShortName, constants.ConfigWatcherRole), Namespace: operatorNamespace}
+	rbKeyConfigWatcherMono := types.NamespacedName{Name: roles.GetRoleBindingName(monoShortName, constants.ConfigWatcherRole), Namespace: operatorNamespace}
+	rbKeyConfigWatcherTransfo := types.NamespacedName{Name: roles.GetRoleBindingName(transfoShortName, constants.ConfigWatcherRole), Namespace: operatorNamespace}
 
 	// Created objects to cleanup
 	cleanupList := []client.Object{}

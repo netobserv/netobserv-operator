@@ -25,6 +25,8 @@ type Config struct {
 	EBPFByteCodeImage string
 	// Operator namespace
 	Namespace string
+	// Default operands namespace
+	DefaultOperandsNamespace string
 	// Vendor / variant
 	Vendor constants.Vendor
 	// Static plugin configuration

@@ -48,6 +48,7 @@ import (
 	"github.com/netobserv/netobserv-operator/internal/pkg/helper"
 	"github.com/netobserv/netobserv-operator/internal/pkg/manager"
 	"github.com/netobserv/netobserv-operator/internal/pkg/manager/status"
+	"github.com/netobserv/netobserv-operator/internal/pkg/roles"
 )
 
 const (
@@ -73,7 +74,13 @@ type ContextGetter func() (context.Context, client.Client)
 
 func PrepareEnvTest(env Environment, controllers []manager.Registerer, opNamespace string, namespaces []string, basePath string) (context.Context, client.Client, *SuiteContext) {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
-	ctx, cancel := context.WithCancel(context.TODO())
+	ctx, cancelCtx := context.WithCancel(context.TODO())
+	// Disable SAR checks to avoid the need to stub all RBAC (not concurrent-safe)
+	restore := roles.EnableSARChecks(false)
+	cancel := func() {
+		restore()
+		cancelCtx()
+	}
 
 	By("bootstrapping test environment")
 	testEnv := &envtest.Environment{
@@ -180,6 +187,7 @@ func PrepareEnvTest(env Environment, controllers []manager.Registerer, opNamespa
 		WebConsolePF5Image:          "quay.io/netobserv/network-observability-console-plugin:test-pf5",
 		Namespace:                   opNamespace,
 		DeployOperatorNetworkPolicy: ptr.To(true),
+		DefaultOperandsNamespace:    "netobserv",
 	}
 	if env == EnvOpenShift {
 		managerConfig.Vendor = constants.VendorOpenShift

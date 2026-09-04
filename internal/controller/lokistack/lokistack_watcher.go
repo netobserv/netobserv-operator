@@ -8,6 +8,7 @@ import (
 	lokiv1 "github.com/grafana/loki/operator/apis/loki/v1"
 	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
 	"github.com/netobserv/netobserv-operator/internal/controller/constants"
+	"github.com/netobserv/netobserv-operator/internal/pkg/helper"
 	"github.com/netobserv/netobserv-operator/internal/pkg/manager"
 	"github.com/netobserv/netobserv-operator/internal/pkg/manager/status"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -124,7 +125,8 @@ func (lsw *Watcher) ensureLokiStackWatcher(ctx context.Context) error {
 
 func (lsw *Watcher) checkStatus(ctx context.Context, fc *flowslatest.FlowCollector) error {
 	lokiStack := &lokiv1.LokiStack{}
-	nsname := types.NamespacedName{Name: fc.Spec.Loki.LokiStack.Name, Namespace: fc.Spec.Namespace}
+	ns := helper.GetOperandsNamespace(&fc.Spec, lsw.mgr.Config)
+	nsname := types.NamespacedName{Name: fc.Spec.Loki.LokiStack.Name, Namespace: ns}
 	if len(fc.Spec.Loki.LokiStack.Namespace) > 0 {
 		nsname.Namespace = fc.Spec.Loki.LokiStack.Namespace
 	}

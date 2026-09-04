@@ -21,6 +21,7 @@ import (
 	"github.com/netobserv/netobserv-operator/internal/controller/reconcilers"
 	"github.com/netobserv/netobserv-operator/internal/pkg/helper"
 	"github.com/netobserv/netobserv-operator/internal/pkg/manager/status"
+	"github.com/netobserv/netobserv-operator/internal/pkg/roles"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -180,6 +181,19 @@ func (r *CPReconciler) reconcilePermissions(ctx context.Context, builder *builde
 	if !r.Managed.Exists(r.serviceAccount) {
 		return r.CreateOwned(ctx, builder.serviceAccount(name))
 	} // update not needed for now
+
+	// Check installed CRB, and notify any missing one
+	// Token review
+	if err := roles.CheckHasPermission(ctx, r.Client, r.Namespace, name, roles.ConsoleTokenReviewRole); err != nil {
+		return err
+	}
+	if builder.useStandalone {
+		// Currently, standalone mode uses service account token, not user token, for permissions.
+		// Require FlowCollector viewer role so that it can display the FC status icon.
+		if err := roles.CheckHasPermission(ctx, r.Client, r.Namespace, name, roles.FlowCollectorViewerRole); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }

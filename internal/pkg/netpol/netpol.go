@@ -202,14 +202,13 @@ func AllowToWebhooks(clusterInfo *cluster.Info, vendor constants.Vendor) network
 	}
 }
 
-func AllowHostNetworkFlows(clusterInfo *cluster.Info, vendor constants.Vendor, spec *flowslatest.FlowCollectorSpec) networkingv1.NetworkPolicyIngressRule {
+func AllowHostNetworkFlows(clusterInfo *cluster.Info, vendor constants.Vendor, spec *flowslatest.FlowCollectorSpec, fromNamespace string) networkingv1.NetworkPolicyIngressRule {
 	var peer networkingv1.NetworkPolicyPeer
 	cni, _ := clusterInfo.GetCNI()
 	if cni == flowslatest.OVNKubernetes {
 		peer = ovnHostNetworkPeer(vendor)
 	} else {
-		mainNs := spec.GetNamespace()
-		peer = PeerInNamespace(mainNs + constants.EBPFPrivilegedNSSuffix)
+		peer = PeerInNamespace(fromNamespace)
 	}
 	advanced := helper.GetAdvancedProcessorConfig(spec)
 	return networkingv1.NetworkPolicyIngressRule{

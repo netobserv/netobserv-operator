@@ -3,6 +3,7 @@ package networkpolicy
 import (
 	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
 	"github.com/netobserv/netobserv-operator/internal/controller/constants"
+	"github.com/netobserv/netobserv-operator/internal/pkg/helper"
 	"github.com/netobserv/netobserv-operator/internal/pkg/manager"
 	"github.com/netobserv/netobserv-operator/internal/pkg/netpol"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -13,7 +14,7 @@ import (
 const netpolName = "netobserv"
 
 func buildMainNetworkPolicy(desired *flowslatest.FlowCollector, mgr *manager.Manager) (types.NamespacedName, *networkingv1.NetworkPolicy) {
-	ns := desired.Spec.GetNamespace()
+	ns := helper.GetOperandsNamespace(&desired.Spec, mgr.Config)
 	cni, _ := mgr.ClusterInfo.GetCNI()
 
 	name := types.NamespacedName{Name: netpolName, Namespace: ns}
@@ -50,7 +51,8 @@ func buildMainNetworkPolicy(desired *flowslatest.FlowCollector, mgr *manager.Man
 
 	if desired.Spec.DeploymentModel == flowslatest.DeploymentModelService {
 		// Can be counter-intuitive, but only the DeploymentModelService mode needs an explicit rule for host-network (agents are still hostnetwork pods)
-		ingress = append(ingress, netpol.AllowHostNetworkFlows(mgr.ClusterInfo, mgr.Config.Vendor, &desired.Spec))
+		fromNs := helper.GetOperandsNamespace(&desired.Spec, mgr.Config) + constants.EBPFPrivilegedNSSuffix
+		ingress = append(ingress, netpol.AllowHostNetworkFlows(mgr.ClusterInfo, mgr.Config.Vendor, &desired.Spec, fromNs))
 	}
 
 	if mgr.ClusterInfo.IsOpenShift() {
@@ -93,7 +95,7 @@ func buildMainNetworkPolicy(desired *flowslatest.FlowCollector, mgr *manager.Man
 }
 
 func buildPrivilegedNetworkPolicy(desired *flowslatest.FlowCollector, mgr *manager.Manager) (types.NamespacedName, *networkingv1.NetworkPolicy) {
-	mainNs := desired.Spec.GetNamespace()
+	mainNs := helper.GetOperandsNamespace(&desired.Spec, mgr.Config)
 	privNs := mainNs + constants.EBPFPrivilegedNSSuffix
 	cni, _ := mgr.ClusterInfo.GetCNI()
 

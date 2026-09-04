@@ -90,6 +90,7 @@ func (b *transfoBuilder) deployment(annotations map[string]string) *appsv1.Deplo
 func (b *transfoBuilder) configMaps() (*corev1.ConfigMap, string, *corev1.ConfigMap, error) {
 	pipeline, err := createPipeline(
 		b.desired,
+		b.info.Namespace,
 		b.flowMetrics,
 		b.fcSlices,
 		b.detectedSubnets,
@@ -103,7 +104,7 @@ func (b *transfoBuilder) configMaps() (*corev1.ConfigMap, string, *corev1.Config
 	}
 
 	// Get static and dynamic CM
-	static, dynamic, err := getJSONConfigs(b.desired, &b.volumes, b.promTLS, pipeline, transfoDynConfigMap)
+	static, dynamic, err := getJSONConfigs(b.desired, b.info.Namespace, &b.volumes, b.promTLS, pipeline, transfoDynConfigMap)
 	if err != nil {
 		return nil, "", nil, err
 	}

@@ -6,13 +6,6 @@ import (
 	"github.com/netobserv/netobserv-operator/internal/controller/constants"
 )
 
-func (spec *FlowCollectorSpec) GetNamespace() string {
-	if spec.Namespace != "" {
-		return spec.Namespace
-	}
-	return constants.DefaultOperatorNamespace
-}
-
 func (spec *FlowCollectorSpec) OnHold() bool {
 	return spec.Execution.Mode == OnHold
 }

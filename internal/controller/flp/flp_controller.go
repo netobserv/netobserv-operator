@@ -133,7 +133,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Result
 func (r *Reconciler) reconcile(ctx context.Context, clh *helper.Client, fc *flowslatest.FlowCollector) error {
 	log := log.FromContext(ctx)
 
-	ns := fc.Spec.GetNamespace()
+	ns := helper.GetOperandsNamespace(&fc.Spec, r.mgr.Config)
 	r.currentNamespace = ns
 	previousNamespace := r.status.GetDeployedNamespace(fc)
 	loki := helper.NewLokiConfig(&fc.Spec.Loki, ns)

@@ -140,7 +140,7 @@ func (r *FlowCollectorReconciler) Reconcile(ctx context.Context, _ ctrl.Request)
 }
 
 func (r *FlowCollectorReconciler) reconcile(ctx context.Context, clh *helper.Client, desired *flowslatest.FlowCollector) error {
-	ns := desired.Spec.GetNamespace()
+	ns := helper.GetOperandsNamespace(&desired.Spec, r.mgr.Config)
 	previousNamespace := r.status.GetDeployedNamespace(desired)
 	lokiConfig := helper.NewLokiConfig(&desired.Spec.Loki, ns)
 	reconcilersInfo := r.newCommonInfo(clh, ns, &lokiConfig)

@@ -299,15 +299,16 @@ func readConfigFromEnv() (*manager.Config, error) {
 		return nil, err
 	}
 	return &manager.Config{
-		Vendor:                constants.Vendor(os.Getenv("VENDOR")),
-		EBPFAgentImage:        defaultStringEnv("RELATED_IMAGE_EBPF_AGENT", "quay.io/netobserv/netobserv-ebpf-agent:main"),
-		EBPFByteCodeImage:     defaultStringEnv("RELATED_IMAGE_EBPF_BYTECODE", "quay.io/netobserv/ebpf-bytecode:main"), // TODO: productize for GA
-		FlowlogsPipelineImage: defaultStringEnv("RELATED_IMAGE_FLOWLOGS_PIPELINE", "quay.io/netobserv/flowlogs-pipeline:main"),
-		WebConsoleImage:       defaultStringEnv("RELATED_IMAGE_WEB_CONSOLE", "quay.io/netobserv/network-observability-console-plugin:main"),
-		WebConsolePF4Image:    defaultStringEnv("RELATED_IMAGE_WEB_CONSOLE_PF4", "quay.io/netobserv/network-observability-console-plugin:main-pf4"),
-		WebConsolePF5Image:    defaultStringEnv("RELATED_IMAGE_WEB_CONSOLE_PF5", "quay.io/netobserv/network-observability-console-plugin:main-pf5"),
-		DemoLokiImage:         defaultStringEnv("RELATED_IMAGE_DEMO_LOKI", "grafana/loki:3.5.0"),
-		Namespace:             defaultStringEnv("NAMESPACE", "netobserv"),
+		Vendor:                   constants.Vendor(os.Getenv("VENDOR")),
+		EBPFAgentImage:           defaultStringEnv("RELATED_IMAGE_EBPF_AGENT", "quay.io/netobserv/netobserv-ebpf-agent:main"),
+		EBPFByteCodeImage:        defaultStringEnv("RELATED_IMAGE_EBPF_BYTECODE", "quay.io/netobserv/ebpf-bytecode:main"), // TODO: productize for GA
+		FlowlogsPipelineImage:    defaultStringEnv("RELATED_IMAGE_FLOWLOGS_PIPELINE", "quay.io/netobserv/flowlogs-pipeline:main"),
+		WebConsoleImage:          defaultStringEnv("RELATED_IMAGE_WEB_CONSOLE", "quay.io/netobserv/network-observability-console-plugin:main"),
+		WebConsolePF4Image:       defaultStringEnv("RELATED_IMAGE_WEB_CONSOLE_PF4", "quay.io/netobserv/network-observability-console-plugin:main-pf4"),
+		WebConsolePF5Image:       defaultStringEnv("RELATED_IMAGE_WEB_CONSOLE_PF5", "quay.io/netobserv/network-observability-console-plugin:main-pf5"),
+		DemoLokiImage:            defaultStringEnv("RELATED_IMAGE_DEMO_LOKI", "grafana/loki:3.5.0"),
+		Namespace:                defaultStringEnv("NAMESPACE", "netobserv"),
+		DefaultOperandsNamespace: defaultStringEnv("DEFAULT_OPERANDS_NAMESPACE", "netobserv"),
 		StaticPluginConfig: manager.StaticPluginConfig{
 			InheritTolerationFromSubscription: os.Getenv("STATIC_PLUGIN_INHERIT_TOLERATION_SUBSCRIPTION"),
 		},

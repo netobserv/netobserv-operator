@@ -43,7 +43,7 @@ if flowCollector.Name != constants.FlowCollectorName {
 ### 🚨 Backward Compatibility
 FlowCollector v1beta2 is stable:
 - ✅ Add optional fields, use `+optional` marker; defaults can be set either through OpenAPI or directly hardcoded, depending on how likely it is to change them in the future (a future change of OpenAPI-based default is ignored on installed operators being upgraded).
-- ❌ Never remove/rename fields or change types. Deprecate them if necessary.
+- ❌ Never remove/rename fields or change types. Deprecate them if necessary. An exception is if prior code has never been released.
 
 ### 🚨 Bundle Updates Required
 After CRD/CSV changes: `make update-bundle`.
@@ -55,7 +55,7 @@ Generated files are:
 Do not manually edit any of those generated files, modify the source instead (e.g. `./config` (Kustomize) or in-code `kubebuilder` markers for CRD OpenAPI and bundle rbac). After running `make update-bundle`, the changes must be included in the commit.
 
 ### 🚨 Image References
-Never hardcode. Use env vars:
+Never hardcode in production code (hardcoding can be ok in tests). Use env vars:
 - `RELATED_IMAGE_EBPF_AGENT`
 - `RELATED_IMAGE_FLOWLOGS_PIPELINE`
 - `RELATED_IMAGE_WEB_CONSOLE`

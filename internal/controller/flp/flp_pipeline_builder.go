@@ -32,17 +32,19 @@ const (
 
 type PipelineBuilder struct {
 	*config.PipelineBuilderStage
-	desired         *flowslatest.FlowCollectorSpec
-	flowMetrics     *metricslatest.FlowMetricList
-	fcSlices        []sliceslatest.FlowCollectorSlice
-	detectedSubnets []flowslatest.SubnetLabel
-	volumes         *volumes.Builder
-	loki            *helper.LokiConfig
-	clusterID       string
+	operandsNamespace string
+	desired           *flowslatest.FlowCollectorSpec
+	flowMetrics       *metricslatest.FlowMetricList
+	fcSlices          []sliceslatest.FlowCollectorSlice
+	detectedSubnets   []flowslatest.SubnetLabel
+	volumes           *volumes.Builder
+	loki              *helper.LokiConfig
+	clusterID         string
 }
 
 func createPipeline(
 	desired *flowslatest.FlowCollectorSpec,
+	operandsNamespace string,
 	flowMetrics *metricslatest.FlowMetricList,
 	fcSlices []sliceslatest.FlowCollectorSlice,
 	detectedSubnets []flowslatest.SubnetLabel,
@@ -53,6 +55,7 @@ func createPipeline(
 ) (*PipelineBuilder, error) {
 	b := &PipelineBuilder{
 		PipelineBuilderStage: &ingestStage,
+		operandsNamespace:    operandsNamespace,
 		desired:              desired,
 		flowMetrics:          flowMetrics,
 		fcSlices:             fcSlices,
@@ -160,7 +163,7 @@ func (b *PipelineBuilder) addEnrichStage(previous config.PipelineBuilderStage) c
 					{Namespace: "DstK8S_Namespace", Name: "DstK8S_Name"},
 				},
 				Output:        "K8S_FlowLayer",
-				InfraPrefixes: []string{b.desired.Namespace, openshiftNamespacesPrefixes},
+				InfraPrefixes: []string{b.operandsNamespace, openshiftNamespacesPrefixes},
 				InfraRefs: []api.K8sReference{
 					{
 						Name:      "kubernetes",

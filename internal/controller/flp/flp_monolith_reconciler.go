@@ -18,7 +18,7 @@ import (
 	"github.com/netobserv/netobserv-operator/internal/pkg/helper"
 	"github.com/netobserv/netobserv-operator/internal/pkg/manager/status"
 	"github.com/netobserv/netobserv-operator/internal/pkg/metrics/alerts"
-	"github.com/netobserv/netobserv-operator/internal/pkg/resources"
+	"github.com/netobserv/netobserv-operator/internal/pkg/roles"
 )
 
 type monolithReconciler struct {
@@ -45,7 +45,7 @@ func newMonolithReconciler(cmn *reconcilers.Instance) *monolithReconciler {
 		serviceAccount:   cmn.Managed.NewServiceAccount(monoName),
 		staticConfigMap:  cmn.Managed.NewConfigMap(monoConfigMap),
 		dynamicConfigMap: cmn.Managed.NewConfigMap(monoDynConfigMap),
-		rbConfigWatcher:  cmn.Managed.NewRB(resources.GetRoleBindingName(monoShortName, constants.ConfigWatcherRole)),
+		rbConfigWatcher:  cmn.Managed.NewRB(roles.GetRoleBindingName(monoShortName, constants.ConfigWatcherRole)),
 	}
 	if cmn.ClusterInfo.HasSvcMonitor() {
 		rec.serviceMonitor = cmn.Managed.NewServiceMonitor(monoServiceMonitor)
@@ -248,9 +248,31 @@ func (r *monolithReconciler) reconcilePermissions(ctx context.Context, builder *
 	} // We only configure name, update is not needed for now
 
 	// Config watcher
-	r.rbConfigWatcher = resources.GetRoleBinding(r.Namespace, monoShortName, monoName, monoName, constants.ConfigWatcherRole, true)
+	r.rbConfigWatcher = roles.GetRoleBinding(r.Namespace, monoShortName, monoName, monoName, constants.ConfigWatcherRole, true)
 	if err := r.ReconcileRoleBinding(ctx, r.rbConfigWatcher); err != nil {
 		return err
+	}
+
+	// Check installed CRB, and notify any missing one
+	// Host network
+	if r.ClusterInfo.IsOpenShift() && builder.desired.UseHostNetwork() {
+		if err := roles.CheckHasPermission(ctx, r.Client, r.Namespace, monoName, roles.HostNetworkRole); err != nil {
+			return err
+		}
+	}
+
+	// Loki writer
+	if builder.desired.UseLoki() && builder.desired.Loki.Mode == flowslatest.LokiModeLokiStack {
+		if err := roles.CheckHasPermission(ctx, r.Client, r.Namespace, monoName, roles.LokiWriterRole); err != nil {
+			return err
+		}
+	}
+
+	// Informers - when centralized informers are disabled, flowlogs-pipeline needs direct K8s API access
+	if !builder.desired.Processor.IsInformerCacheProxyEnabled() {
+		if err := roles.CheckHasPermission(ctx, r.Client, r.Namespace, monoName, roles.FLPInformersRole); err != nil {
+			return err
+		}
 	}
 
 	return nil

@@ -8,7 +8,7 @@ import (
 	"github.com/netobserv/netobserv-operator/internal/controller/constants"
 	"github.com/netobserv/netobserv-operator/internal/controller/reconcilers"
 	"github.com/netobserv/netobserv-operator/internal/pkg/helper"
-	"github.com/netobserv/netobserv-operator/internal/pkg/resources"
+	"github.com/netobserv/netobserv-operator/internal/pkg/roles"
 	osv1 "github.com/openshift/api/security/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -68,7 +68,7 @@ func (c *Reconciler) reconcileNamespace(ctx context.Context) error {
 		return c.CreateOwned(ctx, desired)
 	}
 
-	binding := resources.GetExposeMetricsRoleBinding(ns)
+	binding := roles.GetExposeMetricsRoleBinding(ns)
 	if err := c.ReconcileRoleBinding(ctx, binding); err != nil {
 		return err
 	}

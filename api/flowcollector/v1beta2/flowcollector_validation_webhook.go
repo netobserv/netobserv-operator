@@ -139,7 +139,7 @@ func (v *validator) validateNetPol() {
 
 		// Check for inconsistent config with operator policy.
 		// If they're in the same namespace, operands config is ignored.
-		if v.fc.GetNamespace() == OperatorNamespace && v.fc.NetworkPolicy.Enable != nil {
+		if v.fc.Namespace != "" && v.fc.Namespace == OperatorNamespace && v.fc.NetworkPolicy.Enable != nil {
 			v.warnings = append(v.warnings, "The configured knob spec.networkPolicy.enable is ignored because the operator and the operands are running in the same namespace, thus sharing the same configuration (see OPERATOR_NETWORK_POLICY environment variable).")
 		}
 	} else {

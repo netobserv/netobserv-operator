@@ -23,7 +23,7 @@ import (
 	"github.com/netobserv/netobserv-operator/internal/pkg/manager"
 	"github.com/netobserv/netobserv-operator/internal/pkg/manager/status"
 	"github.com/netobserv/netobserv-operator/internal/pkg/metrics"
-	"github.com/netobserv/netobserv-operator/internal/pkg/resources"
+	"github.com/netobserv/netobserv-operator/internal/pkg/roles"
 )
 
 type Reconciler struct {
@@ -92,7 +92,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Result
 
 func (r *Reconciler) reconcile(ctx context.Context, clh *helper.Client, desired *flowslatest.FlowCollector) error {
 	log := log.FromContext(ctx)
-	ns := desired.Spec.GetNamespace()
+	ns := helper.GetOperandsNamespace(&desired.Spec, r.mgr.Config)
 	r.currentNamespace = ns
 
 	// If namespace does not exist, we create it
@@ -115,7 +115,7 @@ func (r *Reconciler) reconcile(ctx context.Context, clh *helper.Client, desired 
 		}
 	}
 
-	binding := resources.GetExposeMetricsRoleBinding(ns)
+	binding := roles.GetExposeMetricsRoleBinding(ns)
 	if err := reconcilers.ReconcileRoleBinding(ctx, clh, binding); err != nil {
 		return err
 	}

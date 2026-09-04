@@ -6,11 +6,9 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-type ClusterRoleName string
 type RoleName string
 
 const (
-	DefaultOperatorNamespace = "netobserv"
 	OperatorName             = "netobserv-operator"
 	ControllerName           = "netobserv-controller-manager"
 	WebhookPort              = 9443

@@ -5,6 +5,7 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
+	"github.com/netobserv/netobserv-operator/internal/pkg/manager"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -259,4 +260,14 @@ func GetAdvancedPluginConfig(specConfig *flowslatest.AdvancedPluginConfig) flows
 	}
 
 	return cfg
+}
+
+func GetOperandsNamespace(fc *flowslatest.FlowCollectorSpec, mgrConfig *manager.Config) string {
+	if fc.Namespace != "" {
+		return fc.Namespace
+	}
+	if mgrConfig.DefaultOperandsNamespace != "" {
+		return mgrConfig.DefaultOperandsNamespace
+	}
+	return "netobserv"
 }

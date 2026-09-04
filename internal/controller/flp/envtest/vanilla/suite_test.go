@@ -38,6 +38,7 @@ var _ = Describe("FLP FlowCollector Controller - Vanilla", Ordered, Serial, func
 	ctxGetter := func() (context.Context, client.Client) { return ctx, k8sClient }
 	envtest.ControllerSpecs(env, ctxGetter)
 	envtest.ControllerFlowMetricsSpecs(ctxGetter)
+	envtest.ControllerSARSpecs(ctxGetter)
 })
 
 var _ = BeforeSuite(func() {
