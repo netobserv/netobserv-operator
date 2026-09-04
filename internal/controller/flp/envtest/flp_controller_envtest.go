@@ -127,6 +127,11 @@ func ControllerSpecs(env test.Environment, ctxGetter test.ContextGetter) {
 				return nil
 			}, timeout, interval).Should(Succeed())
 
+			if env == test.EnvOpenShift {
+				By("In OpenShift, expecting to have the required SCC annotation")
+				Expect(ds.Spec.Template.Annotations).To(HaveKeyWithValue("openshift.io/required-scc", "hostnetwork"))
+			}
+
 			By("Expecting to create the flowlogs-pipeline-informers Deployment")
 			Eventually(func() interface{} {
 				deploy := appsv1.Deployment{}
@@ -318,10 +323,16 @@ func ControllerSpecs(env test.Environment, ctxGetter test.ContextGetter) {
 		})
 
 		It("Should deploy kafka transformer", func() {
+			var dp appsv1.Deployment
 			By("Expecting transformer deployment to be created")
 			Eventually(func() interface{} {
-				return k8sClient.Get(ctx, flpKeyKafkaTransformer, &appsv1.Deployment{})
+				return k8sClient.Get(ctx, flpKeyKafkaTransformer, &dp)
 			}, timeout, interval).Should(Succeed())
+
+			if env == test.EnvOpenShift {
+				By("In OpenShift, expecting to have the required SCC annotation")
+				Expect(dp.Spec.Template.Annotations).To(HaveKeyWithValue("openshift.io/required-scc", "restricted-v2"))
+			}
 
 			By("Not expecting transformer service (k8scache has its own dedicated service)")
 			Eventually(func() error {

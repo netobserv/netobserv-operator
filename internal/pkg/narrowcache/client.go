@@ -80,7 +80,7 @@ func (c *Client) getAndCreateWatchIfNeeded(ctx context.Context, info GVKInfo, gv
 
 	// Live query
 	rlog := log.FromContext(ctx).WithName("narrowcache").WithValues("objKey", objKey)
-	rlog.Info("Cache miss, doing live query")
+	rlog.V(1).Info("Cache miss, doing live query")
 	fetched, w, err := c.fetchAndWatch(ctx, objKey, info, key)
 	if err != nil {
 		return nil, objKey, err
@@ -129,7 +129,7 @@ func (c *Client) updateCache(ctx context.Context, cacheKey string, info GVKInfo,
 	rlog := log.FromContext(ctx).WithName("narrowcache")
 	defer func() {
 		watcher.Stop()
-		rlog.WithValues("key", cacheKey).Info("Watch terminated. Clearing cache entry.")
+		rlog.V(1).WithValues("key", cacheKey).Info("Watch terminated. Clearing cache entry.")
 		c.clearEntryByKey(cacheKey)
 	}()
 
@@ -141,7 +141,7 @@ func (c *Client) updateCache(ctx context.Context, cacheKey string, info GVKInfo,
 			if !ok {
 				// Watch channel closed (normal API timeout). Re-establish the watch
 				// to avoid losing handlers and missing subsequent events.
-				rlog.WithValues("key", cacheKey).Info("Watch channel closed, re-establishing")
+				rlog.V(1).WithValues("key", cacheKey).Info("Watch channel closed, re-establishing")
 				watcher.Stop()
 
 				obj, newWatcher, err := c.fetchAndWatch(ctx, cacheKey, info, objKey)
@@ -156,7 +156,7 @@ func (c *Client) updateCache(ctx context.Context, cacheKey string, info GVKInfo,
 				watcher = newWatcher
 				continue
 			}
-			rlog.WithValues("key", cacheKey, "event type", watchEvent.Type).Info("Event received")
+			rlog.V(1).WithValues("key", cacheKey, "event type", watchEvent.Type).Info("Event received")
 			if watchEvent.Type == watch.Added || watchEvent.Type == watch.Modified {
 				if err := c.setToCache(cacheKey, watchEvent.Object); err != nil {
 					rlog.WithValues("key", cacheKey).Error(err, "Error while updating cache")
@@ -249,7 +249,7 @@ func (c *Client) callHandlers(ctx context.Context, key string, ev watch.Event) {
 func (c *Client) GetSource(ctx context.Context, obj client.Object, h handler.EventHandler) (source.Source, error) {
 	// Prepare a Source and make sure it is associated with a watch
 	rlog := log.FromContext(ctx).WithName("narrowcache")
-	rlog.WithValues("name", obj.GetName(), "namespace", obj.GetNamespace()).Info("Getting Source:")
+	rlog.V(1).WithValues("name", obj.GetName(), "namespace", obj.GetNamespace()).Info("Getting Source:")
 	gvk, err := c.GroupVersionKindFor(obj)
 	if err != nil {
 		return nil, err
@@ -278,7 +278,7 @@ func (c *Client) clearEntry(ctx context.Context, obj client.Object) {
 	gvk, _ := c.GroupVersionKindFor(obj)
 	strGVK := gvk.String()
 	if _, managed := c.watchedGVKs[strGVK]; managed {
-		log.FromContext(ctx).
+		log.FromContext(ctx).V(1).
 			WithName("narrowcache").
 			WithValues("name", obj.GetName(), "namespace", obj.GetNamespace()).
 			Info("Invalidating cache entry")

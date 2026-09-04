@@ -298,7 +298,12 @@ func FlowCollectorCertificatesSpecs(env test.Environment, ctxGetter test.Context
 				}
 				return test.VolumeNames(plugin.Spec.Template.Spec.Volumes)
 			}, timeout, interval).Should(ContainElements(expectedVolumes))
-			Expect(plugin.Spec.Template.Annotations).To(HaveLen(1))
+			expectedAnnotLen := 1
+			if env == test.EnvOpenShift {
+				// In OpenShift, pods come with more annotations
+				expectedAnnotLen = 2
+			}
+			Expect(plugin.Spec.Template.Annotations).To(HaveLen(expectedAnnotLen))
 
 			By("Expecting Loki and Kafka certificates for FLP mounted")
 			Eventually(func() interface{} {

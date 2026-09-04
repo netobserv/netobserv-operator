@@ -142,8 +142,7 @@ func (c *Reconciler) reconcileVendorPermissions(
 func (c *Reconciler) reconcileOpenshiftPermissions(
 	ctx context.Context, desired *flowslatest.FlowCollectorEBPF,
 ) error {
-	rlog := log.FromContext(ctx,
-		"securityContextConstraints", constants.EBPFSecurityContext)
+	rlog := log.FromContext(ctx, "securityContextConstraints", constants.EBPFSecurityContext)
 	scc := &osv1.SecurityContextConstraints{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: constants.EBPFSecurityContext,

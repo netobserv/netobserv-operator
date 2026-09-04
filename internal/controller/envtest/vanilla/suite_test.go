@@ -25,8 +25,6 @@ var (
 )
 
 func TestAPIsVanilla(t *testing.T) {
-	// Uncomment and edit next line to run/debug from IDE (get the path by running: `bin/setup-envtest use 1.23 -p path`); you may need to override the test timeout in your settings.
-	// os.Setenv("KUBEBUILDER_ASSETS", "/home/jotak/.local/share/kubebuilder-envtest/k8s/1.23.5-linux-amd64")
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Controller Suite - Vanilla")
 }
@@ -36,7 +34,7 @@ func TestAPIsVanilla(t *testing.T) {
 var _ = Describe("FlowCollector Controller - Vanilla", Ordered, Serial, func() {
 	ctxGetter := func() (context.Context, client.Client) { return ctx, k8sClient }
 	envtest.FlowCollectorConsolePluginSpecs(env, ctxGetter)
-	envtest.FlowCollectorEBPFSpecs(ctxGetter)
+	envtest.FlowCollectorEBPFSpecs(env, ctxGetter)
 	envtest.FlowCollectorEBPFKafkaSpecs(ctxGetter)
 	envtest.FlowCollectorMinimalSpecs(ctxGetter)
 	envtest.FlowCollectorHoldModeSpecs(ctxGetter)
@@ -52,7 +50,6 @@ var _ = BeforeSuite(func() {
 			"kafka-exporter-namespace",
 			"main-namespace-privileged",
 		},
-		"../..",
 	)
 })
 

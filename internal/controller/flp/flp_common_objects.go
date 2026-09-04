@@ -187,15 +187,16 @@ func podTemplate(
 		},
 	}})
 	container := corev1.Container{
-		Name:            constants.FLPName,
-		Image:           imageName,
-		ImagePullPolicy: corev1.PullPolicy(desired.Processor.ImagePullPolicy),
-		Args:            args,
-		Resources:       *desired.Processor.Resources.DeepCopy(),
-		VolumeMounts:    volumeMounts,
-		Ports:           ports,
-		Env:             envs,
-		SecurityContext: helper.ContainerDefaultSecurityContext(),
+		Name:                     constants.FLPName,
+		Image:                    imageName,
+		ImagePullPolicy:          corev1.PullPolicy(desired.Processor.ImagePullPolicy),
+		Args:                     args,
+		Resources:                *desired.Processor.Resources.DeepCopy(),
+		VolumeMounts:             volumeMounts,
+		Ports:                    ports,
+		Env:                      envs,
+		SecurityContext:          helper.ContainerDefaultSecurityContext(),
+		TerminationMessagePolicy: corev1.TerminationMessageFallbackToLogsOnError,
 	}
 	if *advancedConfig.EnableKubeProbes {
 		container.LivenessProbe = &corev1.Probe{

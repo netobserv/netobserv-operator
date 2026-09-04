@@ -27,8 +27,6 @@ var (
 )
 
 func TestAPIsVanillaFullStack(t *testing.T) {
-	// Uncomment and edit next line to run/debug from IDE (get the path by running: `bin/setup-envtest use 1.23 -p path`); you may need to override the test timeout in your settings.
-	// os.Setenv("KUBEBUILDER_ASSETS", "/home/jotak/.local/share/kubebuilder-envtest/k8s/1.23.5-linux-amd64")
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Networkpolicy Controller Suite - Vanilla Full Stack")
 }
@@ -46,7 +44,6 @@ var _ = BeforeSuite(func() {
 		[]manager.Registerer{static.Start, networkpolicy.Start},
 		"main-namespace",
 		[]string{"other-namespace", "main-namespace-privileged"},
-		"../../..",
 	)
 })
 

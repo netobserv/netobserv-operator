@@ -263,6 +263,9 @@ func (c *AgentController) desired(ctx context.Context, coll *flowslatest.FlowCol
 	rlog := log.FromContext(ctx).WithName("ebpf")
 	version := helper.ExtractVersion(c.Images[reconcilers.MainImage])
 	annotations := make(map[string]string)
+	if c.ClusterInfo.IsOpenShift() {
+		annotations[constants.OpenShiftReqSCCAnnotation] = constants.EBPFSecurityContext
+	}
 	env, err := c.envConfig(ctx, coll, annotations)
 	if err != nil {
 		return nil, err
@@ -441,13 +444,14 @@ func (c *AgentController) desired(ctx context.Context, coll *flowslatest.FlowCol
 					DNSPolicy:          corev1.DNSClusterFirstWithHostNet,
 					Volumes:            volumes,
 					Containers: []corev1.Container{{
-						Name:            constants.EBPFAgentName,
-						Image:           c.Images[reconcilers.MainImage],
-						ImagePullPolicy: corev1.PullPolicy(coll.Spec.Agent.EBPF.ImagePullPolicy),
-						Resources:       coll.Spec.Agent.EBPF.Resources,
-						SecurityContext: c.securityContext(coll),
-						Env:             env,
-						VolumeMounts:    volumeMounts,
+						Name:                     constants.EBPFAgentName,
+						Image:                    c.Images[reconcilers.MainImage],
+						ImagePullPolicy:          corev1.PullPolicy(coll.Spec.Agent.EBPF.ImagePullPolicy),
+						Resources:                coll.Spec.Agent.EBPF.Resources,
+						SecurityContext:          c.securityContext(coll),
+						Env:                      env,
+						VolumeMounts:             volumeMounts,
+						TerminationMessagePolicy: corev1.TerminationMessageFallbackToLogsOnError,
 					}},
 					NodeSelector:      advancedConfig.Scheduling.NodeSelector,
 					Tolerations:       advancedConfig.Scheduling.Tolerations,

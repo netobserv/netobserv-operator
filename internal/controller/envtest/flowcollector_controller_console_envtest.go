@@ -14,6 +14,7 @@ import (
 	ascv2 "k8s.io/api/autoscaling/v2"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
@@ -126,20 +127,21 @@ func FlowCollectorConsolePluginSpecs(env test.Environment, ctxGetter test.Contex
 		})
 	})
 
-	// Add Tests for OpenAPI validation (or additonal CRD features) specified in
-	// your API definition.
-	// Avoid adding tests for vanilla CRUD operations because they would
-	// test Kubernetes API server, which isn't the goal here.
 	Context("Deploying the console plugin", func() {
 		It("Should create successfully", func() {
 			By("Expecting to create the console plugin Deployment")
+			dp := appsv1.Deployment{}
 			Eventually(func() interface{} {
-				dp := appsv1.Deployment{}
 				if err := k8sClient.Get(ctx, cpKey, &dp); err != nil {
 					return err
 				}
 				return *dp.Spec.Replicas
 			}, timeout, interval).Should(Equal(int32(1)))
+
+			if env == test.EnvOpenShift {
+				By("In OpenShift, expecting to have the required SCC annotation")
+				Expect(dp.Spec.Template.Annotations).To(HaveKeyWithValue("openshift.io/required-scc", "restricted-v2"))
+			}
 
 			By("Expecting to create the console plugin Service")
 			Eventually(func() interface{} {
@@ -217,6 +219,46 @@ func FlowCollectorConsolePluginSpecs(env test.Environment, ctxGetter test.Contex
 						Namespace: cpNamespace,
 					}, &sm)
 				}, timeout, interval).Should(Succeed())
+			})
+		}
+	})
+
+	Context("FlowCollector status", func() {
+		It("Should have console ready status", func() {
+			// Manually set deployment ready
+			dp := appsv1.Deployment{}
+			Eventually(func() interface{} { return k8sClient.Get(ctx, cpKey, &dp) }, timeout, interval).Should(Succeed())
+			dp.Status.AvailableReplicas = 1
+			dp.Status.ReadyReplicas = 1
+			dp.Status.Replicas = 1
+			dp.Status.UpdatedReplicas = 1
+			Eventually(func() interface{} { return k8sClient.Status().Update(ctx, &dp) }, timeout, interval).Should(Succeed())
+
+			Eventually(func() interface{} {
+				fc := test.GetCR(ctx, k8sClient, crKey)
+				return meta.FindStatusCondition(fc.Status.Conditions, "WaitingWebConsole")
+			}, timeout, interval).Should(Satisfy(func(c *metav1.Condition) bool {
+				return c != nil && c.Status == metav1.ConditionFalse && c.Reason == "Ready"
+			}))
+		})
+
+		if env == test.EnvOpenShift {
+			It("Should have static plugin ready status", func() {
+				// Manually set deployment ready
+				dp := appsv1.Deployment{}
+				Eventually(func() interface{} { return k8sClient.Get(ctx, staticCpKey, &dp) }, timeout, interval).Should(Succeed())
+				dp.Status.AvailableReplicas = 1
+				dp.Status.ReadyReplicas = 1
+				dp.Status.Replicas = 1
+				dp.Status.UpdatedReplicas = 1
+				Eventually(func() interface{} { return k8sClient.Status().Update(ctx, &dp) }, timeout, interval).Should(Succeed())
+
+				Eventually(func() interface{} {
+					fc := test.GetCR(ctx, k8sClient, crKey)
+					return meta.FindStatusCondition(fc.Status.Conditions, "WaitingStaticController")
+				}, timeout, interval).Should(Satisfy(func(c *metav1.Condition) bool {
+					return c != nil && c.Status == metav1.ConditionFalse && c.Reason == "Ready"
+				}))
 			})
 		}
 	})

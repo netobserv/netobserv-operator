@@ -58,6 +58,7 @@ func (b *monolithBuilder) daemonSet(annotations map[string]string) *appsv1.Daemo
 	netType := hostNetwork
 	if b.info.ClusterInfo.IsOpenShift() {
 		netType = hostPort
+		annotations[constants.OpenShiftReqSCCAnnotation] = "hostnetwork"
 	}
 	pod := podTemplate(
 		monoName,
@@ -91,6 +92,9 @@ func (b *monolithBuilder) daemonSet(annotations map[string]string) *appsv1.Daemo
 }
 
 func (b *monolithBuilder) deployment(annotations map[string]string) *appsv1.Deployment {
+	if b.info.ClusterInfo.IsOpenShift() {
+		annotations[constants.OpenShiftReqSCCAnnotation] = constants.OpenShiftReqSCCAnnotationDefaultValue
+	}
 	pod := podTemplate(
 		monoName,
 		b.version,

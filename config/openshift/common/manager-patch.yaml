@@ -4,6 +4,11 @@
   value: manager
 
 - op: add
+  path: "/spec/template/metadata/annotations"
+  value:
+    openshift.io/required-scc: restricted-v2
+
+- op: add
   path: "/spec/template/spec/volumes/-"
   value:
     name: manager-metric-tls

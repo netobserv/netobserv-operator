@@ -4,7 +4,10 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
+	"strings"
 	"time"
 
 	//nolint:revive,staticcheck
@@ -71,23 +74,43 @@ type SuiteContext struct {
 
 type ContextGetter func() (context.Context, client.Client)
 
-func PrepareEnvTest(env Environment, controllers []manager.Registerer, opNamespace string, namespaces []string, basePath string) (context.Context, client.Client, *SuiteContext) {
+// SetupKubeBuilderAssets ensures KUBEBUILDER_ASSETS points at the envtest binaries, so tests that boot
+// an envtest.Environment can run standalone (e.g. plain `go test ./...`) and not only through `make test`.
+// If the variable is already set, it is left untouched.
+func SetupKubeBuilderAssets() error {
+	if os.Getenv("KUBEBUILDER_ASSETS") != "" {
+		return nil
+	}
+	root := RepoRoot()
+	// Calling setup-envtest which should be in this repo ./bin - if that's not the case, just run `make envtest` once and it should be downloaded.
+	// Make sure to always keep the version in sync with ENVTEST_K8S_VERSION in the Makefile.
+	out, err := exec.Command(filepath.Join(root, "bin", "setup-envtest"), "use", "1.23", "-p", "path").Output()
+	if err != nil {
+		return err
+	}
+	return os.Setenv("KUBEBUILDER_ASSETS", strings.TrimSpace(string(out)))
+}
+
+func PrepareEnvTest(env Environment, controllers []manager.Registerer, opNamespace string, namespaces []string) (context.Context, client.Client, *SuiteContext) {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 	ctx, cancel := context.WithCancel(context.TODO())
+	err := SetupKubeBuilderAssets()
+	Expect(err).NotTo(HaveOccurred())
 
 	By("bootstrapping test environment")
+	basePath := RepoRoot()
 	testEnv := &envtest.Environment{
 		Scheme: scheme.Scheme,
 		CRDInstallOptions: envtest.CRDInstallOptions{
 			Paths: []string{
 				// Hack to reintroduce when the API stored version != latest version: comment-out config/crd/bases and use hack instead; see also Makefile "hack-crd-for-test"
-				filepath.Join(basePath, "..", "..", "config", "crd", "bases"),
-				// filepath.Join(basePath, "..", "hack"),
+				filepath.Join(basePath, "config", "crd", "bases"),
+				// filepath.Join(basePath, "hack"),
 			},
 			CleanUpAfterUse: true,
 			WebhookOptions: envtest.WebhookInstallOptions{
 				Paths: []string{
-					filepath.Join(basePath, "..", "..", "config", "webhook"),
+					filepath.Join(basePath, "config", "webhook"),
 				},
 			},
 		},
@@ -97,14 +120,14 @@ func PrepareEnvTest(env Environment, controllers []manager.Registerer, opNamespa
 	case EnvOpenShift:
 		// We need to install the ConsolePlugin CRD to test setup of our Network Console Plugin
 		testEnv.CRDInstallOptions.Paths = append(testEnv.CRDInstallOptions.Paths,
-			filepath.Join(basePath, "..", "..", "vendor", "github.com", "openshift", "api", "console", "v1", "zz_generated.crd-manifests"),
-			filepath.Join(basePath, "..", "..", "vendor", "github.com", "openshift", "api", "config", "v1", "zz_generated.crd-manifests"),
-			filepath.Join(basePath, "..", "..", "vendor", "github.com", "openshift", "api", "operator", "v1", "zz_generated.crd-manifests"),
-			filepath.Join(basePath, "..", "..", "vendor", "github.com", "openshift", "api", "security", "v1", "zz_generated.crd-manifests"),
-			filepath.Join(basePath, "..", "..", "test-assets"),
+			filepath.Join(basePath, "vendor", "github.com", "openshift", "api", "console", "v1", "zz_generated.crd-manifests"),
+			filepath.Join(basePath, "vendor", "github.com", "openshift", "api", "config", "v1", "zz_generated.crd-manifests"),
+			filepath.Join(basePath, "vendor", "github.com", "openshift", "api", "operator", "v1", "zz_generated.crd-manifests"),
+			filepath.Join(basePath, "vendor", "github.com", "openshift", "api", "security", "v1", "zz_generated.crd-manifests"),
+			filepath.Join(basePath, "test-assets"),
 		)
 	case EnvVanillaFullStack:
-		testEnv.CRDInstallOptions.Paths = append(testEnv.CRDInstallOptions.Paths, filepath.Join(basePath, "..", "..", "test-assets"))
+		testEnv.CRDInstallOptions.Paths = append(testEnv.CRDInstallOptions.Paths, filepath.Join(basePath, "test-assets"))
 	case EnvVanillaNaked:
 		// nothing more
 	}
@@ -204,7 +227,7 @@ func PrepareEnvTest(env Environment, controllers []manager.Registerer, opNamespa
 	Expect(err).ToNot(HaveOccurred())
 	Expect(k8sManager).NotTo(BeNil())
 
-	err = helper.SetCRDForTests(filepath.Join(basePath, "..", ".."))
+	err = helper.SetCRDForTests(filepath.Join(basePath))
 	Expect(err).NotTo(HaveOccurred())
 
 	createFakeController(ctx, k8sClient, opNamespace)
@@ -380,4 +403,14 @@ func Annotations(annots map[string]string) []string {
 		kv = append(kv, k+"="+v)
 	}
 	return kv
+}
+
+func RepoRoot() string {
+	// Resolve the repo root from this file's location, so it works regardless of the caller's cwd.
+	// This file lives at internal/pkg/test/envtest.go, i.e. three directories below the root.
+	_, thisFile, _, ok := runtime.Caller(0)
+	if !ok {
+		panic("RepoRoot: unable to resolve caller path")
+	}
+	return filepath.Join(filepath.Dir(thisFile), "..", "..", "..")
 }

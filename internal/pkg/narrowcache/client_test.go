@@ -35,6 +35,7 @@ func (c *gvkClient) GroupVersionKindFor(obj runtime.Object) (schema.GroupVersion
 
 func TestWatchReestablishment(t *testing.T) {
 	assert := assert.New(t)
+	ctx, cancel := context.WithCancel(context.Background())
 
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{Name: "test-cm", Namespace: "test-ns"},
@@ -53,15 +54,20 @@ func TestWatchReestablishment(t *testing.T) {
 		return true, watcher2, nil
 	})
 
+	newLiveClientBackup := NewLiveClient
 	NewLiveClient = func(_ *rest.Config) (kubernetes.Interface, error) {
 		return goclient, nil
 	}
+	t.Cleanup(func() {
+		cancel()
+		watcher1.Stop()
+		watcher2.Stop()
+		NewLiveClient = newLiveClientBackup
+	})
 	narrowCache := NewConfig(&rest.Config{}, ConfigMaps)
 	underlying := &gvkClient{}
 	nc, err := narrowCache.CreateClient(underlying)
 	assert.NoError(err)
-
-	ctx := context.Background()
 
 	// First Get: triggers live query + starts watch goroutine
 	out := &corev1.ConfigMap{}

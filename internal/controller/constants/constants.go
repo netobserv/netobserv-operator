@@ -39,7 +39,9 @@ const (
 	EBPFSecurityContext               = EBPFAgentName
 	EBPFMetricPort                    = 9400
 
-	OpenShiftCertificateAnnotation = "service.beta.openshift.io/serving-cert-secret-name"
+	OpenShiftCertificateAnnotation        = "service.beta.openshift.io/serving-cert-secret-name"
+	OpenShiftReqSCCAnnotation             = "openshift.io/required-scc"
+	OpenShiftReqSCCAnnotationDefaultValue = "restricted-v2"
 
 	// PodConfigurationDigest is an annotation name to facilitate pod restart after
 	// any external configuration change

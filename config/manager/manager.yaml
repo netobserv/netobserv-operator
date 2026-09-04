@@ -82,5 +82,6 @@ spec:
           requests:
             cpu: 100m
             memory: 100Mi
+        terminationMessagePolicy: FallbackToLogsOnError
       serviceAccountName: controller-manager
       terminationGracePeriodSeconds: 10

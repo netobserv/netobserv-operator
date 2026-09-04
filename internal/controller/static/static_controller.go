@@ -54,6 +54,15 @@ func Start(ctx context.Context, mgr *manager.Manager) (manager.PostCreateHook, e
 			reconcilers.IgnoreStatusChange,
 		).
 		Watches(
+			&appsv1.Deployment{},
+			handler.EnqueueRequestsFromMapFunc(func(_ context.Context, o client.Object) []reconcile.Request {
+				if o.GetNamespace() == mgr.Config.Namespace && o.GetName() == constants.StaticPluginName {
+					return []reconcile.Request{{NamespacedName: constants.FlowCollectorName}}
+				}
+				return nil
+			}),
+		).
+		Watches(
 			&networkingv1.NetworkPolicy{},
 			&handler.EnqueueRequestForObject{},
 			reconcilers.OperatorOwned(mgr.Config.Namespace),

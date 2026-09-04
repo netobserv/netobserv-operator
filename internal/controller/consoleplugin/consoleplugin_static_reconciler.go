@@ -92,6 +92,12 @@ func (r *StaticReconciler) reconcileStatic(ctx context.Context, desired *flowsla
 		// Create object builder
 		builder := newBuilder(r.Instance, &desired.Spec, constants.StaticPluginName)
 
+		if !r.Managed.Exists(r.serviceAccount) {
+			if err = r.CreateOwned(ctx, builder.serviceAccount(constants.StaticPluginName)); err != nil {
+				return err
+			}
+		}
+
 		if err = r.reconcileStaticPlugin(ctx, &builder, constants.StaticPluginName); err != nil {
 			return err
 		}

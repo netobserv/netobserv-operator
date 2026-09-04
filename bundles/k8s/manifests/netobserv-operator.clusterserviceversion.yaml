@@ -1056,6 +1056,7 @@ spec:
                     path: /healthz
                     port: 8081
                   periodSeconds: 10
+                terminationMessagePolicy: FallbackToLogsOnError
                 volumeMounts:
                 - mountPath: /tmp/k8s-webhook-server/serving-certs
                   name: cert

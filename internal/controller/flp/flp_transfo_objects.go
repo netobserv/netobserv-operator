@@ -54,6 +54,9 @@ func newTransfoBuilder(info *reconcilers.Instance, desired *flowslatest.FlowColl
 }
 
 func (b *transfoBuilder) deployment(annotations map[string]string) *appsv1.Deployment {
+	if b.info.ClusterInfo.IsOpenShift() {
+		annotations[constants.OpenShiftReqSCCAnnotation] = constants.OpenShiftReqSCCAnnotationDefaultValue
+	}
 	pod := podTemplate(
 		transfoName,
 		b.version,

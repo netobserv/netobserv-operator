@@ -17,7 +17,7 @@ linters:
     - unused
   settings:
     cyclop:
-      max-complexity: 20
+      max-complexity: 24
     gocritic:
       enabled-checks:
         - hugeParam

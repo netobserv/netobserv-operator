@@ -91,7 +91,7 @@ metadata:
     categories: Monitoring, Networking, Observability
     console.openshift.io/plugins: '["netobserv-plugin"]'
     containerImage: quay.io/netobserv/network-observability-operator:1.12.0-community
-    createdAt: "2026-07-21T07:39:53Z"
+    createdAt: "2026-08-12T16:15:17Z"
     description: Network flows collector and monitoring solution
     operatorframework.io/initialization-resource: '{"apiVersion":"flows.netobserv.io/v1beta2",
       "kind":"FlowCollector","metadata":{"name":"cluster"},"spec": {}}'
@@ -985,6 +985,8 @@ spec:
           strategy: {}
           template:
             metadata:
+              annotations:
+                openshift.io/required-scc: restricted-v2
               labels:
                 app: netobserv-operator
                 control-plane: controller-manager
@@ -1056,6 +1058,7 @@ spec:
                     path: /healthz
                     port: 8081
                   periodSeconds: 10
+                terminationMessagePolicy: FallbackToLogsOnError
                 volumeMounts:
                 - mountPath: /tmp/k8s-webhook-server/serving-certs
                   name: cert

@@ -21,7 +21,7 @@ import (
 	"github.com/netobserv/netobserv-operator/internal/pkg/test"
 )
 
-func FlowCollectorEBPFSpecs(ctxGetter test.ContextGetter) {
+func FlowCollectorEBPFSpecs(env test.Environment, ctxGetter test.ContextGetter) {
 	var ctx context.Context
 	var k8sClient client.Client
 	BeforeEach(func() {
@@ -130,6 +130,11 @@ func FlowCollectorEBPFSpecs(ctxGetter test.ContextGetter) {
 			}
 			Expect(hostFound).To(BeTrue(),
 				fmt.Sprintf("expected TARGET_HOST env var in %+v", spec.Containers[0].Env))
+
+			if env == test.EnvOpenShift {
+				By("In OpenShift, expecting to have the required SCC annotation")
+				Expect(ds.Spec.Template.Annotations).To(HaveKeyWithValue("openshift.io/required-scc", "netobserv-ebpf-agent"))
+			}
 
 			ns := v1.Namespace{}
 			By("expecting to create the netobserv-privileged namespace")

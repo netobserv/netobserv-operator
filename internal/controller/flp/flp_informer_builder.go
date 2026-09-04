@@ -208,12 +208,13 @@ func (b *informerBuilder) deployment() (*appsv1.Deployment, error) {
 				},
 			},
 		},
-		Ports:           ports,
-		VolumeMounts:    (&vols).GetMounts(),
-		Resources:       resources,
-		LivenessProbe:   livenessProbe,
-		ReadinessProbe:  readinessProbe,
-		SecurityContext: helper.ContainerDefaultSecurityContext(),
+		Ports:                    ports,
+		VolumeMounts:             (&vols).GetMounts(),
+		Resources:                resources,
+		LivenessProbe:            livenessProbe,
+		ReadinessProbe:           readinessProbe,
+		SecurityContext:          helper.ContainerDefaultSecurityContext(),
+		TerminationMessagePolicy: corev1.TerminationMessageFallbackToLogsOnError,
 	}
 
 	// Get processor advanced scheduling configuration to apply to informers
