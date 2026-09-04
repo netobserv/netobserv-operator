@@ -1,0 +1,68 @@
+name: Auto-label PR for review
+
+on:
+  pull_request_target:
+    types: [synchronize, reopened, opened, edited, ready_for_review, labeled]
+  issue_comment:
+    types: [created]
+
+jobs:
+  auto-label:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    if: >
+      github.event_name == 'pull_request_target' &&
+      contains(fromJSON('["opened", "edited", "ready_for_review"]'), github.event.action) &&
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.user.login != 'red-hat-konflux' &&
+      !contains(github.event.pull_request.title, 'WIP')
+    steps:
+      - name: Add needs-review label
+        run: gh pr edit ${{ github.event.pull_request.number }} --add-label needs-review
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+
+  manual-needs-review:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    if: github.event_name == 'issue_comment' && github.event.issue.pull_request != null
+    steps:
+      - name: Add needs-review label via comment
+        run: |
+          echo "Event name: ${{ github.event_name }}"
+          echo "Issue number: ${{ github.event.issue.number }}"
+          echo "Comment body: ${{ github.event.comment.body }}"
+          echo "Is PR: ${{ github.event.issue.pull_request != null }}"
+          
+          COMMENT_BODY="${{ github.event.comment.body }}"
+          COMMENT_LOWER=$(echo "$COMMENT_BODY" | tr '[:upper:]' '[:lower:]')
+          
+          if [[ "$COMMENT_LOWER" == *"needs-review"* ]] || [[ "$COMMENT_LOWER" == *"/needs-review"* ]]; then
+            echo "Adding needs-review label via comment"
+            gh pr edit ${{ github.event.issue.number }} --add-label needs-review || echo "Failed to add label or label already exists"
+          else
+            echo "Comment does not contain needs-review trigger"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+
+  remove-needs-review-on-needs-changes:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    if: >
+      github.event_name == 'pull_request_target' &&
+      github.event.action == 'labeled' &&
+      github.event.label.name == 'needs-changes'
+    steps:
+      - name: Remove needs-review label when needs-changes is added
+        run: |
+          echo "Removing needs-review label when needs-changes was added"
+          gh pr edit ${{ github.event.pull_request.number }} --remove-label needs-review || echo "needs-review label not found or already removed"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
