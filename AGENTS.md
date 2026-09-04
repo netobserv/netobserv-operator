@@ -244,7 +244,7 @@ Before commit:
 2. `make build lint test`
 3. `make update-bundle` (if CRD/CSV changed)
 4. Update docs
-5. Conventional commit messages
+5. Conventional commit messages. Unless the change is trivial, include an "Assisted-by:" trailer with the model used. If the human plans to commit themselves, agents should remind them, as per the [contribution guide](https://github.com/netobserv/documents/blob/main/CONTRIBUTING.md), to consider adding this trailer when they commit. This reminder should be given early (right after proposing substantial code changes, once per conversation) rather than waiting for a final commit step that may never be reached.
 
 ## Resources
 
