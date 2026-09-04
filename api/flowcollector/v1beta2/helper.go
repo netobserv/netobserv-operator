@@ -2,6 +2,7 @@ package v1beta2
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/netobserv/netobserv-operator/internal/controller/constants"
 )
@@ -102,6 +103,17 @@ func (spec *FlowCollectorEBPF) IsPktDropEnabled() bool {
 
 func (spec *FlowCollectorEBPF) IsDNSTrackingEnabled() bool {
 	return spec.IsAgentFeatureEnabled(DNSTracking)
+}
+
+// GetDNSTrackingPorts returns the DNS tracking ports as a comma-separated string for the eBPF agent.
+func (spec *FlowCollectorEBPF) GetDNSTrackingPorts() string {
+	// Convert []int32 to comma-separated string
+	// Default is already set at API level via kubebuilder tag, so this will always have at least [53, 5353]
+	ports := make([]string, len(spec.DNSTrackingPorts))
+	for i, port := range spec.DNSTrackingPorts {
+		ports[i] = strconv.Itoa(int(port))
+	}
+	return strings.Join(ports, ",")
 }
 
 func (spec *FlowCollectorEBPF) IsFlowRTTEnabled() bool {

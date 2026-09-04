@@ -91,7 +91,7 @@ metadata:
     categories: Monitoring, Networking, Observability
     console.openshift.io/plugins: '["netobserv-plugin"]'
     containerImage: quay.io/netobserv/network-observability-operator:1.12.0-community
-    createdAt: "2026-08-13T13:33:44Z"
+    createdAt: "2026-08-25T17:03:24Z"
     description: Network flows collector and monitoring solution
     operatorframework.io/initialization-resource: '{"apiVersion":"flows.netobserv.io/v1beta2",
       "kind":"FlowCollector","metadata":{"name":"cluster"},"spec": {}}'
@@ -386,6 +386,8 @@ spec:
         path: exporters[0].openTelemetry
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:fieldDependency:exporters.type:OpenTelemetry
+      - displayName: Dns tracking ports
+        path: agent.ebpf.dnsTrackingPorts
       - displayName: Exclude interfaces
         path: agent.ebpf.excludeInterfaces
       - displayName: Features

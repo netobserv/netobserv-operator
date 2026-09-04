@@ -1050,6 +1050,20 @@ spec:
                           format: int32
                           minimum: 1
                           type: integer
+                        dnsTrackingPorts:
+                          default:
+                            - 53
+                            - 5353
+                          description: |-
+                            `dnsTrackingPorts` defines the list of DNS ports to track when DNSTracking feature is enabled.
+                            For example: [53, 5353, 8053]. Maximum 8 ports allowed.
+                          items:
+                            format: int32
+                            maximum: 65535
+                            minimum: 1
+                            type: integer
+                          maxItems: 8
+                          type: array
                         excludeInterfaces:
                           default:
                             - lo

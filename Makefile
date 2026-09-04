@@ -459,7 +459,7 @@ endif
 bundle: generate bundle-nogen ## Generate final bundle files, including prior code/doc generation.
 
 .PHONY: update-bundle
-update-bundle: ## Prepare clean bundles to be commited
+update-bundle: YQ ## Prepare clean bundles to be commited
 	$(SED) -i -E 's~netobserv-operator/blob/[^/]+/~netobserv-operator/blob/$(BUNDLE_VERSION)/~g' ./config/csv/bases/netobserv-operator.clusterserviceversion.yaml
 	cp ./config/csv/bases/netobserv-operator.clusterserviceversion.yaml ./config/csv/bases/transformed-csv.yaml
 	hack/crd2csvSpecDesc.sh v1beta2

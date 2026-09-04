@@ -28,6 +28,13 @@ spec:
       # - "UDNMapping"
       # - "IPSec"
       # - "TLSTracking"
+      # Configure DNS tracking ports (optional)
+      # Default: [53, 5353] (standard DNS + mDNS)
+      # Maximum 8 ports allowed
+      # dnsTrackingPorts:
+      # - 53
+      # - 5353
+      # - 8053
       interfaces: []
       excludeInterfaces: ["lo"]
       # kafkaBatchSize: 1048576

@@ -699,7 +699,7 @@ func (c *AgentController) envConfig(ctx context.Context, coll *flowslatest.FlowC
 	}
 
 	// Other default config that can be overriden by env
-	config = addEnv(config, envDNSTrackingPort, defaultDNSTrackingPort, advancedConfig.Env)
+	config = addEnv(config, envDNSTrackingPort, coll.Spec.Agent.EBPF.GetDNSTrackingPorts(), advancedConfig.Env)
 	config = addEnv(config, envNetworkEventsGroupID, defaultNetworkEventsGroupID, advancedConfig.Env)
 	config = addEnv(config, envPreferredInterface, defaultPreferredInterface, advancedConfig.Env)
 	config = addEnv(config, envAttachMode, defaultAttach, advancedConfig.Env)

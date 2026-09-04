@@ -402,6 +402,15 @@ type FlowCollectorEBPF struct {
 	// `flowFilter` defines the eBPF agent configuration regarding flow filtering.
 	// +optional
 	FlowFilter *EBPFFlowFilter `json:"flowFilter,omitempty"`
+
+	// `dnsTrackingPorts` defines the list of DNS ports to track when DNSTracking feature is enabled.
+	// For example: [53, 5353, 8053]. Maximum 8 ports allowed.
+	// +optional
+	// +kubebuilder:validation:MaxItems:=8
+	// +kubebuilder:validation:items:Minimum:=1
+	// +kubebuilder:validation:items:Maximum:=65535
+	// +kubebuilder:default:={53,5353}
+	DNSTrackingPorts []int32 `json:"dnsTrackingPorts,omitempty"`
 }
 
 // `FlowCollectorKafka` defines the desired Kafka config of FlowCollector

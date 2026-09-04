@@ -121,6 +121,7 @@ func FlowCollectorIsoSpecs(ctxGetter test.ContextGetter) {
 					Privileged:         false,
 					KafkaBatchSize:     0,
 					Features:           nil,
+					DNSTrackingPorts:   []int32{53, 5353}, // Default value
 					Metrics: flowslatest.EBPFMetrics{
 						Enable: ptr.To(false),
 						Server: flowslatest.MetricsServerConfig{
