@@ -103,6 +103,10 @@ var gvrMap = map[string]schema.GroupVersionResource{
 	// OpenShift cluster operator
 	"clusteroperator": {Group: "config.openshift.io", Version: "v1", Resource: "clusteroperators"},
 
+	// Network Policy (AdminNetworkPolicy)
+	"adminnetworkpolicy":         {Group: "policy.networking.k8s.io", Version: "v1alpha1", Resource: "adminnetworkpolicies"},
+	"baselineadminnetworkpolicy": {Group: "policy.networking.k8s.io", Version: "v1alpha1", Resource: "baselineadminnetworkpolicies"},
+
 	// User-defined networks (OVN)
 	"userdefinednetwork":        {Group: "k8s.ovn.org", Version: "v1", Resource: "userdefinednetworks"},
 	"clusteruserdefinednetwork": {Group: "k8s.ovn.org", Version: "v1", Resource: "clusteruserdefinednetworks"},

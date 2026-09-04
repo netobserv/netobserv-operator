@@ -1632,7 +1632,7 @@ var _ = g.Describe("[sig-netobserv] Network_Observability", func() {
 		banpParameters := []string{"--ignore-unknown-parameters=true", "-p", "SERVER_NS=" + testClient1Template.ServerNS, "CLIENT1_NS=" + testClient1Template.ClientNS, "CLIENT2_NS=" + testClient2Template.ClientNS, "-f", banpTemplate}
 
 		// banp is a cluster scoped resource so passing empty string for NS arg.
-		defer deleteResource("banp", "default", "")
+		defer deleteResource("baselineadminnetworkpolicy", "default", "")
 		err = applyResourceFromTemplateByAdmin(banpParameters...)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -1673,7 +1673,7 @@ var _ = g.Describe("[sig-netobserv] Network_Observability", func() {
 		anpTemplate := filePath.Join(baseDir, "networking", "adminnetworkPolicy.yaml")
 		anpName := "server-ns"
 		anpParameters := []string{"--ignore-unknown-parameters=true", "-p", "NAM=" + anpName, "SERVER_NS=" + testClient1Template.ServerNS, "ALLOW_NS=" + testClient2Template.ClientNS, "DENY_NS=" + testClient1Template.ClientNS, "-f", anpTemplate}
-		defer deleteResource("anp", anpName, "")
+		defer deleteResource("adminnetworkpolicy", anpName, "")
 		err = applyResourceFromTemplateByAdmin(anpParameters...)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
