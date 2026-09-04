@@ -1013,6 +1013,12 @@ spec:
                   value: quay.io/netobserv/network-observability-console-plugin:v1.12.0-community-pf5
                 - name: RELATED_IMAGE_DEMO_LOKI
                   value: grafana/loki:3.5.0
+                - name: STATIC_PLUGIN_CPU_REQUEST
+                  value: 10m
+                - name: STATIC_PLUGIN_MEMORY_REQUEST
+                  value: 64Mi
+                - name: STATIC_PLUGIN_CPU_LIMIT
+                - name: STATIC_PLUGIN_MEMORY_LIMIT
                 - name: NAMESPACE
                   valueFrom:
                     fieldRef:

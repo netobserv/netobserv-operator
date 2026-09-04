@@ -310,6 +310,10 @@ func readConfigFromEnv() (*manager.Config, error) {
 		Namespace:             defaultStringEnv("NAMESPACE", "netobserv"),
 		StaticPluginConfig: manager.StaticPluginConfig{
 			InheritTolerationFromSubscription: os.Getenv("STATIC_PLUGIN_INHERIT_TOLERATION_SUBSCRIPTION"),
+			CPURequest:                        defaultStringEnv("STATIC_PLUGIN_CPU_REQUEST", "10m"),
+			MemoryRequest:                     defaultStringEnv("STATIC_PLUGIN_MEMORY_REQUEST", "64Mi"),
+			CPULimit:                          defaultStringEnv("STATIC_PLUGIN_CPU_LIMIT", ""),
+			MemoryLimit:                       defaultStringEnv("STATIC_PLUGIN_MEMORY_LIMIT", ""),
 		},
 		DeployOperatorNetworkPolicy: deployNetpol,
 	}, nil

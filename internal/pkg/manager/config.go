@@ -36,6 +36,14 @@ type Config struct {
 type StaticPluginConfig struct {
 	// Inherit toleration from Subscriptions, for static controller (static plugin); this must refer to the subscription name
 	InheritTolerationFromSubscription string
+	// CPU request for the static plugin Deployment
+	CPURequest string
+	// Memory request for the static plugin Deployment
+	MemoryRequest string
+	// CPU limit for the static plugin Deployment (empty = no limit)
+	CPULimit string
+	// Memory limit for the static plugin Deployment (empty = no limit)
+	MemoryLimit string
 }
 
 // ResolveWebConsoleImage selects the web console image appropriate for the cluster version.
