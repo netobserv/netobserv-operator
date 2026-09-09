@@ -106,6 +106,7 @@ var gvrMap = map[string]schema.GroupVersionResource{
 	// Network Policy (AdminNetworkPolicy)
 	"adminnetworkpolicy":         {Group: "policy.networking.k8s.io", Version: "v1alpha1", Resource: "adminnetworkpolicies"},
 	"baselineadminnetworkpolicy": {Group: "policy.networking.k8s.io", Version: "v1alpha1", Resource: "baselineadminnetworkpolicies"},
+	"networkPolicy":              {Group: "networking.k8s.io", Version: "v1", Resource: "networkpolicies"},
 
 	// User-defined networks (OVN)
 	"userdefinednetwork":        {Group: "k8s.ovn.org", Version: "v1", Resource: "userdefinednetworks"},
