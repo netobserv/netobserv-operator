@@ -350,6 +350,66 @@ var _ = g.Describe("[sig-netobserv] Network_Observability", func() {
 				expectedCount, len(baselineMetrics), len(additionalIncludeList), len(allMetrics), allMetrics))
 	})
 
+	g.It("Author:kapjain-High-90544-Verify operator and static plugin network policies [Serial]", func() {
+		SkipIfOCPBelow("v4.15")
+
+		g.By("Deploy FlowCollector")
+		flow := Flowcollector{
+			Namespace:       namespace,
+			Template:        flowFixturePath,
+			LokiEnable:      "false",
+			InstallDemoLoki: "false",
+		}
+
+		defer func() { _ = flow.DeleteFlowcollector() }()
+		flow.CreateFlowcollector()
+
+		g.By("Verify operator network policy exists")
+		opPolicy, err := k8sClient.NetworkingV1().NetworkPolicies("openshift-netobserv-operator").Get(context.Background(), "netobserv-operator", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(opPolicy).NotTo(o.BeNil())
+
+		g.By("Verify static plugin network policy exists")
+		pluginPolicy, err := k8sClient.NetworkingV1().NetworkPolicies("openshift-netobserv-operator").Get(context.Background(), "netobserv-plugin-static", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(pluginPolicy).NotTo(o.BeNil())
+
+		g.By("Verify StaticReconciler owns both policies")
+		opOwner := opPolicy.GetOwnerReferences()
+		pluginOwner := pluginPolicy.GetOwnerReferences()
+		o.Expect(opOwner).NotTo(o.BeEmpty())
+		o.Expect(pluginOwner).NotTo(o.BeEmpty())
+		o.Expect(opOwner[0].Name).To(o.Equal("netobserv-controller-manager"))
+		o.Expect(pluginOwner[0].Name).To(o.Equal("netobserv-controller-manager"))
+
+		g.By("Verify NetPol Controller owns operand policies")
+		for _, ns := range []string{namespace, namespace + "-privileged"} {
+			operandPolicies, err := k8sClient.NetworkingV1().NetworkPolicies(ns).List(context.Background(), metav1.ListOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(operandPolicies.Items).NotTo(o.BeEmpty(), "expected operand network policies in namespace %s", ns)
+
+			for _, policy := range operandPolicies.Items {
+				owners := policy.GetOwnerReferences()
+				o.Expect(owners).NotTo(o.BeEmpty(), "expected owner references on operand policy %s/%s", ns, policy.Name)
+				o.Expect(owners[0].Kind).To(o.Equal("FlowCollector"), "policy %s/%s should be owned by FlowCollector", ns, policy.Name)
+			}
+		}
+
+		g.By("Delete and recreate - policy auto-restored by StaticReconciler")
+		originalUID := opPolicy.UID
+		err = k8sClient.NetworkingV1().NetworkPolicies("openshift-netobserv-operator").Delete(context.Background(), "netobserv-operator", metav1.DeleteOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		err = waitForNetworkPolicy("openshift-netobserv-operator", "netobserv-operator", 30)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		recreatedPolicy, err := k8sClient.NetworkingV1().NetworkPolicies("openshift-netobserv-operator").Get(context.Background(), "netobserv-operator", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(recreatedPolicy.UID).NotTo(o.Equal(originalUID), "policy should have new UID after recreation")
+	})
+
+	// NetObserv + Loki test-cases
+
 	g.Context("FLP, eBPF and Console metrics:", func() {
 		g.When("processor.metrics.TLS == Disabled and agent.ebpf.metrics.TLS == Disabled", func() {
 			g.It("Author:aramesha-Critical-50504-Critical-72959-Verify flowlogs-pipeline and eBPF metrics and health [Serial]", func() {
@@ -2692,64 +2752,6 @@ var _ = g.Describe("[sig-netobserv] Network_Observability", func() {
 		g.By("Verify flow logs are being stored in Loki using verifyLokilogsTime")
 		err = verifyMonolithicLokilogsTime(flow.MonolithicLokiURL, startTime)
 		o.Expect(err).NotTo(o.HaveOccurred())
-	})
-
-	g.It("Author:kapjain-High-90544-Verify operator and static plugin network policies [Serial]", func() {
-		SkipIfOCPBelow("v4.15")
-
-		g.By("Deploy FlowCollector")
-		flow := Flowcollector{
-			Namespace:       namespace,
-			Template:        flowFixturePath,
-			LokiEnable:      "false",
-			InstallDemoLoki: "false",
-		}
-
-		defer func() { _ = flow.DeleteFlowcollector() }()
-		flow.CreateFlowcollector()
-
-		g.By("Verify operator network policy exists")
-		opPolicy, err := k8sClient.NetworkingV1().NetworkPolicies("openshift-netobserv-operator").Get(context.Background(), "netobserv-operator", metav1.GetOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(opPolicy).NotTo(o.BeNil())
-
-		g.By("Verify static plugin network policy exists")
-		pluginPolicy, err := k8sClient.NetworkingV1().NetworkPolicies("openshift-netobserv-operator").Get(context.Background(), "netobserv-plugin-static", metav1.GetOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(pluginPolicy).NotTo(o.BeNil())
-
-		g.By("Verify StaticReconciler owns both policies")
-		opOwner := opPolicy.GetOwnerReferences()
-		pluginOwner := pluginPolicy.GetOwnerReferences()
-		o.Expect(opOwner).NotTo(o.BeEmpty())
-		o.Expect(pluginOwner).NotTo(o.BeEmpty())
-		o.Expect(opOwner[0].Name).To(o.Equal("netobserv-controller-manager"))
-		o.Expect(pluginOwner[0].Name).To(o.Equal("netobserv-controller-manager"))
-
-		g.By("Verify NetPol Controller owns operand policies")
-		for _, ns := range []string{namespace, namespace + "-privileged"} {
-			operandPolicies, err := k8sClient.NetworkingV1().NetworkPolicies(ns).List(context.Background(), metav1.ListOptions{})
-			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(operandPolicies.Items).NotTo(o.BeEmpty(), "expected operand network policies in namespace %s", ns)
-
-			for _, policy := range operandPolicies.Items {
-				owners := policy.GetOwnerReferences()
-				o.Expect(owners).NotTo(o.BeEmpty(), "expected owner references on operand policy %s/%s", ns, policy.Name)
-				o.Expect(owners[0].Kind).To(o.Equal("FlowCollector"), "policy %s/%s should be owned by FlowCollector", ns, policy.Name)
-			}
-		}
-
-		g.By("Delete and recreate - policy auto-restored by StaticReconciler")
-		originalUID := opPolicy.UID
-		err = k8sClient.NetworkingV1().NetworkPolicies("openshift-netobserv-operator").Delete(context.Background(), "netobserv-operator", metav1.DeleteOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		err = waitForNetworkPolicy("openshift-netobserv-operator", "netobserv-operator", 30)
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		recreatedPolicy, err := k8sClient.NetworkingV1().NetworkPolicies("openshift-netobserv-operator").Get(context.Background(), "netobserv-operator", metav1.GetOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(recreatedPolicy.UID).NotTo(o.Equal(originalUID), "policy should have new UID after recreation")
 	})
 	//Add future NetObserv + Loki test-cases here
 
