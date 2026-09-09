@@ -8,8 +8,10 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
@@ -112,4 +114,53 @@ func deleteNamespace(ns string) {
 		return false, nil
 	})
 	assertWaitPollNoErr(err, fmt.Sprintf("Namespace %s is not deleted in 3 minutes", ns))
+}
+
+// waitForNetworkPolicy waits for a network policy to exist
+func waitForNetworkPolicy(namespace, name string, timeoutSeconds int) error {
+	timeout := time.Duration(timeoutSeconds) * time.Second
+	return wait.PollUntilContextTimeout(context.Background(), 2*time.Second, timeout, false, func(context.Context) (bool, error) {
+		_, err := k8sClient.NetworkingV1().NetworkPolicies(namespace).Get(context.Background(), name, metav1.GetOptions{})
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				return false, nil
+			}
+			return false, err
+		}
+		return true, nil
+	})
+}
+
+// hasEgressPort checks if a network policy has an egress rule with a specific port (supports both string and int ports)
+func hasEgressPort(policy *networkingv1.NetworkPolicy, portCheck func(*intstr.IntOrString) bool) bool {
+	if policy == nil || policy.Spec.Egress == nil {
+		return false
+	}
+	for _, rule := range policy.Spec.Egress {
+		if rule.Ports != nil {
+			for _, port := range rule.Ports {
+				if port.Port != nil && portCheck(port.Port) {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+// hasIngressPort checks if a network policy has an ingress rule with a specific port
+func hasIngressPort(policy *networkingv1.NetworkPolicy, port int32) bool {
+	if policy == nil || policy.Spec.Ingress == nil {
+		return false
+	}
+	for _, rule := range policy.Spec.Ingress {
+		if rule.Ports != nil {
+			for _, p := range rule.Ports {
+				if p.Port != nil && p.Port.Type == intstr.Int && p.Port.IntVal == port {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
