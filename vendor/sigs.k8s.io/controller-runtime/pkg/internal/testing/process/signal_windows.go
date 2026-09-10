@@ -1,4 +1,4 @@
-//go:build aix || darwin || dragonfly || freebsd || linux || netbsd || openbsd || solaris || zos
+//go:build windows
 
 /*
 Copyright 2026 The Kubernetes Authors.
@@ -23,6 +23,6 @@ import (
 	"syscall"
 )
 
-func signalProcessImpl(process *os.Process, sig syscall.Signal) error {
-	return syscall.Kill(-process.Pid, sig)
+func signalProcess(process *os.Process, _ syscall.Signal) error {
+	return process.Kill()
 }
