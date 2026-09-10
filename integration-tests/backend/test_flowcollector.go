@@ -2382,13 +2382,17 @@ var _ = g.Describe("[sig-netobserv] Network_Observability", func() {
 			"service/loki",
 			"deployment.apps/loki",
 			"configmap/loki-config",
+			"serviceaccount/netobserv-ebpf-agent",
 		}
 		// Static plugin and network policy are only available on OCP 4.15+
 		if IsOCPVersionAtLeast("v4.15") {
 			componentsShouldRemain = append(componentsShouldRemain,
 				"deployment.apps/netobserv-plugin-static",
 				"service/netobserv-plugin-static",
+				"serviceaccount/netobserv-plugin-static",
 				"networkpolicy.networking.k8s.io/netobserv",
+				"networkpolicy.networking.k8s.io/netobserv-operator",
+				"networkpolicy.networking.k8s.io/netobserv-plugin-static",
 			)
 		}
 
