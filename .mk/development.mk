@@ -143,9 +143,9 @@ AGENT_IMAGE=registry.redhat.io/network-observability/network-observability-ebpf-
 FLP_IMAGE=registry.redhat.io/network-observability/network-observability-flowlogs-pipeline-rhel9:$(VERSION)
 PLUGIN_IMAGE=registry.redhat.io/network-observability/network-observability-console-plugin-rhel9:$(VERSION)
 else
-AGENT_IMAGE=$(IMAGE_REGISTRY)/$(USER)/netobserv-ebpf-agent:$(VERSION)
-FLP_IMAGE=$(IMAGE_REGISTRY)/$(USER)/flowlogs-pipeline:$(VERSION)
-PLUGIN_IMAGE=$(IMAGE_REGISTRY)/$(USER)/network-observability-console-plugin:$(VERSION)
+AGENT_IMAGE=$(IMAGE_REGISTRY)/$(IMAGE_ORG)/netobserv-ebpf-agent:$(VERSION)
+FLP_IMAGE=$(IMAGE_REGISTRY)/$(IMAGE_ORG)/flowlogs-pipeline:$(VERSION)
+PLUGIN_IMAGE=$(IMAGE_REGISTRY)/$(IMAGE_ORG)/network-observability-console-plugin:$(VERSION)
 endif
 
 .PHONY: set-agent-image
@@ -187,6 +187,14 @@ endif
 	kubectl wait -n $(OPERATOR_NS) --timeout=60s --for condition=Available=True deployment netobserv-controller-manager
 	@echo -e "\n==> Wait a moment before plugin pod is fully redeployed"
 
+.PHONY: set-standalone-console-image
+set-standalone-console-image:
+	kubectl set env -n $(NAMESPACE) deployment netobserv-controller-manager -c "manager" RELATED_IMAGE_WEB_CONSOLE=$(IMAGE_REGISTRY)/$(IMAGE_ORG)/network-observability-standalone-frontend:$(VERSION)
+	@echo -e "\n==> Redeploying..."
+	kubectl rollout status -n $(OPERATOR_NS) --timeout=60s deployment netobserv-controller-manager
+	kubectl wait -n $(OPERATOR_NS) --timeout=60s --for condition=Available=True deployment netobserv-controller-manager
+	@echo -e "\n==> Wait a moment before web-console pod is fully redeployed"
+
 .PHONY: set-release-kind-downstream
 set-release-kind-downstream: VENDOR=OpenShift_Downstream
 set-release-kind-downstream: set-vendor
@@ -218,9 +226,9 @@ pprof-pf:
 use-test-console:
 	@echo -e "\n==> Enabling the test console..."
 ifeq ("", "$(CSV)")
-	kubectl set env -n $(NAMESPACE) deployment netobserv-controller-manager -c "manager" RELATED_IMAGE_WEB_CONSOLE=$(IMAGE_REGISTRY)/$(USER)/network-observability-standalone-frontend:$(VERSION)
+	kubectl set env -n $(NAMESPACE) deployment netobserv-controller-manager -c "manager" RELATED_IMAGE_WEB_CONSOLE=$(IMAGE_REGISTRY)/$(IMAGE_ORG)/network-observability-standalone-frontend:$(VERSION)
 else
-	./hack/swap-image-csv.sh $(CSV) $(OPERATOR_NS) console-plugin RELATED_IMAGE_WEB_CONSOLE $(IMAGE_REGISTRY)/$(USER)/network-observability-standalone-frontend:$(VERSION)
+	./hack/swap-image-csv.sh $(CSV) $(OPERATOR_NS) console-plugin RELATED_IMAGE_WEB_CONSOLE $(IMAGE_REGISTRY)/$(IMAGE_ORG)/network-observability-standalone-frontend:$(VERSION)
 endif
 	@echo -e "\n==> Waiting for operator redeployed..."
 	kubectl rollout status -n $(OPERATOR_NS) --timeout=60s deployment netobserv-controller-manager
