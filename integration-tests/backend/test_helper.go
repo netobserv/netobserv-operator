@@ -140,7 +140,7 @@ func isWebhookTimeoutError(err error) bool {
 	if err == nil {
 		return false
 	}
-	errMsg := err.Error()
+	errMsg := strings.ToLower(err.Error())
 	return strings.Contains(errMsg, "webhook") &&
 		(strings.Contains(errMsg, "timeout") ||
 			strings.Contains(errMsg, "deadline exceeded"))
