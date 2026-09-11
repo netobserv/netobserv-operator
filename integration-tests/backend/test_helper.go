@@ -113,3 +113,18 @@ func deleteNamespace(ns string) {
 	})
 	assertWaitPollNoErr(err, fmt.Sprintf("Namespace %s is not deleted in 3 minutes", ns))
 }
+
+// waitForNetworkPolicy waits for a network policy to exist
+func waitForNetworkPolicy(namespace, name string, timeoutSeconds int) error {
+	timeout := time.Duration(timeoutSeconds) * time.Second
+	return wait.PollUntilContextTimeout(context.Background(), 2*time.Second, timeout, false, func(context.Context) (bool, error) {
+		_, err := k8sClient.NetworkingV1().NetworkPolicies(namespace).Get(context.Background(), name, metav1.GetOptions{})
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				return false, nil
+			}
+			return false, err
+		}
+		return true, nil
+	})
+}
