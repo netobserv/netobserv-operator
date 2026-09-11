@@ -1649,7 +1649,7 @@ var _ = g.Describe("[sig-netobserv] Network_Observability", func() {
 		netpolTemplate := filePath.Join(baseDir, "networking", "networkPolicy.yaml")
 		netpolName := "allow-ingress"
 		netPolParameters := []string{"--ignore-unknown-parameters=true", "-p", "NAME=" + netpolName, "SERVER_NS=" + testClient1Template.ServerNS, "ALLOW_NS=" + testClient1Template.ClientNS, "-f", netpolTemplate}
-		defer deleteResource("netpol", netpolName, testClient1Template.ServerNS)
+		defer deleteResource("networkPolicy", netpolName, testClient1Template.ServerNS)
 		err = applyResourceFromTemplateByAdmin(netPolParameters...)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
