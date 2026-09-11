@@ -83,7 +83,7 @@ endif
 IMAGE ?= $(IMAGE_TAG_BASE):$(VERSION)
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 # When updating, update also SetupKubeBuilderAssets in internal/pkg/test/envtest.go
-ENVTEST_K8S_VERSION = 1.23
+ENVTEST_K8S_VERSION = 1.34
 GOLANGCI_LINT_VERSION = v2.12.2
 CRDOC_VERSION = 0.6.4
 

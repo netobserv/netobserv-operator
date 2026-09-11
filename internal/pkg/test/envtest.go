@@ -85,7 +85,7 @@ func SetupKubeBuilderAssets() error {
 	root := RepoRoot()
 	// Calling setup-envtest which should be in this repo ./bin - if that's not the case, just run `make envtest` once and it should be downloaded.
 	// Make sure to always keep the version in sync with ENVTEST_K8S_VERSION in the Makefile.
-	out, err := exec.Command(filepath.Join(root, "bin", "setup-envtest"), "use", "1.23", "-p", "path").Output()
+	out, err := exec.Command(filepath.Join(root, "bin", "setup-envtest"), "use", "1.34", "-p", "path").Output()
 	if err != nil {
 		return err
 	}
