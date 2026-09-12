@@ -29,6 +29,7 @@ import (
 	"github.com/netobserv/netobserv-operator/internal/pkg/helper"
 	"github.com/netobserv/netobserv-operator/internal/pkg/manager"
 	"github.com/netobserv/netobserv-operator/internal/pkg/manager/status"
+	"github.com/netobserv/netobserv-operator/internal/pkg/roles"
 	"github.com/netobserv/netobserv-operator/internal/pkg/watchers"
 )
 
@@ -119,6 +120,11 @@ func (r *FlowCollectorReconciler) Reconcile(ctx context.Context, _ ctrl.Request)
 		return ctrl.Result{}, nil
 	}
 
+	// FC is being deleted: trigger the finalizer
+	if reconcilers.IsMarkedForDeletion(desired) {
+		return ctrl.Result{}, r.finalize(ctx, clh, desired)
+	}
+
 	commit := r.status.Reset()
 	defer commit(ctx, r.Client)
 
@@ -205,15 +211,31 @@ func (r *FlowCollectorReconciler) reconcile(ctx context.Context, clh *helper.Cli
 	return nil
 }
 
+// checkFinalizer adds a finalizer to the FlowCollector if it isn't already set.
+// Upon deletion, the finalizer is used to clean up the pre-installed ClusterRoleBinding subjects so they're empty shells again.
 func (r *FlowCollectorReconciler) checkFinalizer(ctx context.Context, desired *flowslatest.FlowCollector) error {
-	// Previous version of the operator (1.5) had a finalizer, this isn't the case anymore.
-	// Remove any finalizer that could remain after an upgrade.
 	if controllerutil.ContainsFinalizer(desired, flowsFinalizer) {
-		controllerutil.RemoveFinalizer(desired, flowsFinalizer)
-		return r.Update(ctx, desired)
+		return nil
+	}
+	controllerutil.AddFinalizer(desired, flowsFinalizer)
+	return r.Update(ctx, desired)
+}
+
+// finalize cleans up resources that are not garbage-collected with the FlowCollector, then removes the finalizer to let the deletion proceed.
+// Pre-installed ClusterRoleBinding are cleaned up, so they're empty shells again (empty subjects), like after a fresh install.
+func (r *FlowCollectorReconciler) finalize(ctx context.Context, clh *helper.Client, desired *flowslatest.FlowCollector) error {
+	if !controllerutil.ContainsFinalizer(desired, flowsFinalizer) {
+		return nil
 	}
 
-	return nil
+	for _, ref := range roles.OperandClusterRoleBindings {
+		if err := reconcilers.EmptyClusterRoleBinding(ctx, clh, ref); err != nil {
+			return err
+		}
+	}
+
+	controllerutil.RemoveFinalizer(desired, flowsFinalizer)
+	return r.Update(ctx, desired)
 }
 
 func (r *FlowCollectorReconciler) newCommonInfo(clh *helper.Client, ns string, loki *helper.LokiConfig) reconcilers.Common {

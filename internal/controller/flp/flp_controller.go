@@ -102,6 +102,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Result
 		return ctrl.Result{}, nil
 	}
 
+	// FlowCollector is being deleted: stop early, don't try to create or update anything
+	if reconcilers.IsMarkedForDeletion(fc) {
+		return ctrl.Result{}, nil
+	}
+
 	commit := r.status.Reset()
 	defer commit(ctx, r.Client)
 

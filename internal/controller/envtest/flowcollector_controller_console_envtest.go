@@ -13,6 +13,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	ascv2 "k8s.io/api/autoscaling/v2"
 	v1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -59,6 +60,8 @@ func FlowCollectorConsolePluginSpecs(env test.Environment, ctxGetter test.Contex
 		Name:      "netobserv-operator",
 		Namespace: "main-namespace",
 	}
+	rbKeyPlugin := types.NamespacedName{Name: "netobserv-token-review"}
+
 	if env == test.EnvOpenShift {
 		Context("Deploying the static console plugin", func() {
 			It("Should create successfully", func() {
@@ -156,6 +159,14 @@ func FlowCollectorConsolePluginSpecs(env test.Environment, ctxGetter test.Contex
 			Eventually(getConfigMapData(ctx, k8sClient, configKey),
 				timeout, interval).Should(ContainSubstring("url: http://loki:3100/"))
 
+			By("Expecting to update console plugin role binding")
+			rb := rbacv1.ClusterRoleBinding{}
+			Eventually(func() interface{} {
+				return k8sClient.Get(ctx, rbKeyPlugin, &rb)
+			}, timeout, interval).Should(Succeed())
+			Expect(rb.Subjects).Should(HaveLen(1))
+			Expect(rb.Subjects[0].Name).Should(Equal("netobserv-plugin"))
+			Expect(rb.RoleRef.Name).Should(Equal("netobserv-token-review"))
 		})
 
 		It("Should update successfully", func() {
@@ -503,6 +514,25 @@ func FlowCollectorConsolePluginSpecs(env test.Environment, ctxGetter test.Contex
 	Context("Cleanup", func() {
 		It("Should delete CR", func() {
 			test.CleanupCR(ctx, k8sClient, crKey)
+		})
+
+		It("Should have emptied the operand ClusterRoleBindings via the finalizer", func() {
+			for _, name := range []string{
+				"netobserv-token-review",
+				"netobserv-flowcollector-viewer-role",
+				"netobserv-loki-writer",
+				"netobserv-informers",
+				"netobserv-hostnetwork",
+			} {
+				By("Expecting subjects removed from " + name)
+				Eventually(func() interface{} {
+					rb := rbacv1.ClusterRoleBinding{}
+					if err := k8sClient.Get(ctx, types.NamespacedName{Name: name}, &rb); err != nil {
+						return err
+					}
+					return rb.Subjects
+				}, timeout, interval).Should(BeEmpty())
+			}
 		})
 
 		It("Should delete fake controller", func() {

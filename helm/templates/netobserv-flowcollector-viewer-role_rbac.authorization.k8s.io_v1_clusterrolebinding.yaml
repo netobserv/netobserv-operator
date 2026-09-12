@@ -1,13 +1,11 @@
+# Auto-generated from helm-update.sh
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   creationTimestamp: null
-  name: netobserv-flowcollector-viewer-plugin
+  name: netobserv-flowcollector-viewer-role
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: netobserv-flowcollector-viewer-role
-subjects:
-- kind: ServiceAccount
-  name: netobserv-plugin
-  namespace: netobserv
+subjects: []

@@ -7,6 +7,7 @@ import (
 
 	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
 	"github.com/netobserv/netobserv-operator/internal/pkg/helper"
+	"github.com/netobserv/netobserv-operator/internal/pkg/roles"
 	appsv1 "k8s.io/api/apps/v1"
 	ascv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
@@ -25,8 +26,11 @@ import (
 var (
 	IgnoreStatusChange = builder.WithPredicates(predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			// Update only if spec / annotations / labels change, ie. ignore status changes
+			// Update only if spec / annotations / labels change, ie. ignore status changes.
+			// Also react to deletion: setting a deletionTimestamp doesn't bump the generation,
+			// so we must catch it here for finalizers to be processed.
 			return (e.ObjectOld.GetGeneration() != e.ObjectNew.GetGeneration()) ||
+				IsMarkedForDeletion(e.ObjectNew) != IsMarkedForDeletion(e.ObjectOld) ||
 				!equality.Semantic.DeepEqual(e.ObjectNew.GetAnnotations(), e.ObjectOld.GetAnnotations()) ||
 				!equality.Semantic.DeepEqual(e.ObjectNew.GetLabels(), e.ObjectOld.GetLabels())
 		},
@@ -63,6 +67,84 @@ var (
 		})
 	}
 )
+
+// IsMarkedForDeletion returns true when the object has a non-zero deletionTimestamp.
+func IsMarkedForDeletion(o client.Object) bool {
+	ts := o.GetDeletionTimestamp()
+	return ts != nil && !ts.IsZero()
+}
+
+// ReconcileClusterRoleBinding updates the current role binding with the provided service account as a subject.
+// It does NOT try to create or delete it: operand CRBs are expected to be preinstalled. The operator does not have create permission.
+func ReconcileClusterRoleBinding(ctx context.Context, cl *helper.Client, namespace, sa string, ref roles.ClusterRoleName, isDelete bool) error {
+	log := log.FromContext(ctx)
+	crb := rbacv1.ClusterRoleBinding{}
+	if err := cl.Get(ctx, types.NamespacedName{Name: string(ref)}, &crb); err != nil {
+		if errors.IsNotFound(err) {
+			return fmt.Errorf("can't reconcile ClusterRoleBinding %s, it should be preinstalled; was it removed? - %w", ref, err)
+		}
+		return fmt.Errorf("can't reconcile ClusterRoleBinding %s: %w", ref, err)
+	}
+	subject := rbacv1.Subject{
+		Kind:      "ServiceAccount",
+		Name:      sa,
+		Namespace: namespace,
+	}
+	index := findSubject(crb.Subjects, subject)
+	if index >= 0 && isDelete {
+		log.Info("DELETING subject from ClusterRoleBinding "+string(ref), "Namespace", namespace, "SA", sa)
+		crb.Subjects = append(crb.Subjects[:index], crb.Subjects[index+1:]...)
+		err := cl.Update(ctx, &crb)
+		if err != nil {
+			log.Error(err, "Failed to delete subject from ClusterRoleBinding "+string(ref), "Namespace", namespace, "SA", sa)
+			return err
+		}
+		return nil
+	}
+	if index < 0 && !isDelete {
+		log.Info("ADDING subject to ClusterRoleBinding "+string(ref), "Namespace", namespace, "SA", sa)
+		crb.Subjects = append(crb.Subjects, subject)
+		err := cl.Update(ctx, &crb)
+		if err != nil {
+			log.Error(err, "Failed to add subject to ClusterRoleBinding "+string(ref), "Namespace", namespace, "SA", sa)
+			return err
+		}
+	}
+	return nil
+}
+
+// EmptyClusterRoleBinding removes all subjects from the given preinstalled ClusterRoleBinding.
+// The binding itself is kept (it is expected to be preinstalled as an empty shell, and the operator
+// does not have delete permission on it). Used to clean up upon FlowCollector deletion.
+func EmptyClusterRoleBinding(ctx context.Context, cl *helper.Client, ref roles.ClusterRoleName) error {
+	log := log.FromContext(ctx)
+	crb := rbacv1.ClusterRoleBinding{}
+	if err := cl.Get(ctx, types.NamespacedName{Name: string(ref)}, &crb); err != nil {
+		if errors.IsNotFound(err) {
+			return fmt.Errorf("can't empty ClusterRoleBinding %s, it should be preinstalled; was it removed? - %w", ref, err)
+		}
+		return fmt.Errorf("can't empty ClusterRoleBinding %s: %w", ref, err)
+	}
+	if len(crb.Subjects) == 0 {
+		return nil
+	}
+	log.Info("EMPTYING subjects from ClusterRoleBinding " + string(ref))
+	crb.Subjects = nil
+	if err := cl.Update(ctx, &crb); err != nil {
+		log.Error(err, "Failed to empty subjects from ClusterRoleBinding "+string(ref))
+		return err
+	}
+	return nil
+}
+
+func findSubject(current []rbacv1.Subject, subject rbacv1.Subject) int {
+	for i := range current {
+		if current[i].Kind == subject.Kind && current[i].Name == subject.Name && current[i].Namespace == subject.Namespace {
+			return i
+		}
+	}
+	return -1
+}
 
 func ReconcileRoleBinding(ctx context.Context, cl *helper.Client, desired *rbacv1.RoleBinding) error {
 	actual := rbacv1.RoleBinding{}

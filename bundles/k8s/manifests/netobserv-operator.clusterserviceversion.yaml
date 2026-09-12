@@ -91,7 +91,7 @@ metadata:
     categories: Monitoring, Networking, Observability
     console.openshift.io/plugins: '["netobserv-plugin"]'
     containerImage: quay.io/netobserv/network-observability-operator:1.12.0-community
-    createdAt: "2026-08-13T13:33:44Z"
+    createdAt: "2026-08-25T10:22:31Z"
     description: Network flows collector and monitoring solution
     operatorframework.io/initialization-resource: '{"apiVersion":"flows.netobserv.io/v1beta2",
       "kind":"FlowCollector","metadata":{"name":"cluster"},"spec": {}}'
@@ -926,6 +926,32 @@ spec:
           - get
           - list
           - watch
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resourceNames:
+          - netobserv-flowcollector-viewer-role
+          - netobserv-hostnetwork
+          - netobserv-informers
+          - netobserv-loki-writer
+          - netobserv-token-review
+          resources:
+          - clusterrolebindings
+          verbs:
+          - get
+          - update
+          - watch
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resourceNames:
+          - netobserv-flowcollector-viewer-role
+          - netobserv-hostnetwork
+          - netobserv-informers
+          - netobserv-loki-writer
+          - netobserv-token-review
+          resources:
+          - clusterroles
+          verbs:
+          - bind
         - apiGroups:
           - rbac.authorization.k8s.io
           resources:

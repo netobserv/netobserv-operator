@@ -6,8 +6,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-type RoleName string
-
 const (
 	OperatorName             = "netobserv-operator"
 	ControllerName           = "netobserv-controller-manager"
@@ -61,10 +59,6 @@ const (
 	OpenShiftUWMonitoringNamespace  = "openshift-user-workload-monitoring"
 	OpenShiftConsoleNamespace       = "openshift-console"
 	OpenShiftDNSNamespace           = "openshift-dns"
-
-	// Roles, must match names in config/rbac/component_roles.yaml (without netobserv- prefix)
-	ExposeMetricsRole RoleName = "netobserv-expose-metrics"
-	ConfigWatcherRole RoleName = "netobserv-config-watcher"
 )
 
 var FlowCollectorName = types.NamespacedName{Name: "cluster"}

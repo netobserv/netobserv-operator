@@ -69,8 +69,8 @@ func ControllerSpecs(env test.Environment, ctxGetter test.ContextGetter) {
 		Name:      "flowlogs-pipeline-k8scache",
 		Namespace: operatorNamespace,
 	}
-	rbKeyConfigWatcherMono := types.NamespacedName{Name: roles.GetRoleBindingName(monoShortName, constants.ConfigWatcherRole), Namespace: operatorNamespace}
-	rbKeyConfigWatcherTransfo := types.NamespacedName{Name: roles.GetRoleBindingName(transfoShortName, constants.ConfigWatcherRole), Namespace: operatorNamespace}
+	rbKeyConfigWatcherMono := types.NamespacedName{Name: roles.GetRoleBindingName(monoShortName, roles.ConfigWatcherRole), Namespace: operatorNamespace}
+	rbKeyConfigWatcherTransfo := types.NamespacedName{Name: roles.GetRoleBindingName(transfoShortName, roles.ConfigWatcherRole), Namespace: operatorNamespace}
 
 	// Created objects to cleanup
 	cleanupList := []client.Object{}
@@ -149,7 +149,7 @@ func ControllerSpecs(env test.Environment, ctxGetter test.ContextGetter) {
 				return svcAcc.Labels != nil && svcAcc.Labels["app"] == constants.FLPName
 			}))
 
-			By("Expecting to create flowlogs-pipeline role binding")
+			By("Expecting to create flowlogs-pipeline config watcher role bindings")
 			rb1 := rbacv1.RoleBinding{}
 			Eventually(func() interface{} {
 				return k8sClient.Get(ctx, rbKeyConfigWatcherMono, &rb1)
@@ -157,6 +157,21 @@ func ControllerSpecs(env test.Environment, ctxGetter test.ContextGetter) {
 			Expect(rb1.Subjects).Should(HaveLen(1))
 			Expect(rb1.Subjects[0].Name).Should(Equal("flowlogs-pipeline"))
 			Expect(rb1.RoleRef.Name).Should(Equal("netobserv-config-watcher"))
+
+			if env == test.EnvOpenShift {
+				Eventually(func() any {
+					return expectClusterRoleBinding(ctx, k8sClient, roles.HostNetworkRole, "flowlogs-pipeline")
+				}, timeout, interval).Should(Succeed())
+			}
+
+			Eventually(func() any {
+				return expectClusterRoleBinding(ctx, k8sClient, roles.FLPInformersRole, "flowlogs-pipeline-informers")
+			}, timeout, interval).Should(Succeed())
+
+			By("Not expecting Loki role (requires LokiStack)")
+			Eventually(func() interface{} {
+				return expectClusterRoleBinding(ctx, k8sClient, roles.LokiWriterRole /* empty expect list */)
+			}, timeout, interval).Should(Succeed())
 
 			By("Not expecting transformer role bindings")
 			Eventually(func() interface{} {
@@ -349,7 +364,7 @@ func ControllerSpecs(env test.Environment, ctxGetter test.ContextGetter) {
 			Expect(k8sCacheSvc.Spec.Ports[0].Port).Should(Equal(flowslatest.DefaultK8sCachePort))
 			Expect(k8sCacheSvc.Spec.Selector["app"]).Should(Equal(constants.FLPTransfoName))
 
-			By("Expecting to create transformer flowlogs-pipeline role binding")
+			By("Expecting to create transformer flowlogs-pipeline role bindings")
 			rb1 := rbacv1.RoleBinding{}
 			Eventually(func() interface{} {
 				return k8sClient.Get(ctx, rbKeyConfigWatcherTransfo, &rb1)
@@ -357,6 +372,21 @@ func ControllerSpecs(env test.Environment, ctxGetter test.ContextGetter) {
 			Expect(rb1.Subjects).Should(HaveLen(1))
 			Expect(rb1.Subjects[0].Name).Should(Equal("flowlogs-pipeline-transformer"))
 			Expect(rb1.RoleRef.Name).Should(Equal("netobserv-config-watcher"))
+
+			By("Expecting informer role binding (independent deployment)")
+			Eventually(func() any {
+				return expectClusterRoleBinding(ctx, k8sClient, roles.FLPInformersRole, "flowlogs-pipeline-informers")
+			}, timeout, interval).Should(Succeed())
+
+			By("Not expecting hostnetwork role (not needed with Kafka)")
+			Eventually(func() interface{} {
+				return expectClusterRoleBinding(ctx, k8sClient, roles.HostNetworkRole /* empty expect list */)
+			}, timeout, interval).Should(Succeed())
+
+			By("Not expecting Loki role (requires LokiStack)")
+			Eventually(func() interface{} {
+				return expectClusterRoleBinding(ctx, k8sClient, roles.LokiWriterRole /* empty expect list */)
+			}, timeout, interval).Should(Succeed())
 
 			By("Not expecting mono role bindings")
 			Eventually(func() interface{} {
@@ -803,6 +833,13 @@ func ControllerSpecs(env test.Environment, ctxGetter test.ContextGetter) {
 			}, timeout, interval).Should(BeTrue())
 		})
 
+		It("Should deploy Loki roles", func() {
+			By("Expecting FLP Writer ClusterRoleBinding")
+			Eventually(func() interface{} {
+				return expectClusterRoleBinding(ctx, k8sClient, roles.LokiWriterRole, "flowlogs-pipeline")
+			}, timeout, interval).Should(Succeed())
+		})
+
 		It("Should restore no TLS config in manual mode", func() {
 			test.UpdateCR(ctx, k8sClient, crKey, func(fc *flowslatest.FlowCollector) {
 				fc.Spec.Loki.Mode = flowslatest.LokiModeManual
@@ -887,5 +924,21 @@ func checkDigestUpdate(oldDigest *string, annots map[string]string) error {
 		return fmt.Errorf("expect digest to change, but is still %s", *oldDigest)
 	}
 	*oldDigest = newDigest
+	return nil
+}
+
+func expectClusterRoleBinding(ctx context.Context, k8sClient client.Client, role roles.ClusterRoleName, subjectNames ...string) error {
+	rb := rbacv1.ClusterRoleBinding{}
+	if err := k8sClient.Get(ctx, types.NamespacedName{Name: string(role)}, &rb); err != nil {
+		return err
+	}
+	if len(rb.Subjects) != len(subjectNames) {
+		return fmt.Errorf("expected %d subjects for %s, got %d; %v", len(subjectNames), role, len(rb.Subjects), rb)
+	}
+	for i, name := range subjectNames {
+		if rb.Subjects[i].Name != name {
+			return fmt.Errorf("expected subject %d for %s to be %s, got %s; %v", i, role, name, rb.Subjects[i].Name, rb)
+		}
+	}
 	return nil
 }

@@ -36,7 +36,7 @@ $SED -i '1s/^/# Auto-generated from helm-update.sh\n/' helm/templates/role.yaml
 yq '{"apiVersion": "rbac.authorization.k8s.io/v1", "kind": "RoleBinding", "metadata": {"name": "netobserv-leader-election-rolebinding"}, "roleRef": {"apiGroup": "rbac.authorization.k8s.io", "kind": "Role", "name": "netobserv-leader-election-role"}, "subjects": [{"kind": "ServiceAccount", "name": .serviceAccountName, "namespace": "{{ .Release.Namespace }}"}]}' _tmp/csv-role.yaml > helm/templates/rolebinding.yaml
 $SED -i '1s/^/# Auto-generated from helm-update.sh\n/' helm/templates/rolebinding.yaml
 
-for f in bundles/k8s/manifests/*_rbac.authorization.k8s.io_v1_clusterrole.yaml; do
+for f in bundles/k8s/manifests/*_rbac.authorization.k8s.io_v1_clusterrole*.yaml; do
   cp "$f" helm/templates/
   $SED -i '1s/^/# Auto-generated from helm-update.sh\n/' helm/templates/$(basename $f)
 done

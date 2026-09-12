@@ -55,15 +55,20 @@ func (r *informerReconciler) reconcile(ctx context.Context, desired *flowslatest
 		return fmt.Errorf("failed to fetch all managed resources: %w", err)
 	}
 
-	if desired.Spec.OnHold() {
-		r.Status.SetUnused("FlowCollector is on hold")
-		return r.Managed.TryDeleteAll(ctx)
+	isDelete := desired.Spec.OnHold() || !desired.Spec.Processor.IsInformerCacheProxyEnabled()
+
+	// Reconcile RBAC
+	if err := r.reconcilePermissions(ctx, isDelete); err != nil {
+		return fmt.Errorf("failed to reconcile permissions: %w", err)
 	}
 
-	// Check if informers are enabled (default: false)
-	if !desired.Spec.Processor.IsInformerCacheProxyEnabled() {
-		// Informers disabled - cleanup resources and use local informers mode
-		r.Status.SetUnused("Centralized informers disabled - using local informers mode")
+	if isDelete {
+		if desired.Spec.OnHold() {
+			r.Status.SetUnused("FlowCollector is on hold")
+		}
+		if !desired.Spec.Processor.IsInformerCacheProxyEnabled() {
+			r.Status.SetUnused("Centralized informers disabled - using local informers mode")
+		}
 		return r.Managed.TryDeleteAll(ctx)
 	}
 
@@ -97,11 +102,6 @@ func (r *informerReconciler) reconcileServiceAccount(ctx context.Context, builde
 		}
 	} // We only configure name, update is not needed for now
 
-	// Check installed CRB, and notify any missing one
-	if err := roles.CheckHasPermission(ctx, r.Client, r.Namespace, informerName, roles.FLPInformersRole); err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -109,6 +109,10 @@ func (r *informerReconciler) reconcileService(ctx context.Context, builder *info
 	report := helper.NewChangeReport("k8scache Service")
 	defer report.LogIfNeeded(ctx)
 	return r.ReconcileService(ctx, r.service, builder.service(), &report)
+}
+
+func (r *informerReconciler) reconcilePermissions(ctx context.Context, isDelete bool) error {
+	return r.ReconcileClusterRoleBinding(ctx, r.Namespace, informerName, roles.FLPInformersRole, isDelete)
 }
 
 func (r *informerReconciler) reconcileDeployment(ctx context.Context, builder *informerBuilder) error {

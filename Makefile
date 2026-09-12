@@ -435,6 +435,14 @@ bundle-nogen: YQ OPSDK kustomize set-manager-images ## Generate final bundle fil
 	rm -r $(BUNDLE_OUT)/manifests || true
 	rm -r $(BUNDLE_OUT)/metadata || true
 # Dissociate kustomize builds csv, samples and the rest, because they don't share exactly the same properties (like namespace injection)
+# OLM discards CRBs with empty subjects, so inject a temporary placeholder for generation, then empty subjects in the output.
+# We work on copies to avoid leaving dirty files on error.
+	CRB_FILES="config/rbac/component_role_bindings.yaml"; \
+	for f in $$CRB_FILES; do cp "$$f" "$$f.bak"; done; \
+	trap 'for f in $$CRB_FILES; do mv "$$f.bak" "$$f"; done' EXIT; \
+	for f in $$CRB_FILES; do \
+		$(YQ) -i '(select(.kind == "ClusterRoleBinding") | .subjects) = [{"kind": "ServiceAccount", "name": "SUBJECT_PLACEHOLDER"}]' "$$f"; \
+	done; \
 	( \
 		($(KUSTOMIZE) build config/csv \
 			| $(YQ) '.metadata.annotations.containerImage = "$(IMAGE)"' \
@@ -442,7 +450,12 @@ bundle-nogen: YQ OPSDK kustomize set-manager-images ## Generate final bundle fil
 		); \
 		echo "---"; $(KUSTOMIZE) build config/samples; \
 		echo "---"; $(KUSTOMIZE) build $(BUNDLE_CONFIG) \
-	) | $(OPSDK) generate bundle --output-dir $(BUNDLE_OUT) -q --overwrite --version $(BUNDLE_VERSION) $(BUNDLE_METADATA_OPTS)
+	) | $(OPSDK) generate bundle --output-dir $(BUNDLE_OUT) -q --overwrite --version $(BUNDLE_VERSION) $(BUNDLE_METADATA_OPTS); \
+	for f in $$CRB_FILES; do mv "$$f.bak" "$$f"; done; \
+	trap - EXIT; \
+	for file in $$(grep -rl 'SUBJECT_PLACEHOLDER' $(BUNDLE_OUT)/manifests/); do \
+		$(YQ) -i '.subjects = []' "$$file"; \
+	done
 # Restore previous date?
 ifneq ("$(BUNDLE_SET_DATE)", "true")
 	$(SED) -i 's/createdAt:.*/createdAt: ${BUNDLE_STORED_DATE}/' $(BUNDLE_OUT)/manifests/netobserv-operator.clusterserviceversion.yaml

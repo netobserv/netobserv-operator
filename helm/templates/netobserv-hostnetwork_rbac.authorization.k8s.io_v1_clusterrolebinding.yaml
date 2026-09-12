@@ -1,10 +1,11 @@
+# Auto-generated from helm-update.sh
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   creationTimestamp: null
-  name: netobserv-informers
+  name: netobserv-hostnetwork
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: netobserv-informers
+  name: netobserv-hostnetwork
 subjects: []
