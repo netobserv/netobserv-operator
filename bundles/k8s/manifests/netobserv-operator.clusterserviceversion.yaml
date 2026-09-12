@@ -458,6 +458,8 @@ spec:
         path: networkPolicy.additionalNamespaces
       - displayName: Enable
         path: networkPolicy.enable
+      - displayName: Bgp enrichment
+        path: processor.bgpEnrichment
       - displayName: Consumer replicas
         path: processor.consumerReplicas
       - displayName: Deduper
@@ -876,6 +878,23 @@ spec:
           - get
           - patch
           - update
+        - apiGroups:
+          - frrk8s.metallb.io
+          resources:
+          - frrconfigurations
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - k8s.ovn.org
+          resources:
+          - clusteruserdefinednetworks
+          - userdefinednetworks
+          verbs:
+          - get
+          - list
+          - watch
         - apiGroups:
           - loki.grafana.com
           resources:

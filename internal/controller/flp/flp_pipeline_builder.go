@@ -73,6 +73,7 @@ func createPipeline(
 	if err != nil {
 		return nil, err
 	}
+	stage = b.addBgpEnrichmentStage(stage)
 	stage = b.addTruncFiltersDedupStage(stage)
 
 	if b.desired.UseLoki() {
@@ -550,6 +551,32 @@ func (b *PipelineBuilder) addSubnetLabelsStage(previous config.PipelineBuilderSt
 	}
 
 	return previous, nil
+}
+
+// Add transform stage for BGP ASN enrichment via FRRConfiguration CRDs
+func (b *PipelineBuilder) addBgpEnrichmentStage(previous config.PipelineBuilderStage) config.PipelineBuilderStage {
+	if !b.desired.Processor.IsBgpEnrichmentEnabled() {
+		return previous
+	}
+	rules := api.NetworkTransformRules{
+		{
+			Type: api.NetworkAddASNLabel,
+			AddASNLabel: &api.NetworkAddASNLabelRule{
+				Input:  "SrcAddr",
+				Output: "SrcASN",
+			},
+		},
+		{
+			Type: api.NetworkAddASNLabel,
+			AddASNLabel: &api.NetworkAddASNLabelRule{
+				Input:  "DstAddr",
+				Output: "DstASN",
+			},
+		},
+	}
+	return previous.TransformNetwork("asns", api.TransformNetwork{
+		Rules: rules,
+	}, config.Dynamic)
 }
 
 func (b *PipelineBuilder) addLokiStage(previous config.PipelineBuilderStage) error {

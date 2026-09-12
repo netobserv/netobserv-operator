@@ -857,6 +857,11 @@ func (in *FlowCollectorFLP) DeepCopyInto(out *FlowCollectorFLP) {
 		**out = **in
 	}
 	in.SubnetLabels.DeepCopyInto(&out.SubnetLabels)
+	if in.BgpEnrichment != nil {
+		in, out := &in.BgpEnrichment, &out.BgpEnrichment
+		*out = new(bool)
+		**out = **in
+	}
 	if in.Deduper != nil {
 		in, out := &in.Deduper, &out.Deduper
 		*out = new(FLPDeduper)

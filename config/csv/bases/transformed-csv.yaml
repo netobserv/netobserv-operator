@@ -377,6 +377,8 @@ spec:
             displayName: Additional namespaces
           - path: networkPolicy.enable
             displayName: Enable
+          - path: processor.bgpEnrichment
+            displayName: Bgp enrichment
           - path: processor.consumerReplicas
             displayName: Consumer replicas
           - path: processor.deduper

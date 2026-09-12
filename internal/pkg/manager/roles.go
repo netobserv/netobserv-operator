@@ -68,3 +68,9 @@ package manager
 
 // (deprecated) Operator to create HPA for its workloads in a user-defined namespace
 //+kubebuilder:rbac:groups=autoscaling,resources=horizontalpodautoscalers,verbs=create;delete;patch;update;get;watch;list
+
+// Transitive: operator needs to grant UDN read permission to FLP at the cluster scope
+//+kubebuilder:rbac:groups=k8s.ovn.org,resources=userdefinednetworks;clusteruserdefinednetworks,verbs=get;list;watch
+
+// Transitive: operator needs to grant FRR read permission to FLP for BGP ASN enrichment
+//+kubebuilder:rbac:groups=frrk8s.metallb.io,resources=frrconfigurations,verbs=get;list;watch
