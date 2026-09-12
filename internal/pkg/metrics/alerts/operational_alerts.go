@@ -15,7 +15,7 @@ func alertNoFlows() *monitoringv1.Rule {
 		Annotations: map[string]string{
 			"description": "NetObserv flowlogs-pipeline is not receiving any flow, this is either a connection issue with the agent, or an agent issue",
 			"summary":     "NetObserv flowlogs-pipeline is not receiving any flow",
-			"runbook_url": buildRunbookURL(flowslatest.AlertNoFlows),
+			"runbook_url": BuildRunbookURL(flowslatest.AlertNoFlows),
 		},
 		Expr:   intstr.FromString("sum(rate(netobserv_ingest_flows_processed[1m])) == 0"),
 		For:    &d,
@@ -31,7 +31,7 @@ func alertLokiError() *monitoringv1.Rule {
 		Annotations: map[string]string{
 			"description": "NetObserv flowlogs-pipeline is dropping flows because of Loki errors, Loki may be down or having issues ingesting every flows. Please check Loki and flowlogs-pipeline logs.",
 			"summary":     "NetObserv flowlogs-pipeline is dropping flows because of Loki errors",
-			"runbook_url": buildRunbookURL(flowslatest.AlertLokiError),
+			"runbook_url": BuildRunbookURL(flowslatest.AlertLokiError),
 		},
 		Expr:   intstr.FromString("sum(rate(netobserv_loki_dropped_entries_total[1m])) > 0"),
 		For:    &d,

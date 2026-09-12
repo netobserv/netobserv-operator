@@ -512,7 +512,7 @@ func (b *builder) setFrontendConfig(fconf *cfg.FrontendConfig, metrics []cfg.Met
 	}
 
 	// Add health rules metadata for frontend
-	fconf.RecordingAnnotations = b.getHealthRecordingAnnotations()
+	b.fillHealthData(fconf)
 
 	// Filter-out disabled scopes
 	var scopes []cfg.ScopeConfig
@@ -614,18 +614,24 @@ func filterScopeGroupsForMetrics(scopes []cfg.ScopeConfig, metrics []cfg.MetricI
 	return scopes
 }
 
-func (b *builder) getHealthRecordingAnnotations() map[string]map[string]string {
-	annotsPerRecording := make(map[string]map[string]string)
-	healthRules, _ := alerts.BuildHealthRules(b.desired)
+func (b *builder) fillHealthData(frontCfg *cfg.FrontendConfig) {
+	frontCfg.RecordingAnnotations = make(map[string]map[string]string)
+	healthRules, templates, _ := alerts.BuildHealthRules(b.desired)
 	for _, r := range healthRules {
 		rname := r.RecordingName()
 		if rname != "" {
 			if a, _ := r.GetAnnotations(); len(a) > 0 {
-				annotsPerRecording[rname] = a
+				frontCfg.RecordingAnnotations[rname] = a
 			}
 		}
 	}
-	return annotsPerRecording
+	for _, tpl := range flowslatest.AllHealthRuleTemplates {
+		frontCfg.HealthTemplates = append(frontCfg.HealthTemplates, cfg.HealthTemplate{
+			Name:         tpl,
+			RunbookURL:   alerts.BuildRunbookURL(tpl),
+			IsConfigured: slices.Contains(templates, tpl),
+		})
+	}
 }
 
 // returns a configmap with a digest of its configuration contents, which will be used to

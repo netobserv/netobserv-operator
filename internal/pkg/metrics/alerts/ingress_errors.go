@@ -38,7 +38,7 @@ func (r *ingressErrors) GetAnnotations() (map[string]string, error) {
 			r.ctx.getLowestThreshold(),
 			legend,
 		),
-		"runbook_url":       buildRunbookURL(r.ctx.template),
+		"runbook_url":       BuildRunbookURL(r.ctx.template),
 		healthAnnotationKey: encodeHealthAnnotation(newHealthAnnotation(r.ctx)),
 	}, nil
 }

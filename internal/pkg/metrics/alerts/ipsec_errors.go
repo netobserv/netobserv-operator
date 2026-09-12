@@ -26,7 +26,7 @@ func (r *ipsecErrors) GetAnnotations() (map[string]string, error) {
 			r.ctx.getLowestThreshold(),
 			getAlertLegend(r.ctx),
 		),
-		"runbook_url":       buildRunbookURL(r.ctx.template),
+		"runbook_url":       BuildRunbookURL(r.ctx.template),
 		healthAnnotationKey: encodeHealthAnnotation(newHealthAnnotation(r.ctx)),
 	}, nil
 }

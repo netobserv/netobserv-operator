@@ -48,7 +48,7 @@ func (r *externalTrend) GetAnnotations() (map[string]string, error) {
 			getAlertLegend(r.ctx),
 			offset,
 		),
-		"runbook_url":       buildRunbookURL(r.ctx.template),
+		"runbook_url":       BuildRunbookURL(r.ctx.template),
 		healthAnnotationKey: encodeHealthAnnotation(healthAnnot),
 	}, nil
 }

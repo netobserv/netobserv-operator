@@ -310,7 +310,7 @@ func TestBuildRunbookURL(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(string(tt.template), func(t *testing.T) {
-			url := buildRunbookURL(tt.template)
+			url := BuildRunbookURL(tt.template)
 			assert.Equal(t, tt.expected, url)
 		})
 	}
@@ -336,7 +336,7 @@ func TestRunbookURLsExist(t *testing.T) {
 
 	for _, template := range templates {
 		t.Run(string(template), func(t *testing.T) {
-			url := buildRunbookURL(template)
+			url := BuildRunbookURL(template)
 			resp, err := http.Get(url)
 			assert.NoError(t, err, "Failed to fetch runbook URL: %s", url)
 			if err == nil {

@@ -121,6 +121,12 @@ type FieldConfig struct {
 	LokiLabel   bool   `yaml:"lokiLabel,omitempty" json:"lokiLabel,omitempty"`
 }
 
+type HealthTemplate struct {
+	Name         flowslatest.HealthRuleTemplate `yaml:"name" json:"name"`
+	RunbookURL   string                         `yaml:"runbookURL" json:"runbookURL"`
+	IsConfigured bool                           `yaml:"isConfigured" json:"isConfigured"`
+}
+
 type FrontendConfig struct {
 	RecordTypes          []api.ConnTrackOutputRecordTypeEnum `yaml:"recordTypes" json:"recordTypes"`
 	PortNaming           flowslatest.ConsolePluginPortConfig `yaml:"portNaming,omitempty" json:"portNaming,omitempty"`
@@ -133,6 +139,7 @@ type FrontendConfig struct {
 	Features             []string                            `yaml:"features" json:"features"`
 	Fields               []FieldConfig                       `yaml:"fields" json:"fields"`
 	RecordingAnnotations map[string]map[string]string        `yaml:"recordingAnnotations,omitempty" json:"recordingAnnotations,omitempty"`
+	HealthTemplates      []HealthTemplate                    `yaml:"healthTemplates,omitempty" json:"healthTemplates,omitempty"`
 }
 
 type ConsoleMode string

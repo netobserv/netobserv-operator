@@ -45,6 +45,23 @@ const (
 	ModeRecording HealthRuleMode = "Recording"
 )
 
+var (
+	AllHealthRuleTemplates = []HealthRuleTemplate{
+		HealthRulePacketDropsByKernel,
+		HealthRulePacketDropsByDevice,
+		HealthRuleIPsecErrors,
+		HealthRuleNetpolDenied,
+		HealthRuleLatencyHighTrend,
+		HealthRuleDNSErrors,
+		HealthRuleDNSNxDomain,
+		HealthRuleExternalEgressHighTrend,
+		HealthRuleExternalIngressHighTrend,
+		HealthRuleIngress5xxErrors,
+		HealthRuleIngressHTTPLatencyTrend,
+		HealthRuleTLSInsecureVersion,
+	}
+)
+
 type FLPHealthRule struct {
 	// Health rule template name.
 	// Possible values are: `PacketDropsByKernel`, `PacketDropsByDevice`, `IPsecErrors`, `NetpolDenied`,

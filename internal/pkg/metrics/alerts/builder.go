@@ -35,7 +35,7 @@ func BuildMonitoringRules(ctx context.Context, fc *flowslatest.FlowCollectorSpec
 	log := log.FromContext(ctx)
 	rules := []monitoringv1.Rule{}
 
-	healthRules, err := BuildHealthRules(fc)
+	healthRules, _, err := BuildHealthRules(fc)
 	if err != nil {
 		log.Error(err, "Can't build some health rules")
 		// do not return: other rules might have been created
@@ -60,8 +60,11 @@ func BuildMonitoringRules(ctx context.Context, fc *flowslatest.FlowCollectorSpec
 	return rules
 }
 
-func BuildHealthRules(fc *flowslatest.FlowCollectorSpec) ([]HealthRule, error) {
+// BuildHealthRules build the active health rules based on the FlowCollector configuration and active metrics.
+// It returns a list of HealthRules interface (Alerts or Recordings), a list of active templates, and error.
+func BuildHealthRules(fc *flowslatest.FlowCollectorSpec) ([]HealthRule, []flowslatest.HealthRuleTemplate, error) {
 	var rules []HealthRule
+	var activeTemplates []flowslatest.HealthRuleTemplate
 	var errs []error
 	healthRules := fc.GetFLPHealthRules()
 	metrics := fc.GetIncludeList()
@@ -69,17 +72,22 @@ func BuildHealthRules(fc *flowslatest.FlowCollectorSpec) ([]HealthRule, error) {
 		if ok, _ := healthRule.IsAllowed(fc); !ok {
 			continue
 		}
+		var isTplActive bool
 		for _, variant := range healthRule.Variants {
 			// Get effective mode: variant.Mode if specified, otherwise healthRule.Mode
 			effectiveMode := variant.GetMode(healthRule.Mode)
 			if r, err := buildHealthRulesForVariant(healthRule.Template, effectiveMode, &variant, metrics); err != nil {
 				errs = append(errs, err)
 			} else if len(r) > 0 {
+				isTplActive = true
 				rules = append(rules, r...)
 			}
 		}
+		if isTplActive {
+			activeTemplates = append(activeTemplates, healthRule.Template)
+		}
 	}
-	return rules, errors.Join(errs...)
+	return rules, activeTemplates, errors.Join(errs...)
 }
 
 func buildHealthRulesForVariant(template flowslatest.HealthRuleTemplate, mode flowslatest.HealthRuleMode, healthRule *flowslatest.HealthRuleVariant, enabledMetrics []string) ([]HealthRule, error) {
@@ -194,8 +202,8 @@ func buildLabels(template flowslatest.HealthRuleTemplate, severity string, forHe
 	return m
 }
 
-// buildRunbookURL constructs the runbook URL for a given template
-func buildRunbookURL(template flowslatest.AlertTemplate) string {
+// BuildRunbookURL constructs the runbook URL for a given template
+func BuildRunbookURL(template flowslatest.AlertTemplate) string {
 	// Template names are already in the correct format (e.g., "DNSErrors", "NetObservNoFlows")
 	// They match the runbook filename without extension
 	return fmt.Sprintf("%s/%s.md", runbookURLBase, template)
