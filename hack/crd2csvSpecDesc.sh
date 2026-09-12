@@ -23,7 +23,7 @@ process_property() {
     return
   fi
   # Lookup in CSV
-  local xDescs=$(cat $csv | yq "$csvRoot[] | select(.path==\"$logicPath\").x-descriptors")
+  local xDescs=$(cat $csv | ./bin/yq "$csvRoot[] | select(.path==\"$logicPath\").x-descriptors")
   if [[ $xDescs == *":hidden" ]]; then
     # echo "Hidden property; ignoring" >&2
     false
@@ -32,26 +32,26 @@ process_property() {
   local displayName=$(echo $logicPath | sed 's/.*\.//' | sed 's/\([a-z]\)\([A-Z]\)/\1 \2/g' )
   displayName=${displayName,,} # lower case
   displayName=${displayName^} # first letter capital
-#  local description=$(cat $crd | yq "$yamlPath.description" | sed 's/`/"/g' | sed 's/<br>//g')
-  if [[ $(cat $csv | yq "$csvRoot[] | select(.path==\"$logicPath\")") != "" ]]; then
-    if [[ $(cat $csv | yq "$csvRoot[] | select(.path==\"$logicPath\") | has(\"displayName\")") == false ]]; then
+#  local description=$(cat $crd | ./bin/yq "$yamlPath.description" | sed 's/`/"/g' | sed 's/<br>//g')
+  if [[ $(cat $csv | ./bin/yq "$csvRoot[] | select(.path==\"$logicPath\")") != "" ]]; then
+    if [[ $(cat $csv | ./bin/yq "$csvRoot[] | select(.path==\"$logicPath\") | has(\"displayName\")") == false ]]; then
       # echo "Set display name: $displayName" >&2
-      yq -i "($csvRoot[] | select(.path==\"$logicPath\").displayName) = \"$displayName\"" $csv
+      ./bin/yq -i "($csvRoot[] | select(.path==\"$logicPath\").displayName) = \"$displayName\"" $csv
     fi
-    # if [[ $(cat $csv | yq "$csvRoot[] | select(.path==\"$logicPath\") | has(\"description\")") == false ]]; then
+    # if [[ $(cat $csv | ./bin/yq "$csvRoot[] | select(.path==\"$logicPath\") | has(\"description\")") == false ]]; then
     #   echo "Set description: $description" >&2
-    #   # yq -i "$csvRoot[] | select(.path==\"$logicPath\").description = \"$description\"" $csv
+    #   # ./bin/yq -i "$csvRoot[] | select(.path==\"$logicPath\").description = \"$description\"" $csv
     # fi
   else
     # echo "Creating entry for $displayName" >&2
-    yq -i "($csvRoot) += {\"path\":\"$logicPath\",\"displayName\":\"$displayName\"}" $csv
+    ./bin/yq -i "($csvRoot) += {\"path\":\"$logicPath\",\"displayName\":\"$displayName\"}" $csv
   fi
 }
 
 process_properties() {
   local yamlPath=$1
   local logicPath=$2
-  local props=$(cat $crd | yq "$yamlPath | keys | @tsv")
+  local props=$(cat $crd | ./bin/yq "$yamlPath | keys | @tsv")
   for prop in $props; do
     if [[ $logicPath != "" ]]; then
       local propLogicPath="$logicPath.$prop"
@@ -60,10 +60,10 @@ process_properties() {
     fi
     # echo "Checking property $propLogicPath" >&2
     if process_property "$yamlPath.$prop" $propLogicPath; then
-      local type=$(cat $crd | yq "$yamlPath.$prop.type")
+      local type=$(cat $crd | ./bin/yq "$yamlPath.$prop.type")
       if [[ "$type" == "object" ]]; then
         # echo "it's an object" >&2
-        if [[ $(cat $crd | yq "$yamlPath.$prop | has(\"properties\")") == true ]]; then
+        if [[ $(cat $crd | ./bin/yq "$yamlPath.$prop | has(\"properties\")") == true ]]; then
           process_properties "$yamlPath.$prop.properties" $propLogicPath
         # else
           # echo "Skipping: no properties." >&2

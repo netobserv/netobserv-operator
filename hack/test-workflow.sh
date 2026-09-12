@@ -18,11 +18,11 @@ run_step() {
   name=$3
   opts=$4
 
-  version=$(cat .github/workflows/$file | yq ".env.WF_VERSION")
+  version=$(cat .github/workflows/$file | ./bin/yq ".env.WF_VERSION")
   if [[ $version == '${{ github.ref_name }}' ]]; then
     version=main
   fi
-  step=$(cat .github/workflows/$file | yq ".jobs.$job.steps[] | select(.name==\"$name\").run")
+  step=$(cat .github/workflows/$file | ./bin/yq ".jobs.$job.steps[] | select(.name==\"$name\").run")
   step=$(echo "$step" \
     | sed -r "s~\\$\{\{ env\.WF_ORG \}\}~netobserv~g" \
     | sed -r "s~\\$\{\{ env\.WF_VERSION \}\}~$version~g" \

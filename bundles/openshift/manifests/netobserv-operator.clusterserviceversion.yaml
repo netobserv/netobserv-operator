@@ -386,6 +386,8 @@ spec:
         path: exporters[0].openTelemetry
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:fieldDependency:exporters.type:OpenTelemetry
+      - displayName: Dns tracking ports
+        path: agent.ebpf.dnsTrackingPorts
       - displayName: Exclude interfaces
         path: agent.ebpf.excludeInterfaces
       - displayName: Features

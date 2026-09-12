@@ -15,23 +15,23 @@ echo -e '[cols="1,1,3,1,1,1,1",options="header"]' >> $ADOC
 echo -e '|===' >> $ADOC
 echo -e '| Name | Type | Description | Filter ID | Loki label | Cardinality | OpenTelemetry' >> $ADOC
 
-nbfields=$(yq '.fields | length' $FE_SOURCE)
+nbfields=$(./bin/yq '.fields | length' $FE_SOURCE)
 lokiLabels=$(cat $LOKI_LABEL_SOURCE)
 cardinalityMap=$(cat $CARDINALITY_SOURCE)
 otelMap=$(cat $OTEL_SOURCE)
 errors=""
 
 for i in $(seq 0 $(( $nbfields-1 )) ); do
-  frontEntry=$(yq ".fields | sort_by(.name) | .[$i]" $FE_SOURCE)
-  name=$(printf "$frontEntry" | yq ".name")
-  type=$(printf "$frontEntry" | yq ".docType")
+  frontEntry=$(./bin/yq ".fields | sort_by(.name) | .[$i]" $FE_SOURCE)
+  name=$(printf "$frontEntry" | ./bin/yq ".name")
+  type=$(printf "$frontEntry" | ./bin/yq ".docType")
   if [[ "$type" == "null" ]]; then
-    type=$(printf "$frontEntry" | yq ".type")
+    type=$(printf "$frontEntry" | ./bin/yq ".type")
   fi
-  desc=$(printf "$frontEntry" | yq ".description")
-  filter=$(printf "$frontEntry" | yq ".filter")
+  desc=$(printf "$frontEntry" | ./bin/yq ".description")
+  filter=$(printf "$frontEntry" | ./bin/yq ".filter")
   if [[ "$filter" == "null" ]]; then
-    filter=$(yq ".columns[] | select(.field == \"$name\").filter" $FE_SOURCE | sed 's/null//')
+    filter=$(./bin/yq ".columns[] | select(.field == \"$name\").filter" $FE_SOURCE | sed 's/null//')
     if [[ "$filter" == "" ]]; then
       filter="n/a"
     else

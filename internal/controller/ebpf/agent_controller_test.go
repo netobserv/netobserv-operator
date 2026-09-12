@@ -93,7 +93,10 @@ func TestGetEnvConfig_Default(t *testing.T) {
 	fc := flowslatest.FlowCollector{
 		Spec: flowslatest.FlowCollectorSpec{
 			Agent: flowslatest.FlowCollectorAgent{
-				EBPF: flowslatest.FlowCollectorEBPF{},
+				EBPF: flowslatest.FlowCollectorEBPF{
+					// DNSTrackingPorts will have default value [53, 5353] from API
+					DNSTrackingPorts: []int32{53, 5353},
+				},
 			},
 		},
 	}
@@ -114,7 +117,7 @@ func TestGetEnvConfig_Default(t *testing.T) {
 					FieldPath:  "status.hostIP",
 				},
 			}},
-		{Name: "DNS_TRACKING_PORT", Value: "53"},
+		{Name: "DNS_TRACKING_PORT", Value: "53,5353"},
 		{Name: "NETWORK_EVENTS_MONITORING_GROUP_ID", Value: "10"},
 		{Name: "PREFERRED_INTERFACE_FOR_MAC_PREFIX", Value: "0a:58=eth0"},
 		{Name: "TC_ATTACH_MODE", Value: "tcx"},
@@ -193,7 +196,10 @@ func TestGetEnvConfig_OCP4_14(t *testing.T) {
 	fc := flowslatest.FlowCollector{
 		Spec: flowslatest.FlowCollectorSpec{
 			Agent: flowslatest.FlowCollectorAgent{
-				EBPF: flowslatest.FlowCollectorEBPF{},
+				EBPF: flowslatest.FlowCollectorEBPF{
+					// DNSTrackingPorts will have default value [53, 5353] from API
+					DNSTrackingPorts: []int32{53, 5353},
+				},
 			},
 		},
 	}
@@ -217,7 +223,7 @@ func TestGetEnvConfig_OCP4_14(t *testing.T) {
 					FieldPath:  "status.hostIP",
 				},
 			}},
-		{Name: "DNS_TRACKING_PORT", Value: "53"},
+		{Name: "DNS_TRACKING_PORT", Value: "53,5353"},
 		{Name: "NETWORK_EVENTS_MONITORING_GROUP_ID", Value: "10"},
 		{Name: "PREFERRED_INTERFACE_FOR_MAC_PREFIX", Value: "0a:58=eth0"},
 		{Name: "TC_ATTACH_MODE", Value: "tc"},
@@ -228,6 +234,49 @@ func TestGetEnvConfig_OCP4_14(t *testing.T) {
 		{Name: "GRPC_RECONNECT_TIMER", Value: "5m"},
 		{Name: "GRPC_RECONNECT_TIMER_RANDOMIZATION", Value: "30s"},
 	}, env)
+}
+
+func TestGetEnvConfig_WithDNSTrackingPorts(t *testing.T) {
+	fc := flowslatest.FlowCollector{
+		Spec: flowslatest.FlowCollectorSpec{
+			Agent: flowslatest.FlowCollectorAgent{
+				EBPF: flowslatest.FlowCollectorEBPF{
+					DNSTrackingPorts: []int32{53, 5353, 8053},
+				},
+			},
+		},
+	}
+	info := reconcilers.Common{Namespace: "netobserv", ClusterInfo: &cluster.Info{}}
+	agent := NewAgentController(info.NewInstance(nil, status.Instance{}))
+
+	env, err := agent.envConfig(context.Background(), &fc, map[string]string{})
+	require.NoError(t, err)
+
+	assert.Contains(t, env, corev1.EnvVar{Name: "DNS_TRACKING_PORT", Value: "53,5353,8053"})
+}
+
+func TestGetEnvConfig_DNSPortsAdvancedOverride(t *testing.T) {
+	fc := flowslatest.FlowCollector{
+		Spec: flowslatest.FlowCollectorSpec{
+			Agent: flowslatest.FlowCollectorAgent{
+				EBPF: flowslatest.FlowCollectorEBPF{
+					DNSTrackingPorts: []int32{53},
+					Advanced: &flowslatest.AdvancedAgentConfig{
+						Env: map[string]string{
+							"DNS_TRACKING_PORT": "9053", // Override
+						},
+					},
+				},
+			},
+		},
+	}
+	info := reconcilers.Common{Namespace: "netobserv", ClusterInfo: &cluster.Info{}}
+	agent := NewAgentController(info.NewInstance(nil, status.Instance{}))
+
+	env, err := agent.envConfig(context.Background(), &fc, map[string]string{})
+	require.NoError(t, err)
+
+	assert.Contains(t, env, corev1.EnvVar{Name: "DNS_TRACKING_PORT", Value: "9053"})
 }
 
 func TestBpfmanConfig(t *testing.T) {

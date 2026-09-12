@@ -205,6 +205,63 @@ func TestValidateAgent(t *testing.T) {
 			expectedWarnings: admission.Warnings{"The PacketDrop feature requires eBPF Agent to run in privileged mode, which is currently disabled in spec.agent.ebpf.privileged, or to use with eBPF Manager"},
 		},
 		{
+			name:       "DNS ports (default) without DNSTracking feature - no warning",
+			ocpVersion: "4.16.0",
+			fc: &FlowCollector{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "cluster",
+				},
+				Spec: FlowCollectorSpec{
+					Agent: FlowCollectorAgent{
+						Type: AgentEBPF,
+						EBPF: FlowCollectorEBPF{
+							DNSTrackingPorts: []int32{53, 5353}, // Default ports
+							Features:         []AgentFeature{},  // DNSTracking not enabled
+						},
+					},
+				},
+			},
+			expectedWarnings: nil, // No warning for default ports
+		},
+		{
+			name:       "DNS ports (custom) without DNSTracking feature - warning",
+			ocpVersion: "4.16.0",
+			fc: &FlowCollector{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "cluster",
+				},
+				Spec: FlowCollectorSpec{
+					Agent: FlowCollectorAgent{
+						Type: AgentEBPF,
+						EBPF: FlowCollectorEBPF{
+							DNSTrackingPorts: []int32{53, 8053}, // Custom ports
+							Features:         []AgentFeature{},  // DNSTracking not enabled
+						},
+					},
+				},
+			},
+			expectedWarnings: admission.Warnings{"spec.agent.ebpf.dnsTrackingPorts is configured but DNSTracking feature is not enabled. Add 'DNSTracking' to spec.agent.ebpf.features to enable DNS tracking."},
+		},
+		{
+			name:       "DNS ports with DNSTracking feature - no warning",
+			ocpVersion: "4.16.0",
+			fc: &FlowCollector{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "cluster",
+				},
+				Spec: FlowCollectorSpec{
+					Agent: FlowCollectorAgent{
+						Type: AgentEBPF,
+						EBPF: FlowCollectorEBPF{
+							DNSTrackingPorts: []int32{53, 5353},
+							Features:         []AgentFeature{DNSTracking},
+						},
+					},
+				},
+			},
+			expectedWarnings: nil,
+		},
+		{
 			name:       "NetworkEvents on ocp 4.16 triggers warning",
 			ocpVersion: "4.16.5",
 			fc: &FlowCollector{
