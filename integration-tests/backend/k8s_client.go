@@ -56,6 +56,9 @@ var gvrMap = map[string]schema.GroupVersionResource{
 	"catalogsource":   {Group: "operators.coreos.com", Version: "v1alpha1", Resource: "catalogsources"},
 	"packagemanifest": {Group: "packages.operators.coreos.com", Version: "v1", Resource: "packagemanifests"},
 
+	// FRR-k8s
+	"frrconfiguration": {Group: "frrk8s.metallb.io", Version: "v1beta1", Resource: "frrconfigurations"},
+
 	// NetObserv
 	"flowcollector":      {Group: "flows.netobserv.io", Version: "v1beta2", Resource: "flowcollectors"},
 	"flowcollectorslice": {Group: "flows.netobserv.io", Version: "v1alpha1", Resource: "flowcollectorslices"},

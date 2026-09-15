@@ -63,6 +63,7 @@ objects:
           disableAlerts: []
         logTypes: "${LogType}"
         filters: "${{FLPFilters}}"
+        bgpEnrichment: "${{BgpEnrichment}}"
         slicesConfig:
           collectionMode: "${CollectionMode}"
           enable: "${{SlicesEnable}}"
@@ -143,6 +144,8 @@ parameters:
     value: "Flows"
   - name: FLPFilters
     value: '[]'
+  - name: BgpEnrichment
+    value: "false"
   - name: CollectionMode
     value: "AlwaysCollect"
   - name: SlicesEnable

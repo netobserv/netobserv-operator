@@ -1,0 +1,28 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: frrconfiguration-template
+objects:
+  - apiVersion: frrk8s.metallb.io/v1beta1
+    kind: FRRConfiguration
+    metadata:
+      name: ${NAME}
+      namespace: ${NAMESPACE}
+    spec:
+      bgp:
+        routers:
+          - asn: ${{ASN}}
+            prefixes:
+              - ${EXTERNAL_PREFIX}
+              - ${INTERNAL_PREFIX}
+parameters:
+  - name: NAME
+    value: bgp-asn-enrichment-e2e
+  - name: NAMESPACE
+    value: netobserv
+  - name: ASN
+    value: "64512"
+  - name: EXTERNAL_PREFIX
+    value: "8.8.8.8/32"
+  - name: INTERNAL_PREFIX
+    value: "192.168.1.0/24"
