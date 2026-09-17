@@ -1,4 +1,4 @@
-// Copyright 2018 The prometheus-operator Authors
+// Copyright The prometheus-operator Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -88,6 +88,7 @@ type RuleGroup struct {
 	// It requires Prometheus >= 3.0.0.
 	// The field is ignored for Thanos Ruler.
 	// +optional
+	//nolint:kubeapilinter
 	Labels map[string]string `json:"labels,omitempty"`
 	// interval defines how often rules in the group are evaluated.
 	// +optional
@@ -141,10 +142,12 @@ type Rule struct {
 	KeepFiringFor *NonEmptyDuration `json:"keep_firing_for,omitempty"`
 	// labels defines labels to add or overwrite.
 	// +optional
+	//nolint:kubeapilinter
 	Labels map[string]string `json:"labels,omitempty"`
 	// annotations defines annotations to add to each alert.
 	// Only valid for alerting rules.
 	// +optional
+	//nolint:kubeapilinter
 	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
