@@ -28,12 +28,15 @@ import (
 	"github.com/netobserv/netobserv-operator/internal/pkg/cleanup"
 	"github.com/netobserv/netobserv-operator/internal/pkg/helper"
 	"github.com/netobserv/netobserv-operator/internal/pkg/manager"
+	"github.com/netobserv/netobserv-operator/internal/pkg/manager/enqueuer"
 	"github.com/netobserv/netobserv-operator/internal/pkg/manager/status"
+	"github.com/netobserv/netobserv-operator/internal/pkg/roles"
 	"github.com/netobserv/netobserv-operator/internal/pkg/watchers"
 )
 
 const (
 	flowsFinalizer = "flows.netobserv.io/finalizer"
+	ctrlName       = "legacy"
 )
 
 // FlowCollectorReconciler reconciles a FlowCollector object
@@ -43,6 +46,7 @@ type FlowCollectorReconciler struct {
 	status           status.Instance
 	watcher          *watchers.Watcher
 	ctrl             controller.Controller
+	ctrlQ            enqueuer.Static
 	lokistackWatcher *lokistack.Watcher
 }
 
@@ -56,7 +60,7 @@ func Start(ctx context.Context, mgr *manager.Manager) (manager.PostCreateHook, e
 	}
 
 	builder := ctrl.NewControllerManagedBy(mgr.Manager).
-		Named("legacy").
+		Named(ctrlName).
 		For(&flowslatest.FlowCollector{}, reconcilers.IgnoreStatusChange).
 		Owns(&appsv1.Deployment{}, reconcilers.UpdateOrDeleteOnlyPred).
 		Owns(&appsv1.DaemonSet{}, reconcilers.UpdateOrDeleteOnlyPred).
@@ -69,6 +73,7 @@ func Start(ctx context.Context, mgr *manager.Manager) (manager.PostCreateHook, e
 		builder.Owns(&osv1.ConsolePlugin{}, reconcilers.UpdateOrDeleteOnlyPred)
 	}
 
+	var ctrl controller.Controller
 	r.lokistackWatcher = lokistack.Start(ctx, mgr, builder, func() controller.Controller { return r.ctrl })
 
 	// When a PrometheusRule changes, trigger reconcile so console-plugin config is updated (recording-rule annotations)
@@ -92,7 +97,11 @@ func Start(ctx context.Context, mgr *manager.Manager) (manager.PostCreateHook, e
 		return nil, err
 	}
 	r.ctrl = ctrl
-	r.watcher = watchers.NewWatcher(ctrl, mgr.Config.Namespace)
+	r.ctrlQ = mgr.NewStaticControllerEnqueuer(ctrlName, ctrl)
+	r.watcher = watchers.NewWatcher(
+		mgr.NewDynamicControllerEnqueuer(ctrlName+"-watcher", ctrl),
+		mgr.Config.Namespace,
+	)
 
 	return nil, nil
 }
@@ -117,6 +126,11 @@ func (r *FlowCollectorReconciler) Reconcile(ctx context.Context, _ ctrl.Request)
 	} else if desired == nil {
 		// Delete case
 		return ctrl.Result{}, nil
+	}
+
+	// FC is being deleted: trigger the finalizer
+	if reconcilers.IsMarkedForDeletion(desired) {
+		return ctrl.Result{}, r.finalize(ctx, clh, desired)
 	}
 
 	commit := r.status.Reset()
@@ -205,19 +219,36 @@ func (r *FlowCollectorReconciler) reconcile(ctx context.Context, clh *helper.Cli
 	return nil
 }
 
+// checkFinalizer adds a finalizer to the FlowCollector if it isn't already set.
+// Upon deletion, the finalizer is used to clean up the pre-installed ClusterRoleBinding subjects so they're empty shells again.
 func (r *FlowCollectorReconciler) checkFinalizer(ctx context.Context, desired *flowslatest.FlowCollector) error {
-	// Previous version of the operator (1.5) had a finalizer, this isn't the case anymore.
-	// Remove any finalizer that could remain after an upgrade.
 	if controllerutil.ContainsFinalizer(desired, flowsFinalizer) {
-		controllerutil.RemoveFinalizer(desired, flowsFinalizer)
-		return r.Update(ctx, desired)
+		return nil
+	}
+	controllerutil.AddFinalizer(desired, flowsFinalizer)
+	return r.Update(ctx, desired)
+}
+
+// finalize cleans up resources that are not garbage-collected with the FlowCollector, then removes the finalizer to let the deletion proceed.
+// Pre-installed ClusterRoleBinding are cleaned up, so they're empty shells again (empty subjects), like after a fresh install.
+func (r *FlowCollectorReconciler) finalize(ctx context.Context, clh *helper.Client, desired *flowslatest.FlowCollector) error {
+	if !controllerutil.ContainsFinalizer(desired, flowsFinalizer) {
+		return nil
 	}
 
-	return nil
+	for _, ref := range roles.OperandClusterRoleBindings {
+		if err := reconcilers.EmptyClusterRoleBinding(ctx, clh, ref); err != nil {
+			return err
+		}
+	}
+
+	controllerutil.RemoveFinalizer(desired, flowsFinalizer)
+	return r.Update(ctx, desired)
 }
 
 func (r *FlowCollectorReconciler) newCommonInfo(clh *helper.Client, ns string, loki *helper.LokiConfig) reconcilers.Common {
 	return reconcilers.Common{
+		Enqueuer:    r.ctrlQ,
 		Client:      *clh,
 		Namespace:   ns,
 		ClusterInfo: r.mgr.ClusterInfo,

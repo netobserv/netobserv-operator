@@ -14,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
 	"github.com/netobserv/netobserv-operator/internal/controller/constants"
@@ -155,6 +156,12 @@ func (r *StaticReconciler) reconcileStatic(ctx context.Context, desired *flowsla
 
 		if err = r.reconcileDeployment(ctx, &builder, &desired.Spec, constants.StaticPluginName, ""); err != nil {
 			return err
+		}
+		// Make also sure this deployment is watched (using narrowcache watches rather than plain controller-runtime)
+		if r.Enqueuer != nil {
+			if err = r.Enqueuer.EnqueueOnChange(ctx, r.deployment, reconcile.Request{NamespacedName: constants.FlowCollectorName}); err != nil {
+				return err
+			}
 		}
 
 		if err = r.reconcileServices(ctx, &builder, constants.StaticPluginName); err != nil {

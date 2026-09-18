@@ -51,7 +51,7 @@ import (
 	"github.com/netobserv/netobserv-operator/internal/pkg/helper"
 	"github.com/netobserv/netobserv-operator/internal/pkg/manager"
 	"github.com/netobserv/netobserv-operator/internal/pkg/manager/status"
-	"github.com/netobserv/netobserv-operator/internal/pkg/roles"
+	"github.com/netobserv/netobserv-operator/internal/pkg/test/util"
 )
 
 const (
@@ -94,13 +94,7 @@ func SetupKubeBuilderAssets() error {
 
 func PrepareEnvTest(env Environment, controllers []manager.Registerer, opNamespace string, namespaces []string) (context.Context, client.Client, *SuiteContext) {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
-	ctx, cancelCtx := context.WithCancel(context.TODO())
-	// Disable SAR checks to avoid the need to stub all RBAC (not concurrent-safe)
-	restore := roles.EnableSARChecks(false)
-	cancel := func() {
-		restore()
-		cancelCtx()
-	}
+	ctx, cancel := context.WithCancel(context.TODO())
 	err := SetupKubeBuilderAssets()
 	Expect(err).NotTo(HaveOccurred())
 
@@ -197,6 +191,16 @@ func PrepareEnvTest(env Environment, controllers []manager.Registerer, opNamespa
 		})
 		Expect(err).NotTo(HaveOccurred())
 	}
+
+	// Pre-install CRB (the operator manages them partially: it won't create them, only update them)
+	err = util.InstallYAMLAssets(ctx, k8sClient,
+		filepath.Join(basePath, "bundles", "k8s", "manifests", "netobserv-flowcollector-viewer-role_rbac.authorization.k8s.io_v1_clusterrolebinding.yaml"),
+		filepath.Join(basePath, "bundles", "k8s", "manifests", "netobserv-token-review_rbac.authorization.k8s.io_v1_clusterrolebinding.yaml"),
+		filepath.Join(basePath, "bundles", "k8s", "manifests", "netobserv-hostnetwork_rbac.authorization.k8s.io_v1_clusterrolebinding.yaml"),
+		filepath.Join(basePath, "bundles", "k8s", "manifests", "netobserv-informers_rbac.authorization.k8s.io_v1_clusterrolebinding.yaml"),
+		filepath.Join(basePath, "bundles", "k8s", "manifests", "netobserv-loki-writer_rbac.authorization.k8s.io_v1_clusterrolebinding.yaml"),
+	)
+	Expect(err).NotTo(HaveOccurred())
 
 	if env == EnvOpenShift {
 		setupOpenShiftClusterResources(ctx, k8sClient, opNamespace)

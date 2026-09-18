@@ -85,8 +85,14 @@ func (r *CPReconciler) reconcile(ctx context.Context, desired *flowslatest.FlowC
 	if hasPluginAPI {
 		r.checkAutoPatch(ctx, desired, constants.PluginName)
 	}
+	deploy := desired.Spec.NeedsConsolePluginDeployment(hasPluginAPI)
+	standalone := desired.Spec.UseStandaloneConsole(hasPluginAPI)
 
-	if desired.Spec.NeedsConsolePluginDeployment(hasPluginAPI) {
+	if err := r.reconcileCRB(ctx, constants.PluginName, standalone, !deploy); err != nil {
+		return err
+	}
+
+	if deploy {
 		if lokiStatus != nil && lokiStatus.Status == status.StatusFailure &&
 			(lokiStatus.Reason == lokistack.LokiStackAPIMissing || lokiStatus.Reason == lokistack.LokiCantFetchLokiStack) {
 			// If LokiStack is missing, turn off TLS config; queries will fail anyway, but we don't want to try mounting
@@ -101,7 +107,7 @@ func (r *CPReconciler) reconcile(ctx context.Context, desired *flowslatest.FlowC
 		// Create object builder
 		builder := newBuilder(r.Instance, &desired.Spec, constants.PluginName)
 
-		if err := r.reconcilePermissions(ctx, &builder, constants.PluginName); err != nil {
+		if err := r.reconcileSA(ctx, &builder, constants.PluginName); err != nil {
 			return err
 		}
 
@@ -177,23 +183,19 @@ func (r *CPReconciler) checkAutoPatch(ctx context.Context, desired *flowslatest.
 	}
 }
 
-func (r *CPReconciler) reconcilePermissions(ctx context.Context, builder *builder, name string) error {
+func (r *CPReconciler) reconcileCRB(ctx context.Context, name string, useStandalone, isDelete bool) error {
+	if err := r.ReconcileClusterRoleBinding(ctx, r.Namespace, name, roles.ConsoleTokenReviewRole, isDelete); err != nil {
+		return err
+	}
+	// Currently, standalone mode uses service account token, not user token, for permissions.
+	// Add FlowCollector viewer role so that it can display the FC status icon.
+	return r.ReconcileClusterRoleBinding(ctx, r.Namespace, name, roles.FlowCollectorViewerRole, isDelete || !useStandalone)
+}
+
+func (r *CPReconciler) reconcileSA(ctx context.Context, builder *builder, name string) error {
 	if !r.Managed.Exists(r.serviceAccount) {
 		return r.CreateOwned(ctx, builder.serviceAccount(name))
 	} // update not needed for now
-
-	// Check installed CRB, and notify any missing one
-	// Token review
-	if err := roles.CheckHasPermission(ctx, r.Client, r.Namespace, name, roles.ConsoleTokenReviewRole); err != nil {
-		return err
-	}
-	if builder.useStandalone {
-		// Currently, standalone mode uses service account token, not user token, for permissions.
-		// Require FlowCollector viewer role so that it can display the FC status icon.
-		if err := roles.CheckHasPermission(ctx, r.Client, r.Namespace, name, roles.FlowCollectorViewerRole); err != nil {
-			return err
-		}
-	}
 
 	return nil
 }

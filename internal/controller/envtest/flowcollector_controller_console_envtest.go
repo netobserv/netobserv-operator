@@ -13,6 +13,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	ascv2 "k8s.io/api/autoscaling/v2"
 	v1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -59,6 +60,8 @@ func FlowCollectorConsolePluginSpecs(env test.Environment, ctxGetter test.Contex
 		Name:      "netobserv-operator",
 		Namespace: "main-namespace",
 	}
+	rbKeyPlugin := types.NamespacedName{Name: "netobserv-token-review"}
+
 	if env == test.EnvOpenShift {
 		Context("Deploying the static console plugin", func() {
 			It("Should create successfully", func() {
@@ -156,6 +159,14 @@ func FlowCollectorConsolePluginSpecs(env test.Environment, ctxGetter test.Contex
 			Eventually(getConfigMapData(ctx, k8sClient, configKey),
 				timeout, interval).Should(ContainSubstring("url: http://loki:3100/"))
 
+			By("Expecting to update console plugin role binding")
+			rb := rbacv1.ClusterRoleBinding{}
+			Eventually(func() interface{} {
+				return k8sClient.Get(ctx, rbKeyPlugin, &rb)
+			}, timeout, interval).Should(Succeed())
+			Expect(rb.Subjects).Should(HaveLen(1))
+			Expect(rb.Subjects[0].Name).Should(Equal("netobserv-plugin"))
+			Expect(rb.RoleRef.Name).Should(Equal("netobserv-token-review"))
 		})
 
 		It("Should update successfully", func() {
@@ -501,8 +512,80 @@ func FlowCollectorConsolePluginSpecs(env test.Environment, ctxGetter test.Contex
 	})
 
 	Context("Cleanup", func() {
-		It("Should delete CR", func() {
-			test.CleanupCR(ctx, k8sClient, crKey)
+		It("Should not hang in finalize when an operand CRB is missing", func() {
+			// The viewer-role CRB is a shared fixture pre-installed once for the whole suite. Capture it so we
+			// can restore it after this spec, otherwise later specs relying on it would fail.
+			By("Capturing the viewer-role CRB so it can be restored for later specs")
+			original := rbacv1.ClusterRoleBinding{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "netobserv-flowcollector-viewer-role"}, &original)).To(Succeed())
+			DeferCleanup(func() {
+				restored := rbacv1.ClusterRoleBinding{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:        original.Name,
+						Labels:      original.Labels,
+						Annotations: original.Annotations,
+					},
+					RoleRef:  original.RoleRef,
+					Subjects: original.Subjects,
+				}
+				Eventually(func() error {
+					err := k8sClient.Create(ctx, &restored)
+					if err != nil && errors.IsAlreadyExists(err) {
+						return nil
+					}
+					return err
+				}, timeout, interval).Should(Succeed())
+			})
+
+			By("Deleting the viewer-role CRB to simulate CRB+FlowCollector removal at once")
+			Eventually(func() error {
+				rb := rbacv1.ClusterRoleBinding{}
+				if err := k8sClient.Get(ctx, types.NamespacedName{Name: "netobserv-flowcollector-viewer-role"}, &rb); err != nil {
+					if errors.IsNotFound(err) {
+						return nil // already gone
+					}
+					return err
+				}
+				return k8sClient.Delete(ctx, &rb)
+			}, timeout, interval).Should(Succeed())
+
+			By("Deleting the FlowCollector")
+			flowCR := test.GetCR(ctx, k8sClient, crKey)
+			Expect(k8sClient.Delete(ctx, flowCR)).To(Succeed())
+
+			// A finalize deadlock would leave the FlowCollector marked for deletion but stuck with its
+			// finalizer forever. Asserting it is fully gone (NotFound) directly verifies finalize completed.
+			By("Expecting the FlowCollector to be fully removed — finalizer cleared, no deadlock")
+			Eventually(func() error {
+				fc := flowslatest.FlowCollector{}
+				err := k8sClient.Get(ctx, crKey, &fc)
+				if errors.IsNotFound(err) {
+					return nil
+				}
+				if err != nil {
+					return err
+				}
+				return fmt.Errorf("FlowCollector still present (finalize deadlocked): finalizers=%v deletionTimestamp=%v",
+					fc.GetFinalizers(), fc.GetDeletionTimestamp())
+			}, timeout, interval).Should(Succeed())
+		})
+
+		It("Should have emptied the operand ClusterRoleBindings via the finalizer", func() {
+			for _, name := range []string{
+				"netobserv-token-review",
+				"netobserv-loki-writer",
+				"netobserv-informers",
+				"netobserv-hostnetwork",
+			} {
+				By("Expecting subjects removed from " + name)
+				Eventually(func() interface{} {
+					rb := rbacv1.ClusterRoleBinding{}
+					if err := k8sClient.Get(ctx, types.NamespacedName{Name: name}, &rb); err != nil {
+						return err
+					}
+					return rb.Subjects
+				}, timeout, interval).Should(BeEmpty())
+			}
 		})
 
 		It("Should delete fake controller", func() {

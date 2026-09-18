@@ -20,6 +20,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/cache/informertest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -124,7 +125,20 @@ func (r *fakeReconcile) Reconcile(context.Context, reconcile.Request) (ctrl.Resu
 	return ctrl.Result{}, nil
 }
 
-func initWatcher(t *testing.T) *Watcher {
+type Enqueuer struct {
+	nc   *narrowcache.Client
+	ctrl controller.Controller
+}
+
+func (e *Enqueuer) EnqueueOnChange(ctx context.Context, obj client.Object, req reconcile.Request) error {
+	return e.nc.SafeEnqueueRequestOnEvents(ctx, "", e.ctrl, obj, req, true)
+}
+
+func (e *Enqueuer) ResetActiveWatches() {
+	e.nc.ResetActiveWatches("")
+}
+
+func initWatcher(t *testing.T, hc *helper.Client) *Watcher {
 	m, err := manager.New(&rest.Config{}, manager.Options{
 		NewCache: func(_ *rest.Config, _ cache.Options) (cache.Cache, error) {
 			return &informertest.FakeInformers{}, nil
@@ -133,8 +147,9 @@ func initWatcher(t *testing.T) *Watcher {
 	assert.NoError(t, err)
 	b := ctrl.NewControllerManagedBy(m).Named("ctrl-" + string(uuid.NewUUID())).For(&corev1.Pod{})
 	ctrl, err := b.Build(&fakeReconcile{})
+	ctrlQ := Enqueuer{nc: hc.Client.(*narrowcache.Client), ctrl: ctrl}
 	assert.NoError(t, err)
-	return NewWatcher(ctrl, "netobserv")
+	return NewWatcher(&ctrlQ, "netobserv")
 }
 
 func setupClients(t *testing.T, clientMock client.Client, liveClient kubernetes.Interface) helper.Client {
@@ -158,11 +173,12 @@ func retry(predicate func() bool, attempts int, sleep time.Duration) {
 func TestGenDigests(t *testing.T) {
 	assert := assert.New(t)
 
-	watcher := initWatcher(t)
-	assert.NotNil(watcher)
-	watcher.Reset(baseNamespace)
 	goclient := fake.NewClientset(&lokiCA, &kafkaCA, &kafkaUser, &kafkaSaslSecret)
 	cl := setupClients(t, test.NewClient(), goclient)
+
+	watcher := initWatcher(t, &cl)
+	assert.NotNil(watcher)
+	watcher.Reset(baseNamespace)
 
 	digLoki, err := watcher.ProcessCACert(context.Background(), cl, &lokiTLS, baseNamespace)
 	assert.NoError(err)
@@ -215,12 +231,12 @@ func TestGenDigests(t *testing.T) {
 
 func TestNoCopy(t *testing.T) {
 	assert := assert.New(t)
-
-	watcher := initWatcher(t)
-	assert.NotNil(watcher)
-	watcher.Reset(baseNamespace)
 	goclient := fake.NewClientset(&lokiCA)
 	cl := setupClients(t, test.NewClient(), goclient)
+
+	watcher := initWatcher(t, &cl)
+	assert.NotNil(watcher)
+	watcher.Reset(baseNamespace)
 
 	_, _, err := watcher.ProcessMTLSCerts(context.Background(), cl, &lokiTLS, baseNamespace)
 	assert.NoError(err)
@@ -237,12 +253,12 @@ func TestNoCopy(t *testing.T) {
 func TestCopyCertificate(t *testing.T) {
 	assert := assert.New(t)
 	clientMock := test.NewClient()
-
-	watcher := initWatcher(t)
-	assert.NotNil(watcher)
-	watcher.Reset(baseNamespace)
 	goclient := fake.NewClientset(&otherLokiCA)
 	cl := setupClients(t, clientMock, goclient)
+
+	watcher := initWatcher(t, &cl)
+	assert.NotNil(watcher)
+	watcher.Reset(baseNamespace)
 
 	_, _, err := watcher.ProcessMTLSCerts(context.Background(), cl, &otherLokiTLS, baseNamespace)
 	assert.NoError(err)
@@ -272,12 +288,12 @@ func TestUpdateCertificate(t *testing.T) {
 		"tls.crt": " -- MODIFIED LOKI OTHER CA --",
 	}
 	clientMock.MockConfigMap(&copied)
-
-	watcher := initWatcher(t)
-	assert.NotNil(watcher)
-	watcher.Reset(baseNamespace)
 	goclient := fake.NewClientset(&otherLokiCA, &copied)
 	cl := setupClients(t, clientMock, goclient)
+
+	watcher := initWatcher(t, &cl)
+	assert.NotNil(watcher)
+	watcher.Reset(baseNamespace)
 
 	_, _, err := watcher.ProcessMTLSCerts(context.Background(), cl, &otherLokiTLS, baseNamespace)
 	assert.NoError(err)
@@ -295,12 +311,12 @@ func TestNoUpdateCertificate(t *testing.T) {
 		"tls.crt": otherLokiCA.Data["tls.crt"],
 	}
 	clientMock.MockConfigMap(&copied)
-
-	watcher := initWatcher(t)
-	assert.NotNil(watcher)
-	watcher.Reset(baseNamespace)
 	goclient := fake.NewClientset(&otherLokiCA, &copied)
 	cl := setupClients(t, clientMock, goclient)
+
+	watcher := initWatcher(t, &cl)
+	assert.NotNil(watcher)
+	watcher.Reset(baseNamespace)
 
 	_, _, err := watcher.ProcessMTLSCerts(context.Background(), cl, &otherLokiTLS, baseNamespace)
 	assert.NoError(err)

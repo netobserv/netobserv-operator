@@ -18,7 +18,12 @@ import (
 	"github.com/netobserv/netobserv-operator/internal/controller/reconcilers"
 	"github.com/netobserv/netobserv-operator/internal/pkg/helper"
 	"github.com/netobserv/netobserv-operator/internal/pkg/manager"
+	"github.com/netobserv/netobserv-operator/internal/pkg/manager/enqueuer"
 	"github.com/netobserv/netobserv-operator/internal/pkg/manager/status"
+)
+
+const (
+	ctrlName = "StaticController"
 )
 
 var (
@@ -28,6 +33,7 @@ var (
 type Controller struct {
 	client.Client
 	mgr    *manager.Manager
+	ctrlQ  enqueuer.Static
 	status status.Instance
 }
 
@@ -42,7 +48,7 @@ func Start(ctx context.Context, mgr *manager.Manager) (manager.PostCreateHook, e
 
 	// This controller runs unconditionally (not bound to FlowCollector), and uses the operator Deployment as a trigger.
 	b := ctrl.NewControllerManagedBy(mgr).
-		Named("StaticController").
+		Named(ctrlName).
 		Watches(
 			&appsv1.Deployment{},
 			handler.EnqueueRequestsFromMapFunc(func(_ context.Context, o client.Object) []reconcile.Request {
@@ -52,15 +58,6 @@ func Start(ctx context.Context, mgr *manager.Manager) (manager.PostCreateHook, e
 				return nil
 			}),
 			reconcilers.IgnoreStatusChange,
-		).
-		Watches(
-			&appsv1.Deployment{},
-			handler.EnqueueRequestsFromMapFunc(func(_ context.Context, o client.Object) []reconcile.Request {
-				if o.GetNamespace() == mgr.Config.Namespace && o.GetName() == constants.StaticPluginName {
-					return []reconcile.Request{{NamespacedName: constants.FlowCollectorName}}
-				}
-				return nil
-			}),
 		).
 		Watches(
 			&networkingv1.NetworkPolicy{},
@@ -80,7 +77,12 @@ func Start(ctx context.Context, mgr *manager.Manager) (manager.PostCreateHook, e
 			reconcilers.IgnoreStatusChange,
 		)
 	}
-	return nil, b.Complete(&r)
+	ctrl, err := b.Build(&r)
+	if err != nil {
+		return nil, err
+	}
+	r.ctrlQ = mgr.NewStaticControllerEnqueuer(ctrlName, ctrl)
+	return nil, nil
 }
 
 // Reconcile is the controller entry point for reconciling current state with desired state.
@@ -136,6 +138,7 @@ func (r *Controller) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Result
 func (r *Controller) newDefaultReconcilerInstance(clh *helper.Client, image string) *reconcilers.Instance {
 	// force default namespace
 	reconcilersInfo := reconcilers.Common{
+		Enqueuer:    r.ctrlQ,
 		Client:      *clh,
 		Namespace:   r.mgr.Config.Namespace,
 		ClusterInfo: r.mgr.ClusterInfo,

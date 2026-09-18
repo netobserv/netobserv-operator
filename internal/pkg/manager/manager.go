@@ -12,17 +12,16 @@ import (
 	"github.com/netobserv/netobserv-operator/internal/pkg/migrator"
 	"github.com/netobserv/netobserv-operator/internal/pkg/narrowcache"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
@@ -81,7 +80,7 @@ func NewManager(
 
 	narrowCache := narrowcache.NewConfig(kcfg,
 		narrowcache.ConfigMaps,
-		narrowcache.ClusterRoles,
+		narrowcache.ClusterRoleBindings,
 		narrowcache.Daemonsets,
 		narrowcache.Deployments,
 		narrowcache.HorizontalPodAutoscalers,
@@ -157,26 +156,47 @@ func NewManager(
 		return nil, fmt.Errorf("can't collect more cluster info: %w", err)
 	}
 
-	// Reserve the default operands namespace to prevent namespace-squatting:
-	// bundled CRBs grant permissions to SAs in this namespace, so it must exist to prevent an unprivileged user to create it.
-	if err := internalManager.Add(manager.RunnableFunc(func(ctx context.Context) error {
-		nsName := opcfg.DefaultOperandsNamespace
-		ns := &corev1.Namespace{}
-		if err := internalManager.GetClient().Get(ctx, types.NamespacedName{Name: nsName}, ns); err != nil {
-			if !apierrors.IsNotFound(err) {
-				return fmt.Errorf("can't check default operands namespace: %w", err)
-			}
-			log.Info("Reserving default operands namespace", "namespace", nsName)
-			return internalManager.GetClient().Create(ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: nsName}})
-		}
-		return nil
-	})); err != nil {
-		return nil, fmt.Errorf("can't register namespace reservation: %w", err)
-	}
-
 	return this, nil
 }
 
 func (m *Manager) GetClient() client.Client {
 	return m.Client
+}
+
+// StaticControllerEnqueuer creates a static enqueuer (implements enqueuer.Static), intended for tracking static resources with always-enabled watch
+type StaticControllerEnqueuer struct {
+	group string
+	ctrl  controller.Controller
+	nc    *narrowcache.Client
+}
+
+// NewStaticControllerEnqueuer creates a static enqueuer (implements enqueuer.Static), intended for tracking static resources with always-enabled watch
+func (m *Manager) NewStaticControllerEnqueuer(group string, ctrl controller.Controller) *StaticControllerEnqueuer {
+	return &StaticControllerEnqueuer{group: group, ctrl: ctrl, nc: m.Client.(*narrowcache.Client)}
+}
+
+func (c *StaticControllerEnqueuer) EnqueueOnChange(ctx context.Context, obj client.Object, req reconcile.Request) error {
+	return c.nc.SafeEnqueueRequestOnEvents(ctx, c.group, c.ctrl, obj, req, false)
+}
+
+// DynamicControllerEnqueuer creates a dynamic enqueuer (implements enqueuer.Dynamic),
+// intended for tracking dynamic resources, tracking the watch status (active/inactive)
+type DynamicControllerEnqueuer struct {
+	group string
+	ctrl  controller.Controller
+	nc    *narrowcache.Client
+}
+
+// NewDynamicControllerEnqueuer creates a dynamic enqueuer (implements enqueuer.Dynamic),
+// intended for tracking dynamic resources, tracking the watch status (active/inactive)
+func (m *Manager) NewDynamicControllerEnqueuer(group string, ctrl controller.Controller) *DynamicControllerEnqueuer {
+	return &DynamicControllerEnqueuer{group: group, ctrl: ctrl, nc: m.Client.(*narrowcache.Client)}
+}
+
+func (c *DynamicControllerEnqueuer) EnqueueOnChange(ctx context.Context, obj client.Object, req reconcile.Request) error {
+	return c.nc.SafeEnqueueRequestOnEvents(ctx, c.group, c.ctrl, obj, req, true)
+}
+
+func (c *DynamicControllerEnqueuer) ResetActiveWatches() {
+	c.nc.ResetActiveWatches(c.group)
 }

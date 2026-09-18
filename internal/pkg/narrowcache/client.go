@@ -15,6 +15,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/util/workqueue"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -24,10 +25,11 @@ import (
 
 type Client struct {
 	client.Client
-	liveClient     kubernetes.Interface
-	watchedGVKs    map[string]GVKInfo        // read only once init
-	watchedObjects map[string]*watchedObject // mutex'ed
-	wmut           sync.RWMutex              // for watchedObjects map
+	liveClient        kubernetes.Interface
+	watchedGVKs       map[string]GVKInfo        // read only once init
+	watchedObjects    map[string]*watchedObject // mutex'ed
+	wmut              sync.RWMutex              // for watchedObjects map
+	idempotentSources idempotentSources         // idempotentSources stores registered sources for idempotent enqueue requests
 }
 
 type watchedObject struct {
@@ -271,6 +273,28 @@ func (c *Client) GetSource(ctx context.Context, obj client.Object, h handler.Eve
 			return c.addHandler(ctx, key, handlerOnQueue{handler: h, queue: q})
 		},
 	}, nil
+}
+
+// EnqueueRequestOnEvents creates a Source from which the controller will enqueue reconcile requests upon change.
+// This function is NOT idempotent, it should be called at init, outside of any reconcile loop.
+// The variant SafeEnqueueRequestOnEvents can be called safely from a reconcile loop.
+func (c *Client) EnqueueRequestOnEvents(ctx context.Context, ctrl controller.Controller, obj client.Object, req reconcile.Request, predicate func(client.Object) bool) error {
+	s, err := c.GetSource(ctx, obj,
+		handler.EnqueueRequestsFromMapFunc(func(_ context.Context, o client.Object) []reconcile.Request {
+			if predicate != nil && predicate(o) {
+				return []reconcile.Request{req}
+			}
+			return nil
+		}),
+	)
+	if err != nil {
+		return fmt.Errorf("could not create narrowcache source for %s/%s/%s: %w", obj.GetObjectKind(), obj.GetNamespace(), obj.GetName(), err)
+	}
+	// Note that currently, watches are never removed (they can't - cf https://github.com/kubernetes-sigs/controller-runtime/issues/1884)
+	if err = ctrl.Watch(s); err != nil {
+		return fmt.Errorf("could not start narrowcache watch for %s/%s/%s: %w", obj.GetObjectKind(), obj.GetNamespace(), obj.GetName(), err)
+	}
+	return nil
 }
 
 func (c *Client) clearEntry(ctx context.Context, obj client.Object) {

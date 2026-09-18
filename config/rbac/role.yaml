@@ -217,6 +217,32 @@ rules:
   - watch
 - apiGroups:
   - rbac.authorization.k8s.io
+  resourceNames:
+  - netobserv-flowcollector-viewer-role
+  - netobserv-hostnetwork
+  - netobserv-informers
+  - netobserv-loki-writer
+  - netobserv-token-review
+  resources:
+  - clusterrolebindings
+  verbs:
+  - get
+  - update
+  - watch
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resourceNames:
+  - netobserv-flowcollector-viewer-role
+  - netobserv-hostnetwork
+  - netobserv-informers
+  - netobserv-loki-writer
+  - netobserv-token-review
+  resources:
+  - clusterroles
+  verbs:
+  - bind
+- apiGroups:
+  - rbac.authorization.k8s.io
   resources:
   - rolebindings
   verbs:

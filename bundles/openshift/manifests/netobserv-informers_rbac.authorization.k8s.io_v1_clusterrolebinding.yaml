@@ -7,13 +7,4 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: netobserv-informers
-subjects:
-- kind: ServiceAccount
-  name: flowlogs-pipeline
-  namespace: netobserv
-- kind: ServiceAccount
-  name: flowlogs-pipeline-transformer
-  namespace: netobserv
-- kind: ServiceAccount
-  name: flowlogs-pipeline-informers
-  namespace: netobserv
+subjects: []
