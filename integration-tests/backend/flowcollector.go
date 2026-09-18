@@ -228,31 +228,6 @@ func (flow Flowcollector) createRoleBindings() {
 		Namespace: netobservNS,
 	}
 
-	componentCRBs := []struct {
-		name        string
-		clusterRole string
-		sa          string
-	}{
-		{"netobserv-informers-flp-" + flow.Namespace, "netobserv-informers", "flowlogs-pipeline"},
-		{"netobserv-informers-flpinformers-" + flow.Namespace, "netobserv-informers", "flowlogs-pipeline-informers"},
-		{"netobserv-hostnetwork-flp-" + flow.Namespace, "netobserv-hostnetwork", "flowlogs-pipeline"},
-		{"netobserv-loki-writer-flp-" + flow.Namespace, "netobserv-loki-writer", "flowlogs-pipeline"},
-		{"netobserv-informers-flptransfo-" + flow.Namespace, "netobserv-informers", "flowlogs-pipeline-transformer"},
-		{"netobserv-loki-writer-flptransfo-" + flow.Namespace, "netobserv-loki-writer", "flowlogs-pipeline-transformer"},
-		{"netobserv-token-review-plugin-" + flow.Namespace, "netobserv-token-review", "netobserv-plugin"},
-	}
-	for _, crb := range componentCRBs {
-		_, err := k8sClient.RbacV1().ClusterRoleBindings().Create(context.Background(), &rbacv1.ClusterRoleBinding{
-			ObjectMeta: metav1.ObjectMeta{Name: crb.name},
-			RoleRef:    rbacv1.RoleRef{APIGroup: "rbac.authorization.k8s.io", Kind: "ClusterRole", Name: crb.clusterRole},
-			Subjects:   []rbacv1.Subject{{Kind: "ServiceAccount", Name: crb.sa, Namespace: flow.Namespace}},
-		}, metav1.CreateOptions{})
-		if apierrors.IsAlreadyExists(err) {
-			continue
-		}
-		o.Expect(err).NotTo(o.HaveOccurred())
-	}
-
 	privNS := flow.Namespace + "-privileged"
 	err := wait.PollUntilContextTimeout(context.Background(), 5*time.Second, 120*time.Second, false, func(ctx context.Context) (bool, error) {
 		_, nsErr := k8sClient.CoreV1().Namespaces().Get(ctx, privNS, metav1.GetOptions{})
