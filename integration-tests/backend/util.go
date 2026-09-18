@@ -1695,3 +1695,47 @@ func isWebhookTimeoutError(err error) bool {
 	return (strings.Contains(errMsg, "calling webhook") || strings.Contains(errMsg, "failed calling webhook")) &&
 		(strings.Contains(errMsg, "timeout") || strings.Contains(errMsg, "deadline exceeded"))
 }
+
+// ensureFRREnabled enables FRR via Network operator if not already enabled.
+// This deploys frr-k8s DaemonSet and enables route advertisements.
+func ensureFRREnabled() error {
+	networkOperator, err := getDynamicResource("network.operator", "cluster", "")
+	if err != nil {
+		return fmt.Errorf("failed to get network operator: %w", err)
+	}
+
+	// Check if FRR is already enabled
+	providers, found, err := unstructured.NestedStringSlice(networkOperator.Object, "spec", "additionalRoutingCapabilities", "providers")
+	if err != nil {
+		return fmt.Errorf("failed to get routing capabilities: %w", err)
+	}
+
+	frrEnabled := found && contain(providers, "FRR")
+	if !frrEnabled {
+		e2e.Logf("Enabling FRR via Network operator")
+		patch := `{"spec":{"additionalRoutingCapabilities":{"providers":["FRR"]},"defaultNetwork":{"ovnKubernetesConfig":{"routeAdvertisements":"Enabled"}}}}`
+		err = patchDynamicResource("network.operator", "cluster", "", types.MergePatchType, []byte(patch))
+		if err != nil {
+			return fmt.Errorf("failed to patch network operator: %w", err)
+		}
+	} else {
+		e2e.Logf("FRR already enabled, ensuring routeAdvertisements is enabled")
+		patch := `{"spec":{"defaultNetwork":{"ovnKubernetesConfig":{"routeAdvertisements":"Enabled"}}}}`
+		err = patchDynamicResource("network.operator", "cluster", "", types.MergePatchType, []byte(patch))
+		if err != nil {
+			return fmt.Errorf("failed to enable routeAdvertisements: %w", err)
+		}
+	}
+
+	// Wait for frr-k8s namespace to be created
+	err = Resource{"namespace", "openshift-frr-k8s", ""}.WaitForResourceToAppear()
+	if err != nil {
+		return fmt.Errorf("openshift-frr-k8s namespace not created: %w", err)
+	}
+
+	// Wait for frr-k8s DaemonSet to be ready
+	waitUntilDaemonSetReady("frr-k8s", "openshift-frr-k8s")
+
+	e2e.Logf("FRR enabled successfully")
+	return nil
+}

@@ -111,6 +111,10 @@ var gvrMap = map[string]schema.GroupVersionResource{
 	// User-defined networks (OVN)
 	"userdefinednetwork":        {Group: "k8s.ovn.org", Version: "v1", Resource: "userdefinednetworks"},
 	"clusteruserdefinednetwork": {Group: "k8s.ovn.org", Version: "v1", Resource: "clusteruserdefinednetworks"},
+	"network.config":            {Group: "config.openshift.io", Version: "v1", Resource: "networks"},
+
+	// FRR (MetalLB)
+	"frrconfiguration": {Group: "frrk8s.metallb.io", Version: "v1beta1", Resource: "frrconfigurations"},
 }
 
 func initK8sClient() error {

@@ -2387,6 +2387,7 @@ var _ = g.Describe("[sig-netobserv] Network_Observability", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(len(flowRecords)).Should(o.BeNumerically(">", 0), "expected number of Gateway Owner flows > 0")
 	})
+
 	g.It("Author:kapjain-Medium-88334-Pause Network Observability functions [Serial]", func() {
 		g.By("Create a FlowCollector")
 		flow := Flowcollector{
@@ -2757,6 +2758,86 @@ var _ = g.Describe("[sig-netobserv] Network_Observability", func() {
 		err = verifyMonolithicLokilogsTime(flow.MonolithicLokiURL, startTime)
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
-	//Add future NetObserv + Loki test-cases here
 
+	g.It("Author:aramesha-High-2783-BGP ASN enrichment [Serial][Disruptive]", func() {
+		g.By("Enable FRR via Network operator")
+		err := ensureFRREnabled()
+		o.Expect(err).NotTo(o.HaveOccurred(), "Failed to enable FRR")
+
+		g.By("Get pod CIDR from cluster network config")
+		networkConfig, err := getDynamicResource("network.config", "cluster", "")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		podCIDRSlice, found, err := unstructured.NestedSlice(networkConfig.Object, "status", "clusterNetwork")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(found).To(o.BeTrue(), "clusterNetwork should exist in status")
+		o.Expect(len(podCIDRSlice)).Should(o.BeNumerically(">", 0), "clusterNetwork should have at least one entry")
+
+		firstNetwork, ok := podCIDRSlice[0].(map[string]interface{})
+		o.Expect(ok).To(o.BeTrue(), "clusterNetwork[0] should be a map")
+		podCIDR, found, err := unstructured.NestedString(firstNetwork, "cidr")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(found).To(o.BeTrue(), "cidr should exist")
+		e2e.Logf("Pod CIDR: %s", podCIDR)
+
+		g.By("Create FRRConfiguration with pod CIDR prefix")
+		defer deleteResource("frrconfiguration", "test-asn-enrichment", "openshift-frr-k8s")
+		frrTemplate := filePath.Join(baseDir, "frrconfiguration_template.yaml")
+		frrPrefixes := fmt.Sprintf(`["%s", "10.100.0.0/16"]`, podCIDR)
+		err = applyResourceFromTemplateByAdmin(
+			"-f", frrTemplate,
+			"-p", "FRR_NAME=test-asn-enrichment",
+			"-p", "FRR_NAMESPACE=openshift-frr-k8s",
+			"-p", "ASN=65001",
+			"-p", fmt.Sprintf("PREFIXES=%s", frrPrefixes),
+		)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("Deploy nginx server and client pods")
+		startTime := time.Now()
+
+		serverTemplate := filePath.Join(baseDir, "test-nginx-server_template.yaml")
+		testServer := TestServerTemplate{
+			ServerNS: "asn-test-server",
+			Template: serverTemplate,
+		}
+		defer deleteNamespace(testServer.ServerNS)
+		err = testServer.createServer()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		assertAllPodsToBeReady(testServer.ServerNS)
+
+		clientTemplate := filePath.Join(baseDir, "test-nginx-client_template.yaml")
+		testClient := TestClientTemplate{
+			ServerNS: testServer.ServerNS,
+			ClientNS: "asn-test-client",
+			Template: clientTemplate,
+		}
+		defer deleteNamespace(testClient.ClientNS)
+		err = testClient.createClient()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		assertAllPodsToBeReady(testClient.ClientNS)
+
+		g.By("Deploy FlowCollector with BGP enabled")
+		flow := Flowcollector{
+			Namespace:         namespace,
+			Template:          flowFixturePath,
+			BgpEnrichment:     "true",
+			MonolithicLokiURL: fmt.Sprintf("http://loki.%s.svc:3100/", namespace),
+		}
+		defer func() { _ = flow.DeleteFlowcollector() }()
+		flow.CreateFlowcollector()
+
+		g.By("Wait for flow logs with ASN enrichment")
+		time.Sleep(120 * time.Second)
+
+		lokilabels := Lokilabels{
+			App:             "netobserv-flowcollector",
+			SrcK8SNamespace: testServer.ServerNS,
+			DstK8SNamespace: testClient.ClientNS,
+		}
+		lokiParams := []string{"SrcASN=\"65001\"", "DstASN=\"65001\""}
+		flowRecords, err := lokilabels.GetMonolithicLokiFlowLogs(flow.MonolithicLokiURL, startTime, lokiParams...)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(len(flowRecords)).Should(o.BeNumerically(">", 0), "expected BGP flowRecords > 0")
+	})
+	//Add future NetObserv + Loki test-cases here
 })

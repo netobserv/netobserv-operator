@@ -1,0 +1,30 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: frrconfiguration-template
+objects:
+  - apiVersion: frrk8s.metallb.io/v1beta1
+    kind: FRRConfiguration
+    metadata:
+      name: ${FRR_NAME}
+      namespace: ${FRR_NAMESPACE}
+    spec:
+      bgp:
+        routers:
+          - asn: ${{ASN}}
+            prefixes: "${{PREFIXES}}"
+            neighbors:
+              - address: "192.168.1.1"
+                asn: 64512
+                toAdvertise:
+                  allowed:
+                    prefixes: "${{PREFIXES}}"
+parameters:
+  - name: FRR_NAME
+    value: "test-asn-enrichment"
+  - name: FRR_NAMESPACE
+    value: "openshift-frr-k8s"
+  - name: ASN
+    value: "65001"
+  - name: PREFIXES
+    value: '["10.128.0.0/14", "10.100.0.0/16"]'

@@ -36,6 +36,7 @@ objects:
           enabled: true
         multiClusterDeployment: "${{MultiClusterDeployment}}"
         addZone: "${{AddZone}}"
+        bgpEnrichment: "${{BgpEnrichment}}"
         service:
           providedCertificates:
             caFile:
@@ -138,6 +139,9 @@ parameters:
   - name: MultiClusterDeployment
     value: "false"
   - name: AddZone
+    value: "false"
+  - name: BgpEnrichment
+    description: "Enable BGP ASN enrichment from FRRConfiguration CRDs"
     value: "false"
   - name: LogType
     value: "Flows"

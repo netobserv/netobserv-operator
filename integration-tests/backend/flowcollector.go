@@ -23,6 +23,7 @@ type Flowcollector struct {
 	ProcessorKind                     string
 	MultiClusterDeployment            string
 	AddZone                           string
+	BgpEnrichment                     string
 	LogType                           string
 	FLPFilters                        string
 	DeploymentModel                   string
@@ -112,6 +113,9 @@ type Flowlog struct {
 	// Zone
 	SrcK8SZone string `json:"SrcK8S_Zone,omitempty"`
 	DstK8SZone string `json:"DstK8S_Zone,omitempty"`
+	// BGP ASN
+	SrcASN string `json:"SrcASN,omitempty"`
+	DstASN string `json:"DstASN,omitempty"`
 	// DNS
 	DNSLatencyMs         int    `json:"DnsLatencyMs,omitempty"`
 	DNSFlagsResponseCode string `json:"DnsFlagsResponseCode,omitempty"`
