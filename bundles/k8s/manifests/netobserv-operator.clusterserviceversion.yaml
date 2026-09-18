@@ -1011,10 +1011,6 @@ spec:
                   value: quay.io/netobserv/flowlogs-pipeline:v1.12.0-community
                 - name: RELATED_IMAGE_WEB_CONSOLE
                   value: quay.io/netobserv/network-observability-console-plugin:v1.12.0-community
-                - name: RELATED_IMAGE_WEB_CONSOLE_PF4
-                  value: quay.io/netobserv/network-observability-console-plugin:v1.12.0-community-pf4
-                - name: RELATED_IMAGE_WEB_CONSOLE_PF5
-                  value: quay.io/netobserv/network-observability-console-plugin:v1.12.0-community-pf5
                 - name: RELATED_IMAGE_DEMO_LOKI
                   value: grafana/loki:3.5.0
                 - name: STATIC_PLUGIN_CPU_REQUEST
@@ -1163,10 +1159,6 @@ spec:
     name: flowlogs-pipeline
   - image: quay.io/netobserv/network-observability-console-plugin:v1.12.0-community
     name: web-console
-  - image: quay.io/netobserv/network-observability-console-plugin:v1.12.0-community-pf4
-    name: web-console-pf4
-  - image: quay.io/netobserv/network-observability-console-plugin:v1.12.0-community-pf5
-    name: web-console-pf5
   - image: grafana/loki:3.5.0
     name: demo-loki
   version: 1.12.0-community

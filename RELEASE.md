@@ -28,7 +28,11 @@ The release script should be triggered (check github actions). It will automatic
 
 ### Draft release - operator
 
-We can then proceed with the operator. Edit the [Makefile](./Makefile) to update `BUNDLE_VERSION`.
+We can then proceed with the operator.
+
+Edit the [Makefile](./Makefile) to update the default `BUNDLE_VERSION`.
+
+Then:
 
 ```bash
 BUNDLE_SET_DATE=true make update-bundle
@@ -43,6 +47,8 @@ git commit -a -m "Prepare release $vv"
 git push upstream HEAD:$test_branch
 git tag -a "$version" -m "$version"
 git push upstream --tags
+
+VERSION=$version PIN_DIGEST=true make helm-update
 ```
 
 The release script should be triggered ([check github actions](https://github.com/netobserv/netobserv-operator/actions)).

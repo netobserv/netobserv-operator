@@ -112,6 +112,48 @@ endif
 
 DATE=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 
+# When PIN_DIGEST is true, store all digests in variables, and export them to avoid
+# duplicate image inspections on nested make calls
+# Pinning assumes quay.io/netobserv images; currently not supported for fork builds (contributions are welcome)
+ifeq ("$(PIN_DIGEST)", "true")
+ifndef OPERATOR_DIGEST
+# would fail with podman, not supported so far (podman needs pull before running inspect) ; support can be added if needed, or through skopeo
+# podman pull $image && podman inspect $image --format '{{.Digest}}'
+OPERATOR_DIGEST := $(shell docker buildx imagetools inspect quay.io/netobserv/network-observability-operator:$(VERSION) --format '{{json .Manifest.Digest}}' | tr -d '"')
+endif
+$(info Pinning operator: $(VERSION) => $(OPERATOR_DIGEST))
+ifndef BPF_DIGEST
+BPF_DIGEST := $(shell docker buildx imagetools inspect quay.io/netobserv/netobserv-ebpf-agent:$(BPF_VERSION) --format '{{json .Manifest.Digest}}' | tr -d '"')
+endif
+$(info Pinning eBPF Agent: $(BPF_VERSION) => $(BPF_DIGEST))
+ifndef FLP_DIGEST
+FLP_DIGEST := $(shell docker buildx imagetools inspect quay.io/netobserv/flowlogs-pipeline:$(FLP_VERSION) --format '{{json .Manifest.Digest}}' | tr -d '"')
+endif
+$(info Pinning FLP: $(FLP_VERSION) => $(FLP_DIGEST))
+ifndef PLG_DIGEST
+PLG_DIGEST := $(shell docker buildx imagetools inspect quay.io/netobserv/network-observability-console-plugin:$(PLG_VERSION) --format '{{json .Manifest.Digest}}' | tr -d '"')
+endif
+$(info Pinning console plugin: $(PLG_VERSION) => $(PLG_DIGEST))
+ifndef SWC_DIGEST
+SWC_DIGEST := $(shell docker buildx imagetools inspect quay.io/netobserv/network-observability-standalone-frontend:$(PLG_VERSION) --format '{{json .Manifest.Digest}}' | tr -d '"')
+endif
+$(info Pinning standalone web console: $(PLG_VERSION) => $(SWC_DIGEST))
+
+# Only get pf4/5 digests for OpenShift bundles
+ifeq ("$(BUNDLE_TARGET)", "OpenShift")
+ifndef PLG_DIGEST_PF4
+PLG_DIGEST_PF4 := $(shell docker buildx imagetools inspect quay.io/netobserv/network-observability-console-plugin:$(PLG_VERSION)-pf4 --format '{{json .Manifest.Digest}}' | tr -d '"')
+endif
+$(info Pinning console plugin (pf4): $(PLG_VERSION)-pf4 => $(PLG_DIGEST_PF4))
+ifndef PLG_DIGEST_PF5
+PLG_DIGEST_PF5 := $(shell docker buildx imagetools inspect quay.io/netobserv/network-observability-console-plugin:$(PLG_VERSION)-pf5 --format '{{json .Manifest.Digest}}' | tr -d '"')
+endif
+$(info Pinning console plugin (pf5): $(PLG_VERSION)-pf5 => $(PLG_DIGEST_PF5))
+endif
+
+export OPERATOR_DIGEST BPF_DIGEST FLP_DIGEST PLG_DIGEST PLG_DIGEST_PF4 PLG_DIGEST_PF5 SWC_DIGEST
+endif
+
 # Setting SHELL to bash allows bash commands to be executed by recipes.
 # This is a requirement for 'setup-envtest.sh' in the test target.
 # Options are set to exit when a recipe line exits non-zero or a piped command fails.
@@ -406,34 +448,23 @@ uninstall: kustomize ## Uninstall CRDs from the K8s cluster specified in ~/.kube
 
 set-manager-images: kustomize ## Update image references
 ifeq ("$(PIN_DIGEST)", "true")
-# would fail with podman, not supported so far (podman needs pull before running inspect) ; support can be added if needed
-# podman pull $image && podman inspect $image --format '{{.Digest}}'
-	@operator_digest=$$(docker buildx imagetools inspect ${IMAGE} --format '{{json .Manifest.Digest}}' | tr -d '"') ; \
-	echo "Pinning operator: $$operator_digest" ; \
-	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMAGE_TAG_BASE)@$$operator_digest
-
-	@bpf_digest=$$(docker buildx imagetools inspect quay.io/netobserv/netobserv-ebpf-agent:$(BPF_VERSION) --format '{{json .Manifest.Digest}}' | tr -d '"') ; \
-	echo "Pinning eBPF agent: $$bpf_digest" ; \
-	flp_digest=$$(docker buildx imagetools inspect quay.io/netobserv/flowlogs-pipeline:$(FLP_VERSION) --format '{{json .Manifest.Digest}}' | tr -d '"') ; \
-	echo "Pinning FLP: $$flp_digest" ; \
-	plg_digest=$$(docker buildx imagetools inspect quay.io/netobserv/network-observability-console-plugin:$(PLG_VERSION) --format '{{json .Manifest.Digest}}' | tr -d '"') ; \
-	echo "Pinning web console: $$plg_digest" ; \
-	plg_pf5_digest=$$(docker buildx imagetools inspect quay.io/netobserv/network-observability-console-plugin:$(PLG_VERSION)-pf5 --format '{{json .Manifest.Digest}}' | tr -d '"') ; \
-	echo "Pinning web console (pf5): $$plg_pf5_digest" ; \
-	plg_pf4_digest=$$(docker buildx imagetools inspect quay.io/netobserv/network-observability-console-plugin:$(PLG_VERSION)-pf4 --format '{{json .Manifest.Digest}}' | tr -d '"') ; \
-	echo "Pinning web console (pf4): $$plg_pf4_digest" ; \
-	$(SED) -i -E "/RELATED_IMAGE_EBPF_AGENT$$/{ n; s~value:.+$$~value: quay.io/netobserv/netobserv-ebpf-agent@$$bpf_digest~}" ./config/manager/manager.yaml ; \
-	$(SED) -i -E "/RELATED_IMAGE_FLOWLOGS_PIPELINE$$/{ n; s~value:.+$$~value: quay.io/netobserv/flowlogs-pipeline@$$flp_digest~}" ./config/manager/manager.yaml ; \
-	$(SED) -i -E "/RELATED_IMAGE_WEB_CONSOLE$$/{ n; s~value:.+$$~value: quay.io/netobserv/network-observability-console-plugin@$$plg_digest~}" ./config/manager/manager.yaml ; \
-	$(SED) -i -E "/RELATED_IMAGE_WEB_CONSOLE_PF4$$/{ n; s~value:.+$$~value: quay.io/netobserv/network-observability-console-plugin@$$plg_pf4_digest~}" ./config/manager/manager.yaml ; \
-	$(SED) -i -E "/RELATED_IMAGE_WEB_CONSOLE_PF5$$/{ n; s~value:.+$$~value: quay.io/netobserv/network-observability-console-plugin@$$plg_pf5_digest~}" ./config/manager/manager.yaml
+	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMAGE_TAG_BASE)@$(OPERATOR_DIGEST)
+	$(SED) -i -E "/RELATED_IMAGE_EBPF_AGENT$$/{ n; s~value:.+$$~value: quay.io/netobserv/netobserv-ebpf-agent@$(BPF_DIGEST)~}" ./config/manager/manager.yaml
+	$(SED) -i -E "/RELATED_IMAGE_FLOWLOGS_PIPELINE$$/{ n; s~value:.+$$~value: quay.io/netobserv/flowlogs-pipeline@$(FLP_DIGEST)~}" ./config/manager/manager.yaml
+	$(SED) -i -E "/RELATED_IMAGE_WEB_CONSOLE$$/{ n; s~value:.+$$~value: quay.io/netobserv/network-observability-console-plugin@$(PLG_DIGEST)~}" ./config/manager/manager.yaml
+ifeq ("$(BUNDLE_TARGET)", "OpenShift")
+	$(SED) -i -E "/RELATED_IMAGE_WEB_CONSOLE_PF4$$/{ n; s~value:.+$$~value: quay.io/netobserv/network-observability-console-plugin@$(PLG_DIGEST_PF4)~}" ./config/openshift/common/manager-patch.yaml
+	$(SED) -i -E "/RELATED_IMAGE_WEB_CONSOLE_PF5$$/{ n; s~value:.+$$~value: quay.io/netobserv/network-observability-console-plugin@$(PLG_DIGEST_PF5)~}" ./config/openshift/common/manager-patch.yaml
+endif
 else
 	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMAGE}
 	$(SED) -i -E '/RELATED_IMAGE_EBPF_AGENT$$/{ n; s~value:.+$$~value: quay.io/netobserv/netobserv-ebpf-agent:$(BPF_VERSION)~}' ./config/manager/manager.yaml
 	$(SED) -i -E '/RELATED_IMAGE_FLOWLOGS_PIPELINE$$/{ n; s~value:.+$$~value: quay.io/netobserv/flowlogs-pipeline:$(FLP_VERSION)~}' ./config/manager/manager.yaml
 	$(SED) -i -E '/RELATED_IMAGE_WEB_CONSOLE$$/{ n; s~value:.+$$~value: quay.io/netobserv/network-observability-console-plugin:$(PLG_VERSION)~}' ./config/manager/manager.yaml
-	$(SED) -i -E '/RELATED_IMAGE_WEB_CONSOLE_PF4$$/{ n; s~value:.+$$~value: quay.io/netobserv/network-observability-console-plugin:$(PLG_VERSION)-pf4~}' ./config/manager/manager.yaml
-	$(SED) -i -E '/RELATED_IMAGE_WEB_CONSOLE_PF5$$/{ n; s~value:.+$$~value: quay.io/netobserv/network-observability-console-plugin:$(PLG_VERSION)-pf5~}' ./config/manager/manager.yaml
+ifeq ("$(BUNDLE_TARGET)", "OpenShift")
+	$(SED) -i -E '/RELATED_IMAGE_WEB_CONSOLE_PF4$$/{ n; s~value:.+$$~value: quay.io/netobserv/network-observability-console-plugin:$(PLG_VERSION)-pf4~}' ./config/openshift/common/manager-patch.yaml
+	$(SED) -i -E '/RELATED_IMAGE_WEB_CONSOLE_PF5$$/{ n; s~value:.+$$~value: quay.io/netobserv/network-observability-console-plugin:$(PLG_VERSION)-pf5~}' ./config/openshift/common/manager-patch.yaml
+endif
 endif
 
 deploy: BPF_VERSION=main
@@ -574,11 +605,31 @@ related-release-notes: ## Grab release notes for related components (to be inser
 helm-update: YQ ## Update helm template
 	$(SED) -i -E 's/^appVersion:.*/appVersion: $(BUNDLE_VERSION)/g' helm/Chart.yaml
 	$(SED) -i -E 's/^version:.*/version: $(BUNDLE_VERSION:%-community=%)/g' helm/Chart.yaml
+ifeq ("$(PIN_DIGEST)", "true")
+# Configure digests and remove tag-based config
+	$(YQ) -i '.ebpfAgent.digest="$(BPF_DIGEST)"' helm/values.yaml
+	$(YQ) -i '.flowlogsPipeline.digest="$(FLP_DIGEST)"' helm/values.yaml
+	$(YQ) -i '.consolePlugin.digest="$(PLG_DIGEST)"' helm/values.yaml
+	$(YQ) -i '.standaloneConsole.digest="$(SWC_DIGEST)"' helm/values.yaml
+	$(YQ) -i '.operator.digest="$(OPERATOR_DIGEST)"' helm/values.yaml
+	$(YQ) -i 'del(.ebpfAgent.version)' helm/values.yaml
+	$(YQ) -i 'del(.flowlogsPipeline.version)' helm/values.yaml
+	$(YQ) -i 'del(.consolePlugin.version)' helm/values.yaml
+	$(YQ) -i 'del(.standaloneConsole.version)' helm/values.yaml
+	$(YQ) -i 'del(.operator.version)' helm/values.yaml
+else
+# Configure tags and remove digest-based config
 	$(YQ) -i '.ebpfAgent.version="v$(BUNDLE_VERSION)"' helm/values.yaml
 	$(YQ) -i '.flowlogsPipeline.version="v$(BUNDLE_VERSION)"' helm/values.yaml
 	$(YQ) -i '.consolePlugin.version="v$(BUNDLE_VERSION)"' helm/values.yaml
 	$(YQ) -i '.standaloneConsole.version="v$(BUNDLE_VERSION)"' helm/values.yaml
 	$(YQ) -i '.operator.version="$(BUNDLE_VERSION)"' helm/values.yaml
+	$(YQ) -i 'del(.ebpfAgent.digest)' helm/values.yaml
+	$(YQ) -i 'del(.flowlogsPipeline.digest)' helm/values.yaml
+	$(YQ) -i 'del(.consolePlugin.digest)' helm/values.yaml
+	$(YQ) -i 'del(.standaloneConsole.digest)' helm/values.yaml
+	$(YQ) -i 'del(.operator.digest)' helm/values.yaml
+endif
 	hack/helm-update.sh
 	cp LICENSE helm/
 

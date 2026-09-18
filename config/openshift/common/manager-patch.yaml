@@ -36,3 +36,15 @@
   value:
     name: VENDOR
     value: OpenShift_Downstream
+
+- op: add
+  path: "/spec/template/spec/containers/0/env/-"
+  value:
+    name: RELATED_IMAGE_WEB_CONSOLE_PF5
+    value: quay.io/netobserv/network-observability-console-plugin:v1.12.0-community-pf5
+
+- op: add
+  path: "/spec/template/spec/containers/0/env/-"
+  value:
+    name: RELATED_IMAGE_WEB_CONSOLE_PF4
+    value: quay.io/netobserv/network-observability-console-plugin:v1.12.0-community-pf4

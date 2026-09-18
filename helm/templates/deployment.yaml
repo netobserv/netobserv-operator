@@ -22,76 +22,96 @@ spec:
         control-plane: controller-manager
     spec:
       containers:
-        - args:
-            - --health-probe-bind-address=:8081
-            - --metrics-bind-address=:8443
-            - --leader-elect
-            - --metrics-cert-file=/etc/tls/private/tls.crt
-            - --metrics-cert-key-file=/etc/tls/private/tls.key
-          command:
-            - /manager
-          env:
-            - name: RELATED_IMAGE_EBPF_AGENT
-              value: '{{ .Values.ebpfAgent.image }}:{{ .Values.ebpfAgent.version }}'
-            - name: RELATED_IMAGE_FLOWLOGS_PIPELINE
-              value: '{{ .Values.flowlogsPipeline.image }}:{{ .Values.flowlogsPipeline.version }}'
-            - name: RELATED_IMAGE_WEB_CONSOLE
-              value: '{{ if .Values.standaloneConsole.enable }}{{ .Values.standaloneConsole.image }}:{{ .Values.standaloneConsole.version }}{{ else }}{{ .Values.consolePlugin.image }}:{{ .Values.consolePlugin.version }}{{ end }}'
-            - name: RELATED_IMAGE_DEMO_LOKI
-              value: grafana/loki:3.5.0
-            - name: NAMESPACE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.namespace
-            - name: OPERATOR_NETWORK_POLICY
-              value: '{{ .Values.operator.installNetworkPolicy }}'
-          image: '{{ .Values.operator.image }}:{{ .Values.operator.version }}'
-          imagePullPolicy: Always
-          # Suspends liveness/readiness until /healthz is up, so startup API discovery can block
-          # for several minutes during a control-plane rollout (APIServer TLS profile change)
-          # without the container being killed. Budget must stay >= startupAPIDiscoveryBackoff.
-          startupProbe:
-            httpGet:
-              path: /healthz
-              port: 8081
-            periodSeconds: 10
-            failureThreshold: 30
-          livenessProbe:
-            httpGet:
-              path: /healthz
-              port: 8081
-            initialDelaySeconds: 15
-            periodSeconds: 20
-          name: manager
-          ports:
-            - containerPort: 9443
-              name: webhook-server
-              protocol: TCP
-          readinessProbe:
-            httpGet:
-              path: /readyz
-              port: 8081
-            initialDelaySeconds: 5
-            periodSeconds: 10
-          resources:
-            limits:
-              memory: 400Mi
-            requests:
-              cpu: 100m
-              memory: 100Mi
-          securityContext:
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop:
-                - ALL
-            readOnlyRootFilesystem: true
-          volumeMounts:
-            - mountPath: /tmp/k8s-webhook-server/serving-certs
-              name: cert
-              readOnly: true
-            - mountPath: /etc/tls/private
-              name: manager-metric-tls
-              readOnly: true
+      - command:
+        - /manager
+        args:
+        - --health-probe-bind-address=:8081
+        - --metrics-bind-address=:8443
+        - --leader-elect
+        - --metrics-cert-file=/etc/tls/private/tls.crt
+        - --metrics-cert-key-file=/etc/tls/private/tls.key
+        env:
+          - name: RELATED_IMAGE_EBPF_AGENT
+{{- if .Values.ebpfAgent.digest }}
+            value: '{{ .Values.ebpfAgent.image }}@{{ .Values.ebpfAgent.digest }}'
+{{- else }}
+            value: '{{ .Values.ebpfAgent.image }}:{{ .Values.ebpfAgent.version }}'
+{{- end }}
+          - name: RELATED_IMAGE_FLOWLOGS_PIPELINE
+{{- if .Values.flowlogsPipeline.digest }}
+            value: '{{ .Values.flowlogsPipeline.image }}@{{ .Values.flowlogsPipeline.digest }}'
+{{- else }}
+            value: '{{ .Values.flowlogsPipeline.image }}:{{ .Values.flowlogsPipeline.version }}'
+{{- end }}
+          - name: RELATED_IMAGE_WEB_CONSOLE
+{{- if .Values.standaloneConsole.enable }}
+  {{- if .Values.standaloneConsole.digest }}
+            value: '{{ .Values.standaloneConsole.image }}@{{ .Values.standaloneConsole.digest }}'
+  {{- else }}
+            value: '{{ .Values.standaloneConsole.image }}:{{ .Values.standaloneConsole.version }}'
+  {{- end }}
+{{- else }}
+  {{- if .Values.consolePlugin.digest }}
+            value: '{{ .Values.consolePlugin.image }}@{{ .Values.consolePlugin.digest }}'
+  {{- else }}
+            value: '{{ .Values.consolePlugin.image }}:{{ .Values.consolePlugin.version }}'
+  {{- end }}
+{{- end }}
+          - name: NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: OPERATOR_NETWORK_POLICY
+            value: '{{ .Values.operator.installNetworkPolicy }}'
+{{- if .Values.operator.digest }}
+        image: '{{ .Values.operator.image }}@{{ .Values.operator.digest }}'
+{{- else }}
+        image: '{{ .Values.operator.image }}:{{ .Values.operator.version }}'
+{{- end }}
+        name: manager
+        imagePullPolicy: Always
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+          readOnlyRootFilesystem: true
+        startupProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          periodSeconds: 10
+          failureThreshold: 30
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        ports:
+          - containerPort: 9443
+            name: webhook-server
+            protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          limits:
+            memory: 400Mi
+          requests:
+            cpu: 100m
+            memory: 100Mi
+        terminationMessagePolicy: FallbackToLogsOnError
+        volumeMounts:
+          - mountPath: /tmp/k8s-webhook-server/serving-certs
+            name: cert
+            readOnly: true
+          - mountPath: /etc/tls/private
+            name: manager-metric-tls
+            readOnly: true
       securityContext:
         runAsNonRoot: true
       serviceAccountName: netobserv-controller-manager
