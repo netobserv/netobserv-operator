@@ -228,31 +228,6 @@ func (flow Flowcollector) createRoleBindings() {
 		Namespace: netobservNS,
 	}
 
-	componentCRBs := []struct {
-		name        string
-		clusterRole string
-		sa          string
-	}{
-		{"netobserv-informers-flp-" + flow.Namespace, "netobserv-informers", "flowlogs-pipeline"},
-		{"netobserv-informers-flpinformers-" + flow.Namespace, "netobserv-informers", "flowlogs-pipeline-informers"},
-		{"netobserv-hostnetwork-flp-" + flow.Namespace, "netobserv-hostnetwork", "flowlogs-pipeline"},
-		{"netobserv-loki-writer-flp-" + flow.Namespace, "netobserv-loki-writer", "flowlogs-pipeline"},
-		{"netobserv-informers-flptransfo-" + flow.Namespace, "netobserv-informers", "flowlogs-pipeline-transformer"},
-		{"netobserv-loki-writer-flptransfo-" + flow.Namespace, "netobserv-loki-writer", "flowlogs-pipeline-transformer"},
-		{"netobserv-token-review-plugin-" + flow.Namespace, "netobserv-token-review", "netobserv-plugin"},
-	}
-	for _, crb := range componentCRBs {
-		_, err := k8sClient.RbacV1().ClusterRoleBindings().Create(context.Background(), &rbacv1.ClusterRoleBinding{
-			ObjectMeta: metav1.ObjectMeta{Name: crb.name},
-			RoleRef:    rbacv1.RoleRef{APIGroup: "rbac.authorization.k8s.io", Kind: "ClusterRole", Name: crb.clusterRole},
-			Subjects:   []rbacv1.Subject{{Kind: "ServiceAccount", Name: crb.sa, Namespace: flow.Namespace}},
-		}, metav1.CreateOptions{})
-		if apierrors.IsAlreadyExists(err) {
-			continue
-		}
-		o.Expect(err).NotTo(o.HaveOccurred())
-	}
-
 	privNS := flow.Namespace + "-privileged"
 	err := wait.PollUntilContextTimeout(context.Background(), 5*time.Second, 120*time.Second, false, func(ctx context.Context) (bool, error) {
 		_, nsErr := k8sClient.CoreV1().Namespaces().Get(ctx, privNS, metav1.GetOptions{})
@@ -308,14 +283,44 @@ func (flow Flowcollector) createRoleBindings() {
 	}
 }
 
+// operandClusterRoleBindings must stay in sync with internal/pkg/roles.OperandClusterRoleBindings
+// in the operator repo.
+var operandClusterRoleBindings = []string{
+	"netobserv-loki-writer",
+	"netobserv-informers",
+	"netobserv-hostnetwork",
+	"netobserv-token-review",
+	"netobserv-flowcollector-viewer-role",
+}
+
 // delete flowcollector CRD from a cluster and wait for privileged namespace to be fully removed
 func (flow *Flowcollector) DeleteFlowcollector() error {
 	err := deleteDynamicResource("flowcollector", "cluster", "")
 	if err != nil {
 		return err
 	}
+	if err := (Resource{"flowcollector", "cluster", ""}).WaitUntilResourceIsGone(); err != nil {
+		return err
+	}
+
 	privNS := flow.Namespace + "-privileged"
-	return Resource{"namespace", privNS, ""}.WaitUntilResourceIsGone()
+	if err := (Resource{"namespace", privNS, ""}).WaitUntilResourceIsGone(); err != nil {
+		return err
+	}
+
+	assertOperandCRBSubjectsEmpty()
+	return nil
+}
+
+func assertOperandCRBSubjectsEmpty() {
+	for _, name := range operandClusterRoleBindings {
+		crb, err := k8sClient.RbacV1().ClusterRoleBindings().Get(context.Background(), name, metav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			continue
+		}
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(crb.Subjects).To(o.BeEmpty(), "ClusterRoleBinding %s still has subjects after FlowCollector deletion", name)
+	}
 }
 
 func (flow *Flowcollector) WaitForFlowcollectorReady() {
