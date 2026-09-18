@@ -62,7 +62,17 @@ jobs:
           MULTIARCH_TARGETS="${{ env.WF_MULTIARCH_TARGETS }}" IMAGE_ORG=${{ env.WF_ORG }} IMAGE=${{ env.WF_REGISTRY }}/${{ env.WF_IMAGE }}:${{ env.tag }} make manifest-build manifest-push
 
       - name: build bundle
-        run: IMAGE_ORG=${{ env.WF_ORG }} BUNDLE_VERSION=${{ env.tag }} CLEAN_BUILD=1 make bundle-build
+        run: |
+          operator_digest=$(docker buildx imagetools inspect ${{ env.WF_REGISTRY }}/${{ env.WF_IMAGE }}:${{ env.tag }} \
+            --format '{{json .Manifest.Digest}}' | tr -d '"')
+          IMAGE=${{ env.WF_REGISTRY }}/${{ env.WF_IMAGE }}@$operator_digest \
+            IMAGE_ORG=${{ env.WF_ORG }} \
+            VERSION=${{ env.tag }} \
+            BUNDLE_VERSION=${{ env.tag }} \
+            BUNDLE_TARGET=OpenShift \
+            CLEAN_BUILD=1 \
+            PIN_DIGEST=true \
+            make bundle-nogen bundle-build
 
       - name: push bundle to quay.io
         run: IMAGE_ORG=${{ env.WF_ORG }} BUNDLE_VERSION=${{ env.tag }} make bundle-push
