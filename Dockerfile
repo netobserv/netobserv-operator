@@ -5,6 +5,8 @@ FROM docker.io/library/golang:1.26 AS builder
 
 ARG TARGETARCH=amd64
 ARG LDFLAGS
+# Bound concurrent compiler processes on memory-constrained CI builders.
+ARG GO_BUILD_PARALLELISM=2
 
 WORKDIR /opt/app-root
 
@@ -18,7 +20,7 @@ COPY internal/ internal/
 COPY config/crd/bases config/crd/bases
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=$TARGETARCH GO111MODULE=on go build -ldflags "$LDFLAGS" -mod vendor -a -o manager main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=$TARGETARCH GO111MODULE=on go build -p "$GO_BUILD_PARALLELISM" -ldflags "$LDFLAGS" -mod vendor -a -o manager main.go
 
 # Create final image from minimal + built binary
 FROM --platform=linux/$TARGETARCH registry.access.redhat.com/ubi9/ubi-minimal:1790074409

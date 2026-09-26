@@ -91,3 +91,9 @@ prometheus:
 loki-stack:
   promtail:
     enabled: false
+# Go CLI image supporting headless capture and artifact serving.
+netobservCLI:
+  image: quay.io/rh-ee-kapjain/network-observability-cli
+  # Tested development build; use an architecture-compatible image for your cluster.
+  digest: sha256:e726e5452ceffecacbf1ed38351f2ae3d0088671e832d12401ea8040c2bcdda0
+  version: main

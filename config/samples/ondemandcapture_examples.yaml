@@ -1,0 +1,84 @@
+---
+# Example 1: Flow capture
+apiVersion: netobserv.io/v1beta1
+kind: OnDemandCapture
+metadata:
+  name: capture-flows-example
+  namespace: openshift-netobserv-operator # Replace with your operator namespace
+spec:
+  captureType: flows
+  interfaces:
+    - eth0
+  duration: 5m
+  maxBytes: 50000000
+  flowConfig:
+    enableDNS: true
+    enableRTT: false
+    enablePacketDrops: false
+    sampling: 1
+  resources:
+    limits:
+      memory: "800Mi"
+      cpu: "1000m"
+    requests:
+      memory: "256Mi"
+      cpu: "500m"
+
+---
+# Example 2: Packet capture
+apiVersion: netobserv.io/v1beta1
+kind: OnDemandCapture
+metadata:
+  name: capture-packets-example
+  namespace: openshift-netobserv-operator # Replace with your operator namespace
+spec:
+  captureType: packets
+  interfaces:
+    - eth0
+  duration: 2m
+  maxBytes: 100000000
+  packetConfig:
+    protocol: "TCP"
+    port: 80
+  resources:
+    limits:
+      memory: "800Mi"
+      cpu: "1000m"
+
+---
+# Example 3: Metrics capture (OpenShift only)
+apiVersion: netobserv.io/v1beta1
+kind: OnDemandCapture
+metadata:
+  name: capture-metrics-example
+  namespace: openshift-netobserv-operator # Replace with your operator namespace
+spec:
+  captureType: metrics
+  duration: 10m
+  metricsConfig:
+    enablePacketDrops: true
+    enableDNS: true
+    enableRTT: true
+  resources:
+    limits:
+      memory: "800Mi"
+      cpu: "1000m"
+
+---
+# Example 4: Flow capture on selected nodes only
+apiVersion: netobserv.io/v1beta1
+kind: OnDemandCapture
+metadata:
+  name: capture-flows-selective
+  namespace: openshift-netobserv-operator # Replace with your operator namespace
+spec:
+  captureType: flows
+  interfaces:
+    - eth0
+  duration: 5m
+  nodeSelector:
+    kubernetes.io/os: linux
+    node-role.kubernetes.io/worker: ""
+  flowConfig:
+    enableDNS: true
+    sampling: 10

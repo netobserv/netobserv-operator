@@ -279,8 +279,11 @@ $(CONVERSION_GEN): ## Build conversion-gen from tools folder.
 	GOBIN=$(BIN_DIR) $(GO_INSTALL) $(CONVERSION_GEN_PKG) $(CONVERSION_GEN_BIN) $(CONVERSION_GEN_VER)
 
 CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
-controller-gen: ## Download controller-gen locally if necessary.
-	$(call go-install-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.20.0)
+CONTROLLER_GEN_VERSION = v0.20.0
+controller-gen: ## Install the pinned controller-gen, replacing stale local versions.
+	@if ! "$(CONTROLLER_GEN)" --version 2>/dev/null | grep -Fxq "Version: $(CONTROLLER_GEN_VERSION)"; then \
+		GOBIN="$(PROJECT_DIR)/bin" GOFLAGS="-mod=mod" go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_GEN_VERSION); \
+	fi
 
 KUSTOMIZE = $(shell pwd)/bin/kustomize
 kustomize: ## Download kustomize locally if necessary.

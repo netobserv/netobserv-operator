@@ -5,6 +5,14 @@ package manager
 //+kubebuilder:rbac:groups=flows.netobserv.io,resources=flowcollectors/status;flowmetrics/status;flowcollectorslices/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=flows.netobserv.io,resources=flowcollectors/finalizers,verbs=update
 
+// Operator manages OnDemandCapture resources (cluster role)
+//+kubebuilder:rbac:groups=netobserv.io,resources=ondemandcaptures,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=netobserv.io,resources=ondemandcaptures/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=netobserv.io,resources=ondemandcaptures/finalizers,verbs=update
+
+// Operator needs to create pods for on-demand capture in a user-defined namespace
+//+kubebuilder:rbac:groups=core,resources=pods,verbs=create;delete;get;list;watch
+
 // Operator reads Network config for configured CIDRs (cluster-scope resource)
 //+kubebuilder:rbac:groups=operator.openshift.io,resources=networks,verbs=get;list;watch
 
@@ -73,3 +81,7 @@ package manager
 
 // (deprecated) Operator to create HPA for its workloads in a user-defined namespace
 //+kubebuilder:rbac:groups=autoscaling,resources=horizontalpodautoscalers,verbs=create;delete;patch;update;get;watch;list
+
+// Operator creates and finalizes per-CR CLI bindings, using a predefined capture role.
+//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterrolebindings,verbs=get;list;watch;create;update;delete
+//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles,resourceNames=netobserv-ondemandcapture-cli,verbs=bind

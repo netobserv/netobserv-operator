@@ -999,3 +999,33 @@ func TestK8sCacheInformerTLSServerName(t *testing.T) {
 	}
 	assert.True(foundCA, "k8scache-server-ca volume should exist")
 }
+
+func TestHealthConfigSupportsExistingProcessorImages(t *testing.T) {
+	for _, port := range []int32{0, 8080, 9090} {
+		t.Run(fmt.Sprint(port), func(t *testing.T) {
+			cfg := getConfig()
+			cfg.Processor.Advanced.HealthPort = ptr.To(port)
+			builder := monoBuilder("namespace", &cfg)
+			cm, _, _, err := builder.configMaps()
+			assert.NoError(t, err)
+			var decoded struct {
+				HealthAddr string
+				Health     *struct {
+					Address string
+					Port    int32
+				}
+			}
+			assert.NoError(t, json.Unmarshal([]byte(cm.Data[configFile]), &decoded))
+			if port == 0 {
+				assert.Empty(t, decoded.HealthAddr)
+				assert.Nil(t, decoded.Health)
+			} else {
+				assert.Equal(t, fmt.Sprintf(":%d", port), decoded.HealthAddr)
+				if assert.NotNil(t, decoded.Health) {
+					assert.Equal(t, port, decoded.Health.Port)
+					assert.Equal(t, "0.0.0.0", decoded.Health.Address)
+				}
+			}
+		})
+	}
+}
