@@ -145,8 +145,8 @@ github.com/netobserv/netobserv-ebpf-agent v1.12.0-community h1:3e18pZzZPjRSm9TPE
 github.com/netobserv/netobserv-ebpf-agent v1.12.0-community/go.mod h1:ML3ApiUVk+ROiB/oJ6v48PxIVhE9hAt955+oE+q20JM=
 github.com/onsi/ginkgo/v2 v2.32.2 h1:2o6vyFvR6snrJWgRVztC+OwuqqPEMI1UzYl2s2iU7Cg=
 github.com/onsi/ginkgo/v2 v2.32.2/go.mod h1:+aXOY+vzZ5mu2iI2HpTZUPmM//oQfsNFX6gU9kNcA44=
-github.com/onsi/gomega v1.43.0 h1:VlG/1FxqNxhSO+lq/OHBNaaqwiBK/mO8JbVkX9Y+FeU=
-github.com/onsi/gomega v1.43.0/go.mod h1:REff/hsDsodHoKlWsP2mAPhu1+5/6hVYNf9rIEBpeSg=
+github.com/onsi/gomega v1.43.1 h1:vGIPFuYrIO6/0Z09s0I0QQQgFchiX4+tb1re3MScJYo=
+github.com/onsi/gomega v1.43.1/go.mod h1:e/C2HwaZ1DhvjzXXuFhcR7hY7Sh9pl7MmoWKEjzwcdA=
 github.com/openshift/api v0.0.0-20260619095050-5346161d1bf2 h1:oZkYkIvQHkQV8pN0oe8AfPfc7y9+svwmsQHwbOWyJBw=
 github.com/openshift/api v0.0.0-20260619095050-5346161d1bf2/go.mod h1:Jm45pE7O6/G0tYYhiLzNyZykTjmf9BfhsKYuGfLLwTE=
 github.com/openshift/controller-runtime-common v0.0.0-20260428152732-64ee174f5e2e h1:k89oIo2EjX0PRSdi1kesktCyWp50SC9WwKurvupvRGs=
