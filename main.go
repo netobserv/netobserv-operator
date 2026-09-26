@@ -25,6 +25,7 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"strconv"
+	"time"
 
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	lokiv1 "github.com/grafana/loki/operator/apis/loki/v1"
@@ -61,10 +62,13 @@ import (
 	"github.com/netobserv/netobserv-operator/internal/controller/constants"
 	"github.com/netobserv/netobserv-operator/internal/pkg/helper"
 	"github.com/netobserv/netobserv-operator/internal/pkg/manager"
+	"github.com/netobserv/netobserv-operator/internal/pkg/tlsconfig"
 	//+kubebuilder:scaffold:imports
 )
 
 const app = constants.OperatorName
+
+const tlsProfileRestartDebounceInterval = 5 * time.Second
 
 var (
 	buildVersion = "unknown"
@@ -272,23 +276,17 @@ func setupTLSProfileWatcher(mgr *manager.Manager, stop context.CancelFunc) error
 		return nil
 	}
 	setupLog.Info("Setting up TLS profile watcher for graceful restart on profile changes")
-	// Known self-healing behavior: on a TLS profile change the operator reloads by exiting 0
-	// (graceful) so it restarts with the new profile. The baseline profile compared against is
-	// re-captured on every container start (InitialTLSProfileSpec above). During a control-plane
-	// rollout — especially two overlapping profile changes — a freshly started container can read
-	// a stale/lagging APIServer value as its baseline and is then forced to reload once the real
-	// value settles. Because this repeats per restart within the rollout window, several graceful
-	// (exit 0) reloads can cluster together, and kubelet flags the clustered restarts as
-	// CrashLoopBackOff regardless of exit code. This is cosmetic and self-heals: each reload is a
-	// correct reaction (the container really had the wrong profile), and once the rollout settles
-	// the operator comes up stable.
+	debouncer := tlsconfig.NewTLSProfileRestartDebouncer(*tlsProfileSpec, tlsProfileRestartDebounceInterval, stop)
+	if err := mgr.Add(debouncer); err != nil {
+		return fmt.Errorf("could not set up TLS profile restart debounce: %w", err)
+	}
 	return (&tlspkg.SecurityProfileWatcher{
 		Client:                mgr.GetClient(),
 		InitialTLSProfileSpec: *tlsProfileSpec,
 		OnProfileChange: func(_ context.Context, oldSpec, newSpec configv1.TLSProfileSpec) {
-			setupLog.Info("TLS profile has changed, initiating graceful shutdown to reload",
+			setupLog.Info("TLS profile has changed, waiting for it to stabilize before reloading",
 				"oldProfile", oldSpec, "newProfile", newSpec)
-			stop()
+			debouncer.Observe(newSpec)
 		},
 	}).SetupWithManager(mgr)
 }
