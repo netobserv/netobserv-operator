@@ -184,7 +184,7 @@ columns:
     tooltip: Network name, such as Secondary network or UDN.
     field: SrcK8S_NetworkName
     filter: src_network
-    default: false
+    default: true
     width: 15
     feature: multiNetworks
   - id: DstK8S_Name
@@ -334,7 +334,7 @@ columns:
     tooltip: Network name, such as Secondary network or UDN.
     field: DstK8S_NetworkName
     filter: dst_network
-    default: false
+    default: true
     width: 15
     feature: multiNetworks
   - id: K8S_Name
