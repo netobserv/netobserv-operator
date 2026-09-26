@@ -279,9 +279,8 @@ however you can expect higher memory consumption and an increased latency in the
         <td>[]integer</td>
         <td>
           `dnsTrackingPorts` defines the list of DNS ports to track when DNSTracking feature is enabled.
-For example: [53, 5353, 8053]. Maximum 8 ports allowed.<br/>
-          <br/>
-            <i>Default</i>: [53 5353]<br/>
+For example: [53, 5353, 8053]. Leave empty to use a vendor-contextual default (generally 53).
+Maximum 8 ports allowed.<br/>
         </td>
         <td>false</td>
       </tr><tr>

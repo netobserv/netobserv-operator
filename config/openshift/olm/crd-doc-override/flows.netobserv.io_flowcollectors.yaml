@@ -55,6 +55,11 @@ spec:
                             - `Disabled` (default) to not configure TLS for the endpoint.
                             - `Provided` to manually provide cert file and a key file. [Unsupported (*)].
                             - `Auto` to use OpenShift auto generated certificate using annotations.
+            dnsTrackingPorts:
+              description: |-
+                `dnsTrackingPorts` defines the list of DNS ports to track when DNSTracking feature is enabled.
+                For example: [53, 5353, 8053]. Leave empty to use OpenShift default (53, 5353).
+                Maximum 8 ports allowed.
     consolePlugin:
       properties:
         standalone:

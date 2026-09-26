@@ -197,11 +197,7 @@ func (v *validator) validateAgent() {
 
 func (v *validator) validateDNSTrackingPorts() {
 	// Warn if DNS tracking ports configured without DNSTracking feature
-	// Only warn if ports are explicitly set to non-default values
-	isDefault := len(v.fc.Agent.EBPF.DNSTrackingPorts) == 2 &&
-		v.fc.Agent.EBPF.DNSTrackingPorts[0] == 53 &&
-		v.fc.Agent.EBPF.DNSTrackingPorts[1] == 5353
-	if len(v.fc.Agent.EBPF.DNSTrackingPorts) > 0 && !isDefault && !v.fc.Agent.EBPF.IsDNSTrackingEnabled() {
+	if len(v.fc.Agent.EBPF.DNSTrackingPorts) > 0 && !v.fc.Agent.EBPF.IsDNSTrackingEnabled() {
 		v.warnings = append(v.warnings,
 			"spec.agent.ebpf.dnsTrackingPorts is configured but DNSTracking feature is not enabled. "+
 				"Add 'DNSTracking' to spec.agent.ebpf.features to enable DNS tracking.")

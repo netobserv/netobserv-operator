@@ -215,8 +215,8 @@ func TestValidateAgent(t *testing.T) {
 					Agent: FlowCollectorAgent{
 						Type: AgentEBPF,
 						EBPF: FlowCollectorEBPF{
-							DNSTrackingPorts: []int32{53, 5353}, // Default ports
-							Features:         []AgentFeature{},  // DNSTracking not enabled
+							DNSTrackingPorts: []int32{},        // Default ports
+							Features:         []AgentFeature{}, // DNSTracking not enabled
 						},
 					},
 				},

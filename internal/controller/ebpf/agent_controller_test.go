@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
+	"github.com/netobserv/netobserv-operator/internal/controller/constants"
 	"github.com/netobserv/netobserv-operator/internal/controller/reconcilers"
 	"github.com/netobserv/netobserv-operator/internal/pkg/cluster"
 	"github.com/netobserv/netobserv-operator/internal/pkg/helper"
@@ -93,10 +94,7 @@ func TestGetEnvConfig_Default(t *testing.T) {
 	fc := flowslatest.FlowCollector{
 		Spec: flowslatest.FlowCollectorSpec{
 			Agent: flowslatest.FlowCollectorAgent{
-				EBPF: flowslatest.FlowCollectorEBPF{
-					// DNSTrackingPorts will have default value [53, 5353] from API
-					DNSTrackingPorts: []int32{53, 5353},
-				},
+				EBPF: flowslatest.FlowCollectorEBPF{},
 			},
 		},
 	}
@@ -117,7 +115,7 @@ func TestGetEnvConfig_Default(t *testing.T) {
 					FieldPath:  "status.hostIP",
 				},
 			}},
-		{Name: "DNS_TRACKING_PORT", Value: "53,5353"},
+		{Name: "DNS_TRACKING_PORT", Value: "53"},
 		{Name: "NETWORK_EVENTS_MONITORING_GROUP_ID", Value: "10"},
 		{Name: "PREFERRED_INTERFACE_FOR_MAC_PREFIX", Value: "0a:58=eth0"},
 		{Name: "TC_ATTACH_MODE", Value: "tcx"},
@@ -196,10 +194,7 @@ func TestGetEnvConfig_OCP4_14(t *testing.T) {
 	fc := flowslatest.FlowCollector{
 		Spec: flowslatest.FlowCollectorSpec{
 			Agent: flowslatest.FlowCollectorAgent{
-				EBPF: flowslatest.FlowCollectorEBPF{
-					// DNSTrackingPorts will have default value [53, 5353] from API
-					DNSTrackingPorts: []int32{53, 5353},
-				},
+				EBPF: flowslatest.FlowCollectorEBPF{},
 			},
 		},
 	}
@@ -207,6 +202,7 @@ func TestGetEnvConfig_OCP4_14(t *testing.T) {
 	cmn := reconcilers.Common{
 		Namespace:   "netobserv",
 		ClusterInfo: cluster.Mock(cluster.WithOpenShiftVersion("4.15.5")),
+		Vendor:      constants.VendorOpenShiftDownstream,
 	}
 	agent := NewAgentController(cmn.NewInstance(nil, status.Instance{}))
 
