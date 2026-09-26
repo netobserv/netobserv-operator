@@ -44,7 +44,7 @@ jobs:
 
       - name: build operator
         run: |
-          MULTIARCH_TARGETS="${{ env.WF_MULTIARCH_TARGETS }}" IMAGE_ORG=${{ env.WF_ORG }} IMAGE=${{ env.WF_REGISTRY }}/${{ env.WF_IMAGE }}:${{ env.tag }} CLEAN_BUILD=1 make image-build
+          MULTIARCH_TARGETS="${WF_MULTIARCH_TARGETS}" IMAGE_ORG=${WF_ORG} IMAGE=${WF_REGISTRY}/${WF_IMAGE}:${tag} VERSION=${tag} CLEAN_BUILD=1 make image-build
 
       - name: docker login to quay.io
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
@@ -55,50 +55,50 @@ jobs:
 
       - name: push operator
         run: |
-          MULTIARCH_TARGETS="${{ env.WF_MULTIARCH_TARGETS }}" IMAGE_ORG=${{ env.WF_ORG }} IMAGE=${{ env.WF_REGISTRY }}/${{ env.WF_IMAGE }}:${{ env.tag }} make image-push
+          MULTIARCH_TARGETS="${WF_MULTIARCH_TARGETS}" IMAGE_ORG=${WF_ORG} IMAGE=${WF_REGISTRY}/${WF_IMAGE}:${tag} make image-push
 
       - name: build and push manifest
         run: |
-          MULTIARCH_TARGETS="${{ env.WF_MULTIARCH_TARGETS }}" IMAGE_ORG=${{ env.WF_ORG }} IMAGE=${{ env.WF_REGISTRY }}/${{ env.WF_IMAGE }}:${{ env.tag }} make manifest-build manifest-push
+          MULTIARCH_TARGETS="${WF_MULTIARCH_TARGETS}" IMAGE_ORG=${WF_ORG} IMAGE=${WF_REGISTRY}/${WF_IMAGE}:${tag} make manifest-build manifest-push
 
       - name: build bundle
         run: |
-          IMAGE_ORG=${{ env.WF_ORG }} \
-            VERSION=${{ env.tag }} \
-            BUNDLE_VERSION=${{ env.tag }} \
+          IMAGE_ORG=${WF_ORG} \
+            VERSION=${tag} \
+            BUNDLE_VERSION=${tag} \
             CLEAN_BUILD=1 \
             PIN_DIGEST=true \
             make bundle-nogen bundle-build
 
       - name: push bundle to quay.io
-        run: IMAGE_ORG=${{ env.WF_ORG }} BUNDLE_VERSION=${{ env.tag }} make bundle-push
+        run: IMAGE_ORG=${WF_ORG} BUNDLE_VERSION=${tag} make bundle-push
 
       - name: build catalog
-        run: IMAGE_ORG=${{ env.WF_ORG }} BUNDLE_VERSION=${{ env.tag }} make catalog-build
+        run: IMAGE_ORG=${WF_ORG} BUNDLE_VERSION=${tag} make catalog-build
 
       - name: push catalog to quay.io
-        run: IMAGE_ORG=${{ env.WF_ORG }} BUNDLE_VERSION=${{ env.tag }} make catalog-push
+        run: IMAGE_ORG=${WF_ORG} BUNDLE_VERSION=${tag} make catalog-push
 
       - name: extract binaries
-        run: MULTIARCH_TARGETS="${{ env.WF_MULTIARCH_TARGETS }}" IMAGE_ORG=${{ env.WF_ORG }} VERSION=${{ env.tag }} make extract-binaries
+        run: MULTIARCH_TARGETS="${WF_MULTIARCH_TARGETS}" IMAGE_ORG=${WF_ORG} VERSION=${tag} make extract-binaries
 
       - name: capture image digest
         id: image_digest
         run: |
-          digest=$(docker buildx imagetools inspect ${{ env.WF_REGISTRY }}/${{ env.WF_IMAGE }}:${{ env.tag }} \
+          digest=$(docker buildx imagetools inspect ${WF_REGISTRY}/${WF_IMAGE}:${tag} \
             --format '{{json .Manifest.Digest}}' | tr -d '"')
           echo "digest=$digest" >> "$GITHUB_ENV"
-          echo "${{ env.WF_REGISTRY }}/${{ env.WF_IMAGE }}@$digest" >> ./release-assets/images
+          echo "${WF_REGISTRY}/${WF_IMAGE}@$digest" >> ./release-assets/images
 
       - name: cosign-installer
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6
 
       - name: Sign and verify the image with GitHub OIDC Token
         run: |
-          cosign sign --yes ${{ env.WF_REGISTRY }}/${{ env.WF_IMAGE }}@${{ env.digest }}
+          cosign sign --yes ${WF_REGISTRY}/${WF_IMAGE}@${digest}
 
-          cosign verify ${{ env.WF_REGISTRY }}/${{ env.WF_IMAGE }}@${{ env.digest }} \
-            --certificate-identity=https://github.com/netobserv/netobserv-operator/.github/workflows/release.yml@refs/tags/${{ env.tag }} \
+          cosign verify ${WF_REGISTRY}/${WF_IMAGE}@${digest} \
+            --certificate-identity=https://github.com/netobserv/netobserv-operator/.github/workflows/release.yml@refs/tags/${tag} \
             --certificate-oidc-issuer=https://token.actions.githubusercontent.com
 
       - name: Attest Provenance attestations

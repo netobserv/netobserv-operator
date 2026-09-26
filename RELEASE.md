@@ -149,7 +149,7 @@ mv new/* . && rmdir new
 colordiff <(yq '.entries.netobserv-operator[1]' index.yaml) <(yq '.entries.netobserv-operator[0]' index.yaml)
 
 git add netobserv-operator-2.0.0.tgz index.yaml
-git commit -m "Publish helm 2.0.0-community"
+git commit -s -m "Publish helm 2.0.0-community"
 git push upstream HEAD:main
 ```
 

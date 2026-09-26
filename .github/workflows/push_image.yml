@@ -39,8 +39,10 @@ jobs:
         run: echo "short_sha=$(git rev-parse --short=8 HEAD)" >> $GITHUB_ENV
       - name: build images
         run: |
-          MULTIARCH_TARGETS="$WF_MULTIARCH_TARGETS" IMAGE_ORG="$WF_ORG" IMAGE="$WF_REGISTRY/$WF_IMAGE:$WF_VERSION" CLEAN_BUILD=1 make image-build
-          MULTIARCH_TARGETS="$WF_MULTIARCH_TARGETS" IMAGE_ORG="$WF_ORG" IMAGE="$WF_REGISTRY/$WF_IMAGE:$short_sha" CLEAN_BUILD=1 OCI_BUILD_OPTS="--label quay.expires-after=2w" make image-build
+          # Optimization: preset LDFLAGS rather than letting it be recomputed each time in Makefile, for better cache reuse.
+          LDFLAGS="-X 'main.buildVersion=$WF_VERSION-$short_sha' -X 'main.buildDate=$(date +%Y-%m-%d\ %H:%M)'"
+          MULTIARCH_TARGETS="$WF_MULTIARCH_TARGETS" IMAGE_ORG="$WF_ORG" IMAGE="$WF_REGISTRY/$WF_IMAGE:$WF_VERSION" LDFLAGS="$LDFLAGS" make image-build
+          MULTIARCH_TARGETS="$WF_MULTIARCH_TARGETS" IMAGE_ORG="$WF_ORG" IMAGE="$WF_REGISTRY/$WF_IMAGE:$short_sha" LDFLAGS="$LDFLAGS" OCI_BUILD_OPTS="--label quay.expires-after=2w" make image-build
       - name: push images
         run: |
           MULTIARCH_TARGETS="$WF_MULTIARCH_TARGETS" IMAGE_ORG="$WF_ORG" IMAGE="$WF_REGISTRY/$WF_IMAGE:$WF_VERSION" make image-push

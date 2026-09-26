@@ -28,25 +28,25 @@ jobs:
           head_sha="${{ github.event.pull_request.head.sha }}"
           echo "short_sha=$(echo ${head_sha::8})" >> $GITHUB_ENV
       - name: build and save operator image
-        run: OCI_BUILD_OPTS="--label quay.expires-after=2w" IMAGE=${{ env.WF_REGISTRY }}/${{ env.WF_IMAGE }}:${{ env.short_sha }} CLEAN_BUILD=1 make tar-image
+        run: OCI_BUILD_OPTS="--label quay.expires-after=2w" IMAGE=${WF_REGISTRY}/${WF_IMAGE}:${short_sha} CLEAN_BUILD=1 make tar-image
       - name: get related images target
         if: startsWith(github.ref_name, 'release-')
         run: echo "WF_RELIMG_VERSION=${{ github.ref_name }}" >> $GITHUB_ENV
       - name: build and save bundle image
         run: |
           OCI_BUILD_OPTS="--label quay.expires-after=2w" \
-            IMAGE_ORG=${{ env.WF_ORG }} \
-            VERSION=${{ env.short_sha }} \
-            PLG_VERSION=${{ env.WF_RELIMG_VERSION }} \
-            FLP_VERSION=${{ env.WF_RELIMG_VERSION }} \
-            BPF_VERSION=${{ env.WF_RELIMG_VERSION }} \
-            BUNDLE_VERSION=0.0.0-sha-${{ env.short_sha }} \
+            IMAGE_ORG=${WF_ORG} \
+            VERSION=${short_sha} \
+            PLG_VERSION=${WF_RELIMG_VERSION} \
+            FLP_VERSION=${WF_RELIMG_VERSION} \
+            BPF_VERSION=${WF_RELIMG_VERSION} \
+            BUNDLE_VERSION=0.0.0-sha-${short_sha} \
             BUNDLE_TARGET=OpenShift \
             CLEAN_BUILD=1 \
             BUNDLE_SET_DATE=true \
             make bundle-nogen bundle-tar
       - name: build and save catalog image
-        run: IMAGE_ORG=${{ env.WF_ORG }} BUNDLE_VERSION=0.0.0-sha-${{ env.short_sha }} CLEAN_BUILD=1 make catalog-tar
+        run: IMAGE_ORG=${WF_ORG} BUNDLE_VERSION=0.0.0-sha-${short_sha} CLEAN_BUILD=1 make catalog-tar
       - name: upload artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
