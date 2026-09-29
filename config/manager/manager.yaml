@@ -31,6 +31,8 @@ spec:
             value: quay.io/netobserv/flowlogs-pipeline:v2.0.0-community
           - name: RELATED_IMAGE_WEB_CONSOLE
             value: quay.io/netobserv/network-observability-console-plugin:v2.0.0-community
+          - name: RELATED_IMAGE_NETOBSERV_CLI
+            value: quay.io/rh-ee-kapjain/network-observability-cli@sha256:e726e5452ceffecacbf1ed38351f2ae3d0088671e832d12401ea8040c2bcdda0
           - name: RELATED_IMAGE_DEMO_LOKI
             value: grafana/loki:3.5.0
           - name: STATIC_PLUGIN_CPU_REQUEST

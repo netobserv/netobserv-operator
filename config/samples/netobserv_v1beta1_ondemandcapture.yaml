@@ -1,0 +1,11 @@
+apiVersion: netobserv.io/v1beta1
+kind: OnDemandCapture
+metadata:
+  name: capture-flows
+  namespace: openshift-netobserv-operator # Replace with your operator namespace
+spec:
+  captureType: flows
+  duration: 1m
+  maxBytes: 500000
+  flowConfig:
+    sampling: 50

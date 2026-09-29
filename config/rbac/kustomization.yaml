@@ -17,3 +17,4 @@ resources:
 - component_role_bindings.yaml
 - secret_role.yaml
 - flowcollector_viewer_role.yaml
+- ondemandcapture_role.yaml

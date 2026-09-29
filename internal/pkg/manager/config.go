@@ -23,6 +23,10 @@ type Config struct {
 	WebConsolePF5Image string
 	// EBPFByteCodeImage is the ebpf byte code image used by EBPF Manager
 	EBPFByteCodeImage string
+	// NetobservCLIImage is the image of the netobserv CLI used by OnDemandCapture pods
+	NetobservCLIImage string
+	// Optional on-demand agent override; empty uses the CLI build default.
+	NetobservCLIAgentImage string
 	// Operator namespace
 	Namespace string
 	// Default operands namespace

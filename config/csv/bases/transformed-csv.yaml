@@ -520,6 +520,11 @@ spec:
         kind: FlowCollectorSlice
         name: flowcollectorslices.flows.netobserv.io
         version: v1alpha1
+      - description: Runs a temporary network capture using the standalone Go CLI and retains downloadable output until deleted.
+        displayName: On Demand Capture
+        kind: OnDemandCapture
+        name: ondemandcaptures.netobserv.io
+        version: v1beta1
   description: ""
   displayName: NetObserv Operator
   icon:

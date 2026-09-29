@@ -336,6 +336,9 @@ func getJSONConfigs(desired *flowslatest.FlowCollectorSpec, ns string, vol *volu
 	}
 	if advancedConfig.HealthPort != nil && *advancedConfig.HealthPort != 0 {
 		config["healthAddr"] = fmt.Sprintf(":%d", *advancedConfig.HealthPort)
+		// Older processor images read the nested health settings. Keep both
+		// formats so an operator upgrade does not disable their probe listener.
+		config["health"] = map[string]interface{}{"address": "0.0.0.0", "port": *advancedConfig.HealthPort}
 	}
 	if advancedConfig.ProfilePort != nil && *advancedConfig.ProfilePort != 0 {
 		// Use "localhost" for ipv4+ipv6 cases, restricted to the local loop

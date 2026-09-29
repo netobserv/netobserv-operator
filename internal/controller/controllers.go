@@ -8,4 +8,4 @@ import (
 	"github.com/netobserv/netobserv-operator/internal/pkg/manager"
 )
 
-var Registerers = []manager.Registerer{Start, flp.Start, monitoring.Start, networkpolicy.Start, static.Start}
+var Registerers = []manager.Registerer{Start, StartOnDemandCapture, flp.Start, monitoring.Start, networkpolicy.Start, static.Start}

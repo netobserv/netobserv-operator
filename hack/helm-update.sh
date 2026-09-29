@@ -8,7 +8,7 @@ mkdir -p _tmp
 YQ=${YQ:-./bin/yq}
 
 # Copy and edit CRDs
-for crd in "flows.netobserv.io_flowcollectors.yaml" "flows.netobserv.io_flowmetrics.yaml" "flows.netobserv.io_flowcollectorslices.yaml"; do
+for crd in "flows.netobserv.io_flowcollectors.yaml" "flows.netobserv.io_flowmetrics.yaml" "flows.netobserv.io_flowcollectorslices.yaml" "netobserv.io_ondemandcaptures.yaml"; do
   cp "bundles/k8s/manifests/$crd" helm/crds
   $SED -i -E 's/(`[^`]*\{\{[^`]*`)/{{\1}}/g' helm/crds/$crd # escape "{{" for helm
   $YQ -i 'del(.spec.conversion)' helm/crds/$crd

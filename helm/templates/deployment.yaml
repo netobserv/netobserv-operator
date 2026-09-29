@@ -57,6 +57,12 @@ spec:
             value: '{{ .Values.consolePlugin.image }}:{{ .Values.consolePlugin.version }}'
   {{- end }}
 {{- end }}
+          - name: RELATED_IMAGE_NETOBSERV_CLI
+{{- if .Values.netobservCLI.digest }}
+            value: '{{ .Values.netobservCLI.image }}@{{ .Values.netobservCLI.digest }}'
+{{- else }}
+            value: '{{ .Values.netobservCLI.image }}:{{ .Values.netobservCLI.version }}'
+{{- end }}
           - name: NAMESPACE
             valueFrom:
               fieldRef:

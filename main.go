@@ -57,6 +57,7 @@ import (
 	flowsv1beta2 "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
 	slicesv1alpha1 "github.com/netobserv/netobserv-operator/api/flowcollectorslice/v1alpha1"
 	metricsv1alpha1 "github.com/netobserv/netobserv-operator/api/flowmetrics/v1alpha1"
+	ondemandcapturev1beta1 "github.com/netobserv/netobserv-operator/api/ondemandcapture/v1beta1"
 	controllers "github.com/netobserv/netobserv-operator/internal/controller"
 	"github.com/netobserv/netobserv-operator/internal/controller/constants"
 	"github.com/netobserv/netobserv-operator/internal/pkg/helper"
@@ -67,7 +68,7 @@ import (
 const app = constants.OperatorName
 
 var (
-	buildVersion = "unknown"
+	buildVersion = "2.1-ondemandcapture"
 	buildDate    = "unknown"
 	scheme       = runtime.NewScheme()
 	setupLog     = ctrl.Log.WithName("setup")
@@ -81,6 +82,7 @@ func init() {
 	utilruntime.Must(flowsv1beta2.AddToScheme(scheme))
 	utilruntime.Must(metricsv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(slicesv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(ondemandcapturev1beta1.AddToScheme(scheme))
 	utilruntime.Must(corev1.AddToScheme(scheme))
 	utilruntime.Must(ascv2.AddToScheme(scheme))
 	utilruntime.Must(osv1.AddToScheme(scheme))
@@ -302,6 +304,8 @@ func readConfigFromEnv() (*manager.Config, error) {
 		Vendor:                   constants.Vendor(os.Getenv("VENDOR")),
 		EBPFAgentImage:           defaultStringEnv("RELATED_IMAGE_EBPF_AGENT", "quay.io/netobserv/netobserv-ebpf-agent:main"),
 		EBPFByteCodeImage:        defaultStringEnv("RELATED_IMAGE_EBPF_BYTECODE", "quay.io/netobserv/ebpf-bytecode:main"), // TODO: productize for GA
+		NetobservCLIAgentImage:   os.Getenv("RELATED_IMAGE_NETOBSERV_CLI_AGENT"),
+		NetobservCLIImage:        defaultStringEnv("RELATED_IMAGE_NETOBSERV_CLI", "quay.io/netobserv/network-observability-cli:main"),
 		FlowlogsPipelineImage:    defaultStringEnv("RELATED_IMAGE_FLOWLOGS_PIPELINE", "quay.io/netobserv/flowlogs-pipeline:main"),
 		WebConsoleImage:          defaultStringEnv("RELATED_IMAGE_WEB_CONSOLE", "quay.io/netobserv/network-observability-console-plugin:main"),
 		WebConsolePF4Image:       defaultStringEnv("RELATED_IMAGE_WEB_CONSOLE_PF4", "quay.io/netobserv/network-observability-console-plugin:main-pf4"),

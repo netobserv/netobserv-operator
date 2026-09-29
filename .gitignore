@@ -4,6 +4,29 @@ tmp.Dockerfile
 _tmp/
 **/e2e-tests.test
 helm/charts/
+
+# Local IDE state and implementation-session artifacts
+/.idea/
+/.superpowers/
+/docs/superpowers/
+
+# Local build and test outputs
 /out/
+/build/
+*.test
+/*.log
+/coverage.html
+
+# OS and editor temporary files
+.DS_Store
+*.swp
+*.swo
+*~
+
+/.superpower/
+
+/docs/superpower/
+
+# Generated catalogs
 /catalog/out/
 /catalog/out-legacy/
