@@ -79,3 +79,19 @@ jobs:
 
     - name: run helm lint
       run: helm lint helm/
+
+  check-doc-parity:
+    runs-on: ubuntu-latest
+    name: Checking for CRD doc changes parity
+    steps:
+    - name: install make
+      run: sudo apt-get install make
+
+    - name: checkout
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+        fetch-depth: 2
+
+    - name: check doc parity
+      run: hack/check-doc-parity.sh
