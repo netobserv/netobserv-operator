@@ -5142,12 +5142,10 @@ spec:
                       type: string
                     informerCacheProxy:
                       description: |-
-                        `informerCacheProxy` configuration for centralized Kubernetes informers that push cache updates to flowlogs-pipeline processors.
-                        This reduces load on the Kubernetes API server by having a single component query the API instead of N FLP processors.
-                        When enabled, a dedicated deployment is created that watches Kubernetes resources and pushes updates via gRPC.
-                        Benefits: Reduced API server load on large clusters with many FLP replicas.
-                        Drawbacks: More complex deployment (additional component), higher resource usage on small clusters.
-                        Recommended only for clusters with many FLP replicas (>3) or when API server load is a concern.
+                        `informerCacheProxy` (experimental) is the configuration for centralized Kubernetes informers that push cache updates to flowlogs-pipeline processors.
+                        This reduces load on the API server by having fewer components running informers, and allows to scale FLP up without paying the cost of new informers.
+                        It is not recommended to use on small clusters with few FLP replicas (<4), or when API server load is not a concern.
+                        This feature is currently experimental.
                       properties:
                         advanced:
                           description: '`advanced` allows setting some technical parameters of the informer cache proxy component.'

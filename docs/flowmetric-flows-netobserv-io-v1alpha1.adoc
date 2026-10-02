@@ -88,7 +88,7 @@ Required::
 
 | `charts`
 | `array`
-| Charts configuration, for the {product-title} Console in the administrator view, Dashboards menu.
+| Charts configuration, for the {product-title} Console, in the Dashboards menu.
 
 | `direction`
 | `string`
@@ -149,7 +149,7 @@ Refer to the documentation for the list of available fields: https://docs.redhat
 Description::
 +
 --
-Charts configuration, for the {product-title} Console in the administrator view, Dashboards menu.
+Charts configuration, for the {product-title} Console, in the Dashboards menu.
 --
 
 Type::

@@ -71,6 +71,13 @@ The "Cardinality" column gives information about the implied metric cardinality 
 | no
 | fine
 | dscp
+| `DstASN`
+| string
+| Destination Autonomous System Number from BGP advertised prefixes
+| `dst_asn`
+| no
+| fine
+| n/a
 | `DstAddr`
 | string
 | Destination IP address (ipv4 or ipv6)
@@ -299,6 +306,13 @@ The "Cardinality" column gives information about the implied metric cardinality 
 | number
 | Sampling interval used for this flow
 | n/a
+| no
+| fine
+| n/a
+| `SrcASN`
+| string
+| Source Autonomous System Number from BGP advertised prefixes
+| `src_asn`
 | no
 | fine
 | n/a

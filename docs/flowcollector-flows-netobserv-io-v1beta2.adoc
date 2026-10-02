@@ -41,8 +41,8 @@ Type::
 
 *: the mention of "unsupported" or "deprecated" for a feature throughout this document means that this feature
 is not officially supported by Red Hat. It might have been, for example, contributed by the community
-and accepted without a formal agreement for maintenance. The product maintainers might provide some support
-for these features as a best effort only.
+and accepted without a formal agreement for maintenance. The product maintainers might provide support
+for these features, without any guarantee.
 
 |===
 == .metadata
@@ -68,8 +68,8 @@ Defines the desired state of the FlowCollector resource.
 
 *: the mention of "unsupported" or "deprecated" for a feature throughout this document means that this feature
 is not officially supported by Red Hat. It might have been, for example, contributed by the community
-and accepted without a formal agreement for maintenance. The product maintainers might provide some support
-for these features as a best effort only.
+and accepted without a formal agreement for maintenance. The product maintainers might provide support
+for these features, without any guarantee.
 --
 
 Type::
@@ -88,7 +88,7 @@ Type::
 
 | `consolePlugin`
 | `object`
-| `consolePlugin` defines the settings related to the {product-title} Console plugin, when available.
+| `consolePlugin` defines the settings related to the {product-title} Console plugin.
 
 | `deploymentModel`
 | `string`
@@ -157,12 +157,13 @@ Type::
 
 | `ebpf`
 | `object`
-| `ebpf` describes the settings related to the eBPF-based flow reporter when `spec.agent.type`
-is set to `eBPF`.
+| `ebpf` describes the settings related to the eBPF-based flow reporter when `spec.agent.type` is set to `eBPF`.
 
 | `type`
 | `string`
-| `type` [deprecated (*)] selects the flows tracing agent. Previously, this field allowed to select between `eBPF` or `IPFIX`.
+| `type` selects the flows tracing agent.
+
+Deprecated: Previously, this field allowed to select between `eBPF` or `IPFIX`.
 Only `eBPF` is allowed now, so this field is deprecated and is planned for removal in a future version of the API.
 
 |===
@@ -170,8 +171,7 @@ Only `eBPF` is allowed now, so this field is deprecated and is planned for remov
 Description::
 +
 --
-`ebpf` describes the settings related to the eBPF-based flow reporter when `spec.agent.type`
-is set to `eBPF`.
+`ebpf` describes the settings related to the eBPF-based flow reporter when `spec.agent.type` is set to `eBPF`.
 --
 
 Type::
@@ -203,6 +203,12 @@ however you can expect higher memory consumption and an increased latency in the
 Increasing `cacheMaxFlows` and `cacheActiveTimeout` can decrease the network traffic overhead and the CPU load,
 however you can expect higher memory consumption and an increased latency in the flow collection.
 
+| `dnsTrackingPorts`
+| `array (integer)`
+| `dnsTrackingPorts` defines the list of DNS ports to track when DNSTracking feature is enabled.
+For example: [53, 5353, 8053]. Leave empty to use {product-title} default (53, 5353).
+Maximum 8 ports allowed.
+
 | `excludeInterfaces`
 | `array (string)`
 | `excludeInterfaces` contains the interface names that are excluded from flow tracing.
@@ -229,14 +235,14 @@ IMPORTANT: This feature is available as a Technology Preview. +
 
 - `EbpfManager`: [Unsupported (*)]. Use eBPF Manager to manage Network Observability eBPF programs. Pre-requisite: the eBPF Manager operator (or upstream bpfman operator) must be installed. +
 
-- `UDNMapping`: Enable interfaces mapping to User Defined Networks (UDN).  +
+- `UDNMapping`: Enable interfaces mapping to User Defined Networks (UDN). +
 
 This feature requires mounting the kernel debug filesystem, so the eBPF agent pods must run as privileged via `spec.agent.ebpf.privileged`.
-It requires using the OVN-Kubernetes network plugin with the Observability feature.  +
+It requires using the OVN-Kubernetes network plugin. +
 
-- `IPSec`, to track flows between nodes with IPsec encryption.  +
+- `IPSec`, to track flows between nodes with IPsec encryption. +
 
-- `TLSTracking`, to track TLS usage.  +
+- `TLSTracking`, to track TLS usage. +
 
 
 | `flowFilter`
@@ -636,6 +642,10 @@ Type::
 | `integer`
 | The metrics server HTTP port.
 
+| `scrapeInterval`
+| `string`
+| Prometheus scraping interval, how often metrics are pulled.
+
 | `tls`
 | `object`
 | TLS configuration.
@@ -663,7 +673,7 @@ Required::
 | `insecureSkipVerify`
 | `boolean`
 | `insecureSkipVerify` allows skipping client-side verification of the provided certificate.
-If set to `true`, the `providedCaFile` field is ignored.
+If set to `true`, the `providedCaFile` field is ignored. For security, this should not be used other than for testing or demo.
 
 | `provided`
 | `object`
@@ -791,7 +801,7 @@ More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-co
 Description::
 +
 --
-`consolePlugin` defines the settings related to the {product-title} Console plugin, when available.
+`consolePlugin` defines the settings related to the {product-title} Console plugin.
 --
 
 Type::
@@ -812,8 +822,9 @@ such as `GOGC` and `GOMAXPROCS` environment variables. Set these values at your 
 
 | `autoscaler`
 | `object`
-| `autoscaler` [deprecated (*)] spec of a horizontal pod autoscaler to set up for the plugin Deployment.
-Deprecation notice: managed autoscaler will be removed in a future version. You might configure instead an autoscaler of your choice, and set `spec.consolePlugin.unmanagedReplicas` to `true`. Refer to HorizontalPodAutoscaler documentation (autoscaling/v2).
+| `autoscaler`: spec of a horizontal pod autoscaler to set up for the web console Deployment.
+
+Deprecated: managed autoscaler will be removed in a future version. You might configure instead an autoscaler of your choice, and set `spec.consolePlugin.unmanagedReplicas` to `true`. Refer to HorizontalPodAutoscaler documentation (autoscaling/v2).
 
 | `enable`
 | `boolean`
@@ -825,7 +836,7 @@ Deprecation notice: managed autoscaler will be removed in a future version. You 
 
 | `logLevel`
 | `string`
-| `logLevel` for the console plugin backend.
+| `logLevel` for the web console backend.
 
 | `portNaming`
 | `object`
@@ -833,7 +844,7 @@ Deprecation notice: managed autoscaler will be removed in a future version. You 
 
 | `quickFilters`
 | `array`
-| `quickFilters` configures quick filter presets for the Console plugin.
+| `quickFilters` configures quick filter presets for the web console.
 Filters for external traffic assume the subnet labels are configured to distinguish internal and external traffic (see `spec.processor.subnetLabels`).
 
 | `replicas`
@@ -848,7 +859,7 @@ For more information, see https://kubernetes.io/docs/concepts/configuration/mana
 | `standalone`
 | `boolean`
 | Deploy as a standalone console, instead of a plugin of the {product-title} Console.
-This is not recommended when using with {product-title}, as it doesn't provide an integrated experience.
+This is not recommended, as it doesn't provide the same level of integration with {product-title}.
 [Unsupported (*)].
 
 | `unmanagedReplicas`
@@ -972,8 +983,9 @@ Type::
 Description::
 +
 --
-`autoscaler` [deprecated (*)] spec of a horizontal pod autoscaler to set up for the plugin Deployment.
-Deprecation notice: managed autoscaler will be removed in a future version. You might configure instead an autoscaler of your choice, and set `spec.consolePlugin.unmanagedReplicas` to `true`. Refer to HorizontalPodAutoscaler documentation (autoscaling/v2).
+`autoscaler`: spec of a horizontal pod autoscaler to set up for the web console Deployment.
+
+Deprecated: managed autoscaler will be removed in a future version. You might configure instead an autoscaler of your choice, and set `spec.consolePlugin.unmanagedReplicas` to `true`. Refer to HorizontalPodAutoscaler documentation (autoscaling/v2).
 --
 
 Type::
@@ -1013,7 +1025,7 @@ for example, `portNames: {"3100": "loki"}`.
 Description::
 +
 --
-`quickFilters` configures quick filter presets for the Console plugin.
+`quickFilters` configures quick filter presets for the web console.
 Filters for external traffic assume the subnet labels are configured to distinguish internal and external traffic (see `spec.processor.subnetLabels`).
 --
 
@@ -1233,12 +1245,15 @@ Accepted values are: `none` (default), `gzip`, `snappy`, `lz4`, `zstd`.
 
 | `sasl`
 | `object`
-| SASL authentication configuration. [Unsupported (*)].
+| SASL authentication configuration.
 
 | `tls`
 | `object`
 | TLS and mTLS client configuration. When using TLS, verify that the address matches the Kafka port used for TLS, generally 9093.
 We recommend the use of mTLS for higher security standards.
+When configuring TLS, the operator watches the certificate secret and copies it to both the netobserv and netobserv-privileged namespaces.
+In order to do so, you must grant it permissions to the `netobserv-secret-watcher` and `netobserv-secret-creator` roles in the corresponding namespaces.
+Refer to the Kafka configuration documentation for more information.
 
 | `topic`
 | `string`
@@ -1249,7 +1264,7 @@ We recommend the use of mTLS for higher security standards.
 Description::
 +
 --
-SASL authentication configuration. [Unsupported (*)].
+SASL authentication configuration.
 --
 
 Type::
@@ -1351,6 +1366,9 @@ Description::
 --
 TLS and mTLS client configuration. When using TLS, verify that the address matches the Kafka port used for TLS, generally 9093.
 We recommend the use of mTLS for higher security standards.
+When configuring TLS, the operator watches the certificate secret and copies it to both the netobserv and netobserv-privileged namespaces.
+In order to do so, you must grant it permissions to the `netobserv-secret-watcher` and `netobserv-secret-creator` roles in the corresponding namespaces.
+Refer to the Kafka configuration documentation for more information.
 --
 
 Type::
@@ -1374,7 +1392,7 @@ Type::
 | `insecureSkipVerify`
 | `boolean`
 | `insecureSkipVerify` allows skipping client-side verification of the server certificate.
-If set to `true`, the `caCert` field is ignored.
+If set to `true`, the `caCert` field is ignored. For security, this should not be used other than for testing or demo.
 
 | `userCert`
 | `object`
@@ -1635,7 +1653,7 @@ Type::
 | `insecureSkipVerify`
 | `boolean`
 | `insecureSkipVerify` allows skipping client-side verification of the server certificate.
-If set to `true`, the `caCert` field is ignored.
+If set to `true`, the `caCert` field is ignored. For security, this should not be used other than for testing or demo.
 
 | `userCert`
 | `object`
@@ -1751,12 +1769,15 @@ Accepted values are: `none` (default), `gzip`, `snappy`, `lz4`, `zstd`.
 
 | `sasl`
 | `object`
-| SASL authentication configuration. [Unsupported (*)].
+| SASL authentication configuration.
 
 | `tls`
 | `object`
 | TLS and mTLS client configuration. When using TLS, verify that the address matches the Kafka port used for TLS, generally 9093.
 We recommend the use of mTLS for higher security standards.
+When configuring TLS, the operator watches the certificate secret and copies it to both the netobserv and netobserv-privileged namespaces.
+In order to do so, you must grant it permissions to the `netobserv-secret-watcher` and `netobserv-secret-creator` roles in the corresponding namespaces.
+Refer to the Kafka configuration documentation for more information.
 
 | `topic`
 | `string`
@@ -1767,7 +1788,7 @@ We recommend the use of mTLS for higher security standards.
 Description::
 +
 --
-SASL authentication configuration. [Unsupported (*)].
+SASL authentication configuration.
 --
 
 Type::
@@ -1869,6 +1890,9 @@ Description::
 --
 TLS and mTLS client configuration. When using TLS, verify that the address matches the Kafka port used for TLS, generally 9093.
 We recommend the use of mTLS for higher security standards.
+When configuring TLS, the operator watches the certificate secret and copies it to both the netobserv and netobserv-privileged namespaces.
+In order to do so, you must grant it permissions to the `netobserv-secret-watcher` and `netobserv-secret-creator` roles in the corresponding namespaces.
+Refer to the Kafka configuration documentation for more information.
 --
 
 Type::
@@ -1892,7 +1916,7 @@ Type::
 | `insecureSkipVerify`
 | `boolean`
 | `insecureSkipVerify` allows skipping client-side verification of the server certificate.
-If set to `true`, the `caCert` field is ignored.
+If set to `true`, the `caCert` field is ignored. For security, this should not be used other than for testing or demo.
 
 | `userCert`
 | `object`
@@ -2084,7 +2108,7 @@ Type::
 
 | `excludeLabels`
 | `array (string)`
-| `excludeLabels` is a list of fields to be excluded from the list of Loki labels. [Unsupported (*)].
+| `excludeLabels` is a list of fields to be excluded from the list of Loki labels.
 
 | `staticLabels`
 | `object (string)`
@@ -2130,6 +2154,9 @@ Required::
 | `namespace`
 | `string`
 | Namespace where this `LokiStack` resource is located. If omitted, it is assumed to be the same as `spec.namespace`.
+When configuring a different namespace, the operator watches certificate secret and copies it to the netobserv main namespaces.
+In order to do so, you must grant it permissions to the `netobserv-secret-watcher` and `netobserv-secret-creator` roles in the corresponding namespaces.
+Refer to the Loki configuration documentation for more information.
 
 |===
 == .spec.loki.manual
@@ -2158,7 +2185,7 @@ Type::
 
 - `Forward` forwards the user token for authorization. +
 
-- `Host` [deprecated (*)] - uses the local pod service account to authenticate to Loki. +
+- `Host` (deprecated) - uses the local pod service account to authenticate to Loki. +
 
 When using the Loki Operator, this must be set to `Forward`.
 
@@ -2225,7 +2252,7 @@ Type::
 | `insecureSkipVerify`
 | `boolean`
 | `insecureSkipVerify` allows skipping client-side verification of the server certificate.
-If set to `true`, the `caCert` field is ignored.
+If set to `true`, the `caCert` field is ignored. For security, this should not be used other than for testing or demo.
 
 | `userCert`
 | `object`
@@ -2338,7 +2365,7 @@ Type::
 | `insecureSkipVerify`
 | `boolean`
 | `insecureSkipVerify` allows skipping client-side verification of the server certificate.
-If set to `true`, the `caCert` field is ignored.
+If set to `true`, the `caCert` field is ignored. For security, this should not be used other than for testing or demo.
 
 | `userCert`
 | `object`
@@ -2487,7 +2514,7 @@ Type::
 | `insecureSkipVerify`
 | `boolean`
 | `insecureSkipVerify` allows skipping client-side verification of the server certificate.
-If set to `true`, the `caCert` field is ignored.
+If set to `true`, the `caCert` field is ignored. For security, this should not be used other than for testing or demo.
 
 | `userCert`
 | `object`
@@ -2594,7 +2621,7 @@ Type::
 | `installDemoLoki`
 | `boolean`
 | Set `installDemoLoki` to `true` to automatically create Loki deployment, service and storage.
-This is useful for development and demo purposes. Do not use it in production.
+This is meant for development and demo use only, and not recommended in production.
 [Unsupported (*)].
 
 | `tenantID`
@@ -2638,7 +2665,7 @@ Type::
 | `insecureSkipVerify`
 | `boolean`
 | `insecureSkipVerify` allows skipping client-side verification of the server certificate.
-If set to `true`, the `caCert` field is ignored.
+If set to `true`, the `caCert` field is ignored. For security, this should not be used other than for testing or demo.
 
 | `userCert`
 | `object`
@@ -2748,11 +2775,15 @@ configuration, you can disable it and install your own instead.
 
 | `enable`
 | `boolean`
-| Deploys network policies on the namespaces used by Network Observability (main and privileged).
+| Deploys network policies on the namespaces used by Network Observability operands (main and privileged).
 These network policies better isolate the Network Observability components to prevent undesired connections from and to them.
 Because it cannot be tested with all CNIs, this option is only enabled by default when Network Observability runs in a known
 supported environment, and it is disabled by default otherwise.
 When disabled, it is highly recommended to create network policies manually, to prevent undesired accesses.
+This setting is for operands only, and does not control the Operator network policy, which is covered by the `OPERATOR_NETWORK_POLICY`
+environment variable.
+If the operator and the operands are deployed in the same namespace, this setting is ignored, and only `OPERATOR_NETWORK_POLICY` controls
+whether or not any policy is installed.
 More information: https://github.com/netobserv/netobserv-operator/blob/main/docs/NetworkPolicy.md.
 
 |===
@@ -2785,9 +2816,17 @@ This feature requires the "topology.kubernetes.io/zone" label to be set on nodes
 This section is aimed mostly for debugging and fine-grained performance optimizations,
 such as `GOGC` and `GOMAXPROCS` environment variables. Set these values at your own risk.
 
+| `bgpEnrichment`
+| `boolean`
+| `bgpEnrichment` enables BGP ASN enrichment by watching FRRConfiguration CRDs (frrk8s.metallb.io/v1beta1).
+When enabled, flows are enriched with `SrcASN` and `DstASN` fields based on longest-prefix match against
+advertised prefixes from FRRConfiguration resources. Requires frr-k8s to be installed in the cluster.
+
 | `clusterName`
 | `string`
-| `clusterName` is the name of the cluster to appear in the flows data. This is useful in a multi-cluster context. When using {product-title}, leave empty to make it automatically determined.
+| `clusterName` is the name of the cluster to appear in the flows data.
+In a multi-cluster context, it makes it possible to identify the flows provenance.
+Leave empty to make it determined automatically.
 
 | `consumerReplicas`
 | `integer`
@@ -2808,11 +2847,19 @@ but with a lesser improvement in performance.
 | `string`
 | `imagePullPolicy` is the Kubernetes pull policy for the image defined above
 
+| `informerCacheProxy`
+| `object`
+| `informerCacheProxy` (experimental) is the configuration for centralized Kubernetes informers that push cache updates to flowlogs-pipeline processors.
+This reduces load on the API server by having fewer components running informers, and allows to scale FLP up without paying the cost of new informers.
+It is not recommended to use on small clusters with few FLP replicas (<4), or when API server load is not a concern.
+This feature is currently experimental.
+
 | `kafkaConsumerAutoscaler`
 | `object`
-| `kafkaConsumerAutoscaler` [deprecated (*)] is the spec of a horizontal pod autoscaler to set up for `flowlogs-pipeline-transformer`, which consumes Kafka messages.
+| `kafkaConsumerAutoscaler` is the spec of a horizontal pod autoscaler to set up for `flowlogs-pipeline-transformer`, which consumes Kafka messages.
 This setting is ignored when Kafka is disabled.
-Deprecation notice: managed autoscaler will be removed in a future version. You might configure instead an autoscaler of your choice, and set `spec.processor.unmanagedReplicas` to `true`. Refer to HorizontalPodAutoscaler documentation (autoscaling/v2).
+
+Deprecated: managed autoscaler will be removed in a future version. You might configure instead an autoscaler of your choice, and set `spec.processor.unmanagedReplicas` to `true`. Refer to HorizontalPodAutoscaler documentation (autoscaling/v2).
 
 | `kafkaConsumerBatchSize`
 | `integer`
@@ -2824,9 +2871,10 @@ Deprecation notice: managed autoscaler will be removed in a future version. You 
 
 | `kafkaConsumerReplicas`
 | `integer`
-| `kafkaConsumerReplicas` [deprecated (*)] defines the number of replicas (pods) to start for `flowlogs-pipeline-transformer`, which consumes Kafka messages.
+| `kafkaConsumerReplicas` defines the number of replicas (pods) to start for `flowlogs-pipeline-transformer`, which consumes Kafka messages.
 This setting is ignored when Kafka is disabled.
-Deprecation notice: use `spec.processor.consumerReplicas` instead.
+
+Deprecated: use `spec.processor.consumerReplicas` instead.
 
 | `logLevel`
 | `string`
@@ -2868,7 +2916,7 @@ For more information, see https://kubernetes.io/docs/concepts/configuration/mana
 
 | `subnetLabels`
 | `object`
-| `subnetLabels` allows to define custom labels on subnets and IPs or to enable automatic labeling of recognized subnets in {product-title}, which is used to identify cluster external traffic.
+| `subnetLabels` allows to define custom labels on subnets and IPs and to enable automatic labeling of recognized subnets, which is used to identify cluster external traffic.
 When a subnet matches the source or destination IP of a flow, a corresponding field is added: `SrcSubnetLabel` or `DstSubnetLabel`.
 
 | `unmanagedReplicas`
@@ -2902,7 +2950,7 @@ This delay is ignored when a FIN packet is collected for TCP flows (see `convers
 
 | `conversationHeartbeatInterval`
 | `string`
-| `conversationHeartbeatInterval` is the time to wait between "tick" events of a conversation
+| `conversationHeartbeatInterval` is the time to wait between "tick" events of a conversation.
 
 | `conversationTerminatingTimeout`
 | `string`
@@ -2910,11 +2958,13 @@ This delay is ignored when a FIN packet is collected for TCP flows (see `convers
 
 | `dropUnusedFields`
 | `boolean`
-| `dropUnusedFields` [deprecated (*)] this setting is not used anymore.
+| `dropUnusedFields`.
+
+Deprecated: this setting is not used anymore.
 
 | `enableKubeProbes`
 | `boolean`
-| `enableKubeProbes` is a flag to enable or disable Kubernetes liveness and readiness probes
+| `enableKubeProbes` is a flag to enable or disable Kubernetes liveness and readiness probes.
 
 | `env`
 | `object (string)`
@@ -2925,7 +2975,7 @@ in edge debug or support scenarios.
 
 | `healthPort`
 | `integer`
-| `healthPort` is a collector HTTP port in the Pod that exposes the health check API
+| `healthPort` is a collector HTTP port in the Pod that exposes the health check API.
 
 | `port`
 | `integer`
@@ -2935,11 +2985,13 @@ By convention, some values are forbidden. It must be greater than 1024 and diffe
 
 | `profilePort`
 | `integer`
-| `profilePort` allows setting up a Go pprof profiler listening to this port
+| `profilePort` allows setting up a Go pprof profiler listening to this port.
+This is for debugging purpose only. This port should not be exposed, you can
+access it through local port-forwarding.
 
 | `scheduling`
 | `object`
-| scheduling controls how the pods are scheduled on nodes.
+| `scheduling` controls how the pods are scheduled on nodes.
 
 | `secondaryNetworks`
 | `array`
@@ -2953,7 +3005,7 @@ If not provided and `spec.agent.ebpf.privileged` is `true`, secondary networks a
 Description::
 +
 --
-scheduling controls how the pods are scheduled on nodes.
+`scheduling` controls how the pods are scheduled on nodes.
 --
 
 Type::
@@ -3137,13 +3189,373 @@ Type::
 | `sampling` is an optional sampling interval to apply to this filter. For example, a value of `50` means that 1 matching flow in 50 is sampled.
 
 |===
+== .spec.processor.informerCacheProxy
+Description::
++
+--
+`informerCacheProxy` (experimental) is the configuration for centralized Kubernetes informers that push cache updates to flowlogs-pipeline processors.
+This reduces load on the API server by having fewer components running informers, and allows to scale FLP up without paying the cost of new informers.
+It is not recommended to use on small clusters with few FLP replicas (<4), or when API server load is not a concern.
+This feature is currently experimental.
+--
+
+Type::
+  `object`
+
+
+
+
+[cols="1,1,1",options="header"]
+|===
+| Property | Type | Description
+
+| `advanced`
+| `object`
+| `advanced` allows setting some technical parameters of the informer cache proxy component.
+
+| `enabled`
+| `boolean`
+| `enabled` controls whether to deploy the informer cache proxy.
+When `true`, a dedicated deployment watches K8s resources and pushes cache updates via gRPC to FLP processors, reducing API server load.
+When `false` (default), each FLP processor uses local informers.
+Enable only on large clusters or when API server load is a concern, as it adds deployment complexity.
+
+| `replicas`
+| `integer`
+| `replicas` defines the number of replicas for the flowlogs-pipeline-informers deployment.
+For high availability, a minimum of 2 replicas is required when `enabled` is `true`.
+
+| `resources`
+| `object`
+| `resources` are the compute resources required by the informer cache proxy container.
+For more information, see https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+
+| `tls`
+| `object`
+| `tls` defines the TLS configuration for the gRPC communication between the informer cache proxy and processors.
+
+|===
+== .spec.processor.informerCacheProxy.advanced
+Description::
++
+--
+`advanced` allows setting some technical parameters of the informer cache proxy component.
+--
+
+Type::
+  `object`
+
+
+
+
+[cols="1,1,1",options="header"]
+|===
+| Property | Type | Description
+
+| `batchSize`
+| `integer`
+| `batchSize` defines the maximum number of cache entries to send in a single update batch.
+
+| `processorPort`
+| `integer`
+| `processorPort` defines the gRPC port where flowlogs-pipeline processors listen for k8s cache updates.
+
+| `resyncInterval`
+| `integer`
+| `resyncInterval` defines the interval in seconds to rediscover processors and sync state.
+
+| `sendTimeout`
+| `integer`
+| `sendTimeout` defines the timeout in seconds for sending updates to processors.
+
+| `updateBufferSize`
+| `integer`
+| `updateBufferSize` defines the size of the internal update channel buffer.
+
+|===
+== .spec.processor.informerCacheProxy.resources
+Description::
++
+--
+`resources` are the compute resources required by the informer cache proxy container.
+For more information, see https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+--
+
+Type::
+  `object`
+
+
+
+
+[cols="1,1,1",options="header"]
+|===
+| Property | Type | Description
+
+| `claims`
+| `array`
+| Claims lists the names of resources, defined in spec.resourceClaims,
+that are used by this container.
+
+This field depends on the
+DynamicResourceAllocation feature gate.
+
+This field is immutable. It can only be set for containers.
+
+| `limits`
+| `integer-or-string`
+| Limits describes the maximum amount of compute resources allowed.
+More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+
+| `requests`
+| `integer-or-string`
+| Requests describes the minimum amount of compute resources required.
+If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+otherwise to an implementation-defined value. Requests cannot exceed Limits.
+More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+
+|===
+== .spec.processor.informerCacheProxy.resources.claims
+Description::
++
+--
+Claims lists the names of resources, defined in spec.resourceClaims,
+that are used by this container.
+
+This field depends on the
+DynamicResourceAllocation feature gate.
+
+This field is immutable. It can only be set for containers.
+--
+
+Type::
+  `array`
+
+
+
+
+== .spec.processor.informerCacheProxy.resources.claims[]
+Description::
++
+--
+ResourceClaim references one entry in PodSpec.ResourceClaims.
+--
+
+Type::
+  `object`
+
+Required::
+  - `name`
+
+
+
+[cols="1,1,1",options="header"]
+|===
+| Property | Type | Description
+
+| `name`
+| `string`
+| Name must match the name of one entry in pod.spec.resourceClaims of
+the Pod where this field is used. It makes that resource available
+inside a container.
+
+| `request`
+| `string`
+| Request is the name chosen for a request in the referenced claim.
+If empty, everything from the claim is made available, otherwise
+only the result of this request.
+
+|===
+== .spec.processor.informerCacheProxy.tls
+Description::
++
+--
+`tls` defines the TLS configuration for the gRPC communication between the informer cache proxy and processors.
+--
+
+Type::
+  `object`
+
+Required::
+  - `type`
+
+
+
+[cols="1,1,1",options="header"]
+|===
+| Property | Type | Description
+
+| `providedCertificates`
+| `object`
+| mTLS configuration when `type` is set to `Provided`.
+`serverCert` is required. `clientCert` is optional; if provided, mTLS is enabled.
+
+| `type`
+| `string`
+| Select the type of TLS configuration: +
+
+- `Disabled` to not configure TLS for the k8scache endpoint. Disabling TLS results in a less secure deployment model. +
+
+- `Provided` to manually provide cert/key references for mTLS. +
+
+- `Auto` (default) to use {product-title} service-ca for automatic server certificate generation (simple TLS). +
+
+- `Auto-mTLS` to preconfigure mTLS with cert-manager. [Unsupported (*)]. +
+
+See also: https://github.com/netobserv/netobserv-operator/blob/main/docs/TLS.md.
+
+|===
+== .spec.processor.informerCacheProxy.tls.providedCertificates
+Description::
++
+--
+mTLS configuration when `type` is set to `Provided`.
+`serverCert` is required. `clientCert` is optional; if provided, mTLS is enabled.
+--
+
+Type::
+  `object`
+
+
+
+
+[cols="1,1,1",options="header"]
+|===
+| Property | Type | Description
+
+| `caFile`
+| `object`
+| Reference to the CA file.
+
+| `clientCert`
+| `object`
+| TLS client certificate reference, used for mTLS. Leave unset for simple TLS.
+
+| `serverCert`
+| `object`
+| TLS server certificate reference.
+
+|===
+== .spec.processor.informerCacheProxy.tls.providedCertificates.caFile
+Description::
++
+--
+Reference to the CA file.
+--
+
+Type::
+  `object`
+
+
+
+
+[cols="1,1,1",options="header"]
+|===
+| Property | Type | Description
+
+| `file`
+| `string`
+| File name within the config map or secret.
+
+| `name`
+| `string`
+| Name of the config map or secret containing the file.
+
+| `namespace`
+| `string`
+| Namespace of the config map or secret containing the file. If omitted, the default is to use the same namespace as where Network Observability is deployed.
+If the namespace is different, the config map or the secret is copied so that it can be mounted as required.
+
+| `type`
+| `string`
+| Type for the file reference: `configmap` or `secret`.
+
+|===
+== .spec.processor.informerCacheProxy.tls.providedCertificates.clientCert
+Description::
++
+--
+TLS client certificate reference, used for mTLS. Leave unset for simple TLS.
+--
+
+Type::
+  `object`
+
+
+
+
+[cols="1,1,1",options="header"]
+|===
+| Property | Type | Description
+
+| `certFile`
+| `string`
+| `certFile` defines the path to the certificate file name within the config map or secret.
+
+| `certKey`
+| `string`
+| `certKey` defines the path to the certificate private key file name within the config map or secret. Omit when the key is not necessary.
+
+| `name`
+| `string`
+| Name of the config map or secret containing certificates.
+
+| `namespace`
+| `string`
+| Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
+If the namespace is different, the config map or the secret is copied so that it can be mounted as required.
+
+| `type`
+| `string`
+| Type for the certificate reference: `configmap` or `secret`.
+
+|===
+== .spec.processor.informerCacheProxy.tls.providedCertificates.serverCert
+Description::
++
+--
+TLS server certificate reference.
+--
+
+Type::
+  `object`
+
+
+
+
+[cols="1,1,1",options="header"]
+|===
+| Property | Type | Description
+
+| `certFile`
+| `string`
+| `certFile` defines the path to the certificate file name within the config map or secret.
+
+| `certKey`
+| `string`
+| `certKey` defines the path to the certificate private key file name within the config map or secret. Omit when the key is not necessary.
+
+| `name`
+| `string`
+| Name of the config map or secret containing certificates.
+
+| `namespace`
+| `string`
+| Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
+If the namespace is different, the config map or the secret is copied so that it can be mounted as required.
+
+| `type`
+| `string`
+| Type for the certificate reference: `configmap` or `secret`.
+
+|===
 == .spec.processor.kafkaConsumerAutoscaler
 Description::
 +
 --
-`kafkaConsumerAutoscaler` [deprecated (*)] is the spec of a horizontal pod autoscaler to set up for `flowlogs-pipeline-transformer`, which consumes Kafka messages.
+`kafkaConsumerAutoscaler` is the spec of a horizontal pod autoscaler to set up for `flowlogs-pipeline-transformer`, which consumes Kafka messages.
 This setting is ignored when Kafka is disabled.
-Deprecation notice: managed autoscaler will be removed in a future version. You might configure instead an autoscaler of your choice, and set `spec.processor.unmanagedReplicas` to `true`. Refer to HorizontalPodAutoscaler documentation (autoscaling/v2).
+
+Deprecated: managed autoscaler will be removed in a future version. You might configure instead an autoscaler of your choice, and set `spec.processor.unmanagedReplicas` to `true`. Refer to HorizontalPodAutoscaler documentation (autoscaling/v2).
 --
 
 Type::
@@ -3183,7 +3595,7 @@ More information, with full list of available metrics: https://github.com/netobs
 | `array (string)`
 | `disableAlerts` is a list of alert groups that should be disabled from the default set of alerts.
 Possible values are: `NetObservNoFlows`, `NetObservLokiError`, `PacketDropsByKernel`, `PacketDropsByDevice`, `IPsecErrors`, `NetpolDenied`,
-`LatencyHighTrend`, `DNSErrors`, `DNSNxDomain`, `ExternalEgressHighTrend`, `ExternalIngressHighTrend`, `Ingress5xxErrors`, `IngressHTTPLatencyTrend`.
+`LatencyHighTrend`, `DNSErrors`, `DNSNxDomain`, `ExternalEgressHighTrend`, `ExternalIngressHighTrend`, `Ingress5xxErrors`, `IngressHTTPLatencyTrend`, `TLSInsecureVersion`.
 More information on alerts: https://github.com/netobserv/netobserv-operator/blob/main/docs/HealthRules.md
 
 | `healthRules`
@@ -3201,7 +3613,7 @@ Note that the more metrics you add, the bigger is the impact on Prometheus workl
 Metrics enabled by default are:
 `namespace_flows_total`, `node_ingress_bytes_total`, `node_egress_bytes_total`, `workload_ingress_bytes_total`,
 `workload_egress_bytes_total`, `namespace_drop_packets_total` (when `PacketDrop` feature is enabled),
-`namespace_rtt_seconds` (when `FlowRTT` feature is enabled), `namespace_dns_latency_seconds` (when `DNSTracking` feature is enabled),
+`namespace_rtt_seconds` (when `FlowRTT` feature is enabled), `namespace_dns_latency_seconds` and `namespace_dns_flows_total` (when `DNSTracking` feature is enabled),
 `namespace_network_policy_events_total` (when `NetworkEvents` feature is enabled).
 More information, with full list of available metrics: https://github.com/netobserv/netobserv-operator/blob/main/docs/Metrics.md
 
@@ -3257,7 +3669,7 @@ many new alerts burdensome.
 | `string`
 | Health rule template name.
 Possible values are: `PacketDropsByKernel`, `PacketDropsByDevice`, `IPsecErrors`, `NetpolDenied`,
-`LatencyHighTrend`, `DNSErrors`, `DNSNxDomain`, `ExternalEgressHighTrend`, `ExternalIngressHighTrend`, `Ingress5xxErrors`, `IngressHTTPLatencyTrend`.
+`LatencyHighTrend`, `DNSErrors`, `DNSNxDomain`, `ExternalEgressHighTrend`, `ExternalIngressHighTrend`, `Ingress5xxErrors`, `IngressHTTPLatencyTrend`, `TLSInsecureVersion`.
 Note: `NetObservNoFlows` and `NetObservLokiError` are alert-only and cannot be used as health rules.
 More information on health rules: https://github.com/netobserv/netobserv-operator/blob/main/docs/HealthRules.md
 
@@ -3382,6 +3794,10 @@ Type::
 | `integer`
 | The metrics server HTTP port.
 
+| `scrapeInterval`
+| `string`
+| Prometheus scraping interval, how often metrics are pulled.
+
 | `tls`
 | `object`
 | TLS configuration.
@@ -3409,7 +3825,7 @@ Required::
 | `insecureSkipVerify`
 | `boolean`
 | `insecureSkipVerify` allows skipping client-side verification of the provided certificate.
-If set to `true`, the `providedCaFile` field is ignored.
+If set to `true`, the `providedCaFile` field is ignored. For security, this should not be used other than for testing or demo.
 
 | `provided`
 | `object`
@@ -3423,9 +3839,12 @@ If set to `true`, the `providedCaFile` field is ignored.
 | `string`
 | Select the type of TLS configuration: +
 
-- `Disabled` (default) to not configure TLS for the endpoint.
-- `Provided` to manually provide cert file and a key file. [Unsupported (*)].
-- `Auto` to use {product-title} auto generated certificate using annotations.
+- `Disabled` (default) to not configure TLS for the endpoint. +
+
+- `Provided` to manually provide cert file and a key file. [Unsupported (*)]. +
+
+- `Auto` to use {product-title} auto generated certificate using annotations. +
+
 
 |===
 == .spec.processor.metrics.server.tls.provided
@@ -3757,7 +4176,7 @@ This setting is ignored if `collectionMode` is different from `AllowList`.
 Description::
 +
 --
-`subnetLabels` allows to define custom labels on subnets and IPs or to enable automatic labeling of recognized subnets in {product-title}, which is used to identify cluster external traffic.
+`subnetLabels` allows to define custom labels on subnets and IPs and to enable automatic labeling of recognized subnets, which is used to identify cluster external traffic.
 When a subnet matches the source or destination IP of a flow, a corresponding field is added: `SrcSubnetLabel` or `DstSubnetLabel`.
 --
 
@@ -3771,21 +4190,29 @@ Type::
 |===
 | Property | Type | Description
 
+| `autoDetect`
+| `boolean`
+| `autoDetect` allows, when set to `true`, to detect automatically the machines, pods and services subnets based on
+{product-title} configuration. Indirectly, this is a way to accurately detect
+external traffic: flows that are not labeled for those subnets are external to the cluster. Enabled by default.
+
 | `customLabels`
 | `array`
 | `customLabels` allows you to customize subnets and IPs labeling, such as to identify cluster external workloads or web services.
 External subnets must be labeled with the prefix `EXT:`, or not labeled at all, in order to work with default quick filters and some metrics examples provided. +
 
-If `openShiftAutoDetect` is disabled or you are not using {product-title}, it is recommended to manually configure labels for the cluster subnets, to distinguish internal traffic from external traffic. +
+If `autoDetect` is disabled, it is recommended to manually configure labels for the cluster subnets, to distinguish internal traffic from external traffic. +
 
-If `openShiftAutoDetect` is enabled, `customLabels` overrides the detected subnets when they overlap. +
+If `autoDetect` is enabled, `customLabels` overrides the detected subnets when they overlap. +
 
 
 | `openShiftAutoDetect`
 | `boolean`
-| `openShiftAutoDetect` allows, when set to `true`, to detect automatically the machines, pods and services subnets based on the
-{product-title} install configuration and the Cluster Network Operator configuration. Indirectly, this is a way to accurately detect
-external traffic: flows that are not labeled for those subnets are external to the cluster. Enabled by default on {product-title}.
+| `openShiftAutoDetect` allows, when set to `true`, to detect automatically the machines, pods and services subnets based on
+{product-title} configuration. Indirectly, this is a way to accurately detect
+external traffic: flows that are not labeled for those subnets are external to the cluster.
+
+Deprecated: use `autoDetect` instead.
 
 |===
 == .spec.processor.subnetLabels.customLabels
@@ -3795,9 +4222,9 @@ Description::
 `customLabels` allows you to customize subnets and IPs labeling, such as to identify cluster external workloads or web services.
 External subnets must be labeled with the prefix `EXT:`, or not labeled at all, in order to work with default quick filters and some metrics examples provided. +
 
-If `openShiftAutoDetect` is disabled or you are not using {product-title}, it is recommended to manually configure labels for the cluster subnets, to distinguish internal traffic from external traffic. +
+If `autoDetect` is disabled, it is recommended to manually configure labels for the cluster subnets, to distinguish internal traffic from external traffic. +
 
-If `openShiftAutoDetect` is enabled, `customLabels` overrides the detected subnets when they overlap. +
+If `autoDetect` is enabled, `customLabels` overrides the detected subnets when they overlap. +
 
 --
 
@@ -3897,7 +4324,7 @@ If they are both disabled, the Console plugin is not deployed.
 | `string`
 | `mode` must be set according to the type of Prometheus installation that stores Network Observability metrics: +
 
-- Use `Auto` to try configuring automatically. In {product-title}, it uses the Thanos querier from {product-title} Cluster Monitoring. +
+- Use `Auto` to configure automatically. It uses the Thanos querier from {product-title} Cluster Monitoring. +
 
 - Use `Manual` for a manual setup. +
 
@@ -3928,7 +4355,7 @@ Type::
 | `alertManager`
 | `object`
 | AlertManager configuration. This is used in the console to query silenced alerts, for displaying health information.
-When used in {product-title} it can be left empty to use the Console API instead.
+It can be left empty to use the Console API instead.
 [Unsupported (*)].
 
 | `forwardUserToken`
@@ -3949,7 +4376,7 @@ Description::
 +
 --
 AlertManager configuration. This is used in the console to query silenced alerts, for displaying health information.
-When used in {product-title} it can be left empty to use the Console API instead.
+It can be left empty to use the Console API instead.
 [Unsupported (*)].
 --
 
@@ -4000,7 +4427,7 @@ Type::
 | `insecureSkipVerify`
 | `boolean`
 | `insecureSkipVerify` allows skipping client-side verification of the server certificate.
-If set to `true`, the `caCert` field is ignored.
+If set to `true`, the `caCert` field is ignored. For security, this should not be used other than for testing or demo.
 
 | `userCert`
 | `object`
@@ -4113,7 +4540,7 @@ Type::
 | `insecureSkipVerify`
 | `boolean`
 | `insecureSkipVerify` allows skipping client-side verification of the server certificate.
-If set to `true`, the `caCert` field is ignored.
+If set to `true`, the `caCert` field is ignored. For security, this should not be used other than for testing or demo.
 
 | `userCert`
 | `object`

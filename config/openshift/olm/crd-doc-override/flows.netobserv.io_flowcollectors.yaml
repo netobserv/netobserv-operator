@@ -61,6 +61,7 @@ spec:
                 For example: [53, 5353, 8053]. Leave empty to use OpenShift default (53, 5353).
                 Maximum 8 ports allowed.
     consolePlugin:
+      description: '`consolePlugin` defines the settings related to the OpenShift Console plugin.'
       properties:
         standalone:
           description: |-

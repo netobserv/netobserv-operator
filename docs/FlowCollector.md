@@ -8595,12 +8595,10 @@ but with a lesser improvement in performance.<br/>
         <td><b><a href="#flowcollectorspecprocessorinformercacheproxy">informerCacheProxy</a></b></td>
         <td>object</td>
         <td>
-          `informerCacheProxy` configuration for centralized Kubernetes informers that push cache updates to flowlogs-pipeline processors.
-This reduces load on the Kubernetes API server by having a single component query the API instead of N FLP processors.
-When enabled, a dedicated deployment is created that watches Kubernetes resources and pushes updates via gRPC.
-Benefits: Reduced API server load on large clusters with many FLP replicas.
-Drawbacks: More complex deployment (additional component), higher resource usage on small clusters.
-Recommended only for clusters with many FLP replicas (>3) or when API server load is a concern.<br/>
+          `informerCacheProxy` (experimental) is the configuration for centralized Kubernetes informers that push cache updates to flowlogs-pipeline processors.
+This reduces load on the API server by having fewer components running informers, and allows to scale FLP up without paying the cost of new informers.
+It is not recommended to use on small clusters with few FLP replicas (<4), or when API server load is not a concern.
+This feature is currently experimental.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -10737,12 +10735,10 @@ Fields absent from the 'k8s.v1.cni.cncf.io/network-status' annotation must not b
 
 
 
-`informerCacheProxy` configuration for centralized Kubernetes informers that push cache updates to flowlogs-pipeline processors.
-This reduces load on the Kubernetes API server by having a single component query the API instead of N FLP processors.
-When enabled, a dedicated deployment is created that watches Kubernetes resources and pushes updates via gRPC.
-Benefits: Reduced API server load on large clusters with many FLP replicas.
-Drawbacks: More complex deployment (additional component), higher resource usage on small clusters.
-Recommended only for clusters with many FLP replicas (>3) or when API server load is a concern.
+`informerCacheProxy` (experimental) is the configuration for centralized Kubernetes informers that push cache updates to flowlogs-pipeline processors.
+This reduces load on the API server by having fewer components running informers, and allows to scale FLP up without paying the cost of new informers.
+It is not recommended to use on small clusters with few FLP replicas (<4), or when API server load is not a concern.
+This feature is currently experimental.
 
 <table>
     <thead>

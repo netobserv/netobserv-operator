@@ -72,6 +72,8 @@
   "TLSCipherSuite": "fine",
   "TLSGroup": "fine",
   "TLSTypes": "careful",
+  "SrcASN": "fine",
+  "DstASN": "fine",
   "_RecordType": "fine",
   "_HashId": "avoid"
 }

@@ -11,10 +11,10 @@
 # If you haven't already, start any k8s cluster
 kind create cluster
 
-# Make sure the CRD has all the desired doc within
-make generate
+kubectl apply -f bundles/openshift/manifests/flows.netobserv.io_flowcollectors.yaml
+kubectl apply -f bundles/openshift/manifests/flows.netobserv.io_flowcollectorslices.yaml
+kubectl apply -f bundles/openshift/manifests/flows.netobserv.io_flowmetrics.yaml
 
-make install
 hack/asciidoc-gen.sh
 ```
 
