@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	networkingv1 "k8s.io/api/networking/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -13,12 +12,14 @@ import (
 	"github.com/netobserv/netobserv-operator/internal/controller/reconcilers"
 	"github.com/netobserv/netobserv-operator/internal/pkg/helper"
 	"github.com/netobserv/netobserv-operator/internal/pkg/manager"
+	"github.com/netobserv/netobserv-operator/internal/pkg/manager/enqueuer"
 	"github.com/netobserv/netobserv-operator/internal/pkg/manager/status"
 )
 
 type Reconciler struct {
 	client.Client
 	mgr    *manager.Manager
+	ctrlQ  enqueuer.FilteredDynamic
 	status status.Instance
 }
 
@@ -30,11 +31,15 @@ func Start(ctx context.Context, mgr *manager.Manager) (manager.PostCreateHook, e
 		mgr:    mgr,
 		status: mgr.Status.ForComponent(status.NetworkPolicy),
 	}
-	return nil, ctrl.NewControllerManagedBy(mgr).
+	controller, err := ctrl.NewControllerManagedBy(mgr).
 		For(&flowslatest.FlowCollector{}, reconcilers.IgnoreStatusChange).
 		Named("networkPolicy").
-		Owns(&networkingv1.NetworkPolicy{}, reconcilers.UpdateOrDeleteOnlyPred).
-		Complete(&r)
+		Build(&r)
+	if err != nil {
+		return nil, err
+	}
+	r.ctrlQ = mgr.NewDynamicControllerEnqueuer("networkPolicy-managed", controller)
+	return nil, nil
 }
 
 // Reconcile is the controller entry point for reconciling current state with desired state.
@@ -47,7 +52,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Result
 	clh, desired, err := helper.NewFlowCollectorClientHelper(ctx, r.Client)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to get FlowCollector: %w", err)
-	} else if desired == nil {
+	}
+	r.ctrlQ.ResetActiveWatches()
+	if desired == nil {
 		// Delete case
 		return ctrl.Result{}, nil
 	}
@@ -75,12 +82,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Result
 // Returns true if policies are enabled
 func (r *Reconciler) reconcile(ctx context.Context, clh *helper.Client, desired *flowslatest.FlowCollector) (bool, error) {
 	npName, desiredNp := buildMainNetworkPolicy(desired, r.mgr)
-	if err := reconcilers.ReconcileNetworkPolicy(ctx, clh, npName, desiredNp); err != nil {
+	if err := reconcilers.ReconcileNetworkPolicyWithEnqueuer(ctx, r.ctrlQ, clh, npName, desiredNp); err != nil {
 		return false, err
 	}
 
 	privilegedNpName, desiredPrivilegedNp := buildPrivilegedNetworkPolicy(desired, r.mgr)
-	if err := reconcilers.ReconcileNetworkPolicy(ctx, clh, privilegedNpName, desiredPrivilegedNp); err != nil {
+	if err := reconcilers.ReconcileNetworkPolicyWithEnqueuer(ctx, r.ctrlQ, clh, privilegedNpName, desiredPrivilegedNp); err != nil {
 		return false, err
 	}
 

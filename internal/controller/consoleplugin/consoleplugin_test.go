@@ -43,22 +43,7 @@ func getPluginConfig() flowslatest.FlowCollectorConsolePlugin {
 		Enable:          ptr.To(true),
 		ImagePullPolicy: string(testPullPolicy),
 		Resources:       testResources,
-		Autoscaler: flowslatest.FlowCollectorHPA{
-			Status:      flowslatest.HPAStatusEnabled,
-			MinReplicas: &minReplicas,
-			MaxReplicas: maxReplicas,
-			Metrics: []ascv2.MetricSpec{{
-				Type: ascv2.ResourceMetricSourceType,
-				Resource: &ascv2.ResourceMetricSource{
-					Name: corev1.ResourceCPU,
-					Target: ascv2.MetricTarget{
-						Type:               ascv2.UtilizationMetricType,
-						AverageUtilization: &targetCPU,
-					},
-				},
-			}},
-		},
-		LogLevel: "info",
+		LogLevel:        "info",
 	}
 }
 
@@ -84,8 +69,23 @@ var minReplicas = int32(1)
 var maxReplicas = int32(5)
 var targetCPU = int32(75)
 
-func getAutoScalerSpecs() (ascv2.HorizontalPodAutoscaler, flowslatest.FlowCollectorConsolePlugin) {
-	var autoScaler = ascv2.HorizontalPodAutoscaler{
+func getAutoScalerSpecs() (ascv2.HorizontalPodAutoscaler, flowslatest.FlowCollectorHPA) {
+	config := flowslatest.FlowCollectorHPA{
+		Status:      flowslatest.HPAStatusEnabled,
+		MinReplicas: &minReplicas,
+		MaxReplicas: maxReplicas,
+		Metrics: []ascv2.MetricSpec{{
+			Type: ascv2.ResourceMetricSourceType,
+			Resource: &ascv2.ResourceMetricSource{
+				Name: corev1.ResourceCPU,
+				Target: ascv2.MetricTarget{
+					Type:               ascv2.UtilizationMetricType,
+					AverageUtilization: &targetCPU,
+				},
+			},
+		}},
+	}
+	autoScaler := ascv2.HorizontalPodAutoscaler{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: testNamespace,
 		},
@@ -94,22 +94,13 @@ func getAutoScalerSpecs() (ascv2.HorizontalPodAutoscaler, flowslatest.FlowCollec
 				Kind: "Deployment",
 				Name: constants.PluginName,
 			},
-			MinReplicas: &minReplicas,
-			MaxReplicas: maxReplicas,
-			Metrics: []ascv2.MetricSpec{{
-				Type: ascv2.ResourceMetricSourceType,
-				Resource: &ascv2.ResourceMetricSource{
-					Name: corev1.ResourceCPU,
-					Target: ascv2.MetricTarget{
-						Type:               ascv2.UtilizationMetricType,
-						AverageUtilization: &targetCPU,
-					},
-				},
-			}},
+			MinReplicas: config.MinReplicas,
+			MaxReplicas: config.MaxReplicas,
+			Metrics:     config.Metrics,
 		},
 	}
 
-	return autoScaler, getPluginConfig()
+	return autoScaler, config
 }
 
 func getBuilder(spec *flowslatest.FlowCollectorSpec, lk *helper.LokiConfig) builder {
@@ -314,7 +305,6 @@ func TestConfigMapContent(t *testing.T) {
 	assert := assert.New(t)
 
 	agentSpec := flowslatest.FlowCollectorAgent{
-		Type: "eBPF",
 		EBPF: flowslatest.FlowCollectorEBPF{
 			Sampling: ptr.To(int32(1)),
 		},
@@ -455,34 +445,30 @@ func TestAutoScalerUpdateCheck(t *testing.T) {
 	assert := assert.New(t)
 
 	// equals specs
-	autoScaler, plugin := getAutoScalerSpecs()
+	autoScaler, config := getAutoScalerSpecs()
 	report := helper.NewChangeReport("")
-	//nolint:staticcheck
-	assert.Equal(helper.AutoScalerChanged(&autoScaler, plugin.Autoscaler, &report), false)
+	assert.Equal(helper.AutoScalerChanged(&autoScaler, config, &report), false)
 	assert.Contains(report.String(), "no change")
 
 	// wrong max replicas
-	autoScaler, plugin = getAutoScalerSpecs()
+	autoScaler, config = getAutoScalerSpecs()
 	autoScaler.Spec.MaxReplicas = 10
 	report = helper.NewChangeReport("")
-	//nolint:staticcheck
-	assert.Equal(helper.AutoScalerChanged(&autoScaler, plugin.Autoscaler, &report), true)
+	assert.Equal(helper.AutoScalerChanged(&autoScaler, config, &report), true)
 	assert.Contains(report.String(), "Max replicas changed")
 
 	// missing min replicas
-	autoScaler, plugin = getAutoScalerSpecs()
+	autoScaler, config = getAutoScalerSpecs()
 	autoScaler.Spec.MinReplicas = nil
 	report = helper.NewChangeReport("")
-	//nolint:staticcheck
-	assert.Equal(helper.AutoScalerChanged(&autoScaler, plugin.Autoscaler, &report), true)
+	assert.Equal(helper.AutoScalerChanged(&autoScaler, config, &report), true)
 	assert.Contains(report.String(), "Min replicas changed")
 
 	// missing metrics
-	autoScaler, plugin = getAutoScalerSpecs()
+	autoScaler, config = getAutoScalerSpecs()
 	autoScaler.Spec.Metrics = []ascv2.MetricSpec{}
 	report = helper.NewChangeReport("")
-	//nolint:staticcheck
-	assert.Equal(helper.AutoScalerChanged(&autoScaler, plugin.Autoscaler, &report), true)
+	assert.Equal(helper.AutoScalerChanged(&autoScaler, config, &report), true)
 	assert.Contains(report.String(), "Metrics changed")
 }
 

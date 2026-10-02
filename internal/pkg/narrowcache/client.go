@@ -32,6 +32,16 @@ type Client struct {
 	idempotentSources idempotentSources         // idempotentSources stores registered sources for idempotent enqueue requests
 }
 
+// IsManaged reports whether narrowcache supports name-scoped watches for obj's GVK.
+func (c *Client) IsManaged(obj client.Object) bool {
+	gvk, err := c.GroupVersionKindFor(obj)
+	if err != nil {
+		return false
+	}
+	_, managed := c.watchedGVKs[gvk.String()]
+	return managed
+}
+
 type watchedObject struct {
 	cached   client.Object
 	handlers []handlerOnQueue
@@ -90,18 +100,28 @@ func (c *Client) getAndCreateWatchIfNeeded(ctx context.Context, info GVKInfo, gv
 
 	// Start updating goroutine
 	go c.updateCache(ctx, objKey, info, key, w)
+	if fetched == nil {
+		return nil, objKey, kerr.NewNotFound(schema.GroupResource{Group: gvk.Group, Resource: gvk.Kind}, key.Name)
+	}
 
 	return fetched, objKey, nil
 }
 
 func (c *Client) fetchAndWatch(ctx context.Context, cacheKey string, info GVKInfo, objKey client.ObjectKey) (client.Object, watch.Interface, error) {
-	fetched, err := info.Getter(ctx, c.liveClient, objKey)
-	if err != nil {
-		return nil, nil, err
-	}
+	// Start the name-scoped watch before the GET. This closes the gap where an object could
+	// change between the read and watch registration and leave the cache stale indefinitely.
 	w, err := info.Watcher(ctx, c.liveClient, objKey)
 	if err != nil {
 		return nil, nil, err
+	}
+	fetched, err := info.Getter(ctx, c.liveClient, objKey)
+	if err != nil {
+		if !kerr.IsNotFound(err) {
+			w.Stop()
+			return nil, nil, err
+		}
+		c.setCacheObject(cacheKey, nil)
+		return nil, w, nil
 	}
 	info.Cleanup(fetched)
 	if err := c.setToCache(cacheKey, fetched); err != nil {
@@ -146,27 +166,50 @@ func (c *Client) updateCache(ctx context.Context, cacheKey string, info GVKInfo,
 				rlog.V(1).WithValues("key", cacheKey).Info("Watch channel closed, re-establishing")
 				watcher.Stop()
 
+				previous := c.cachedObject(cacheKey)
+				if previous != nil {
+					previous = previous.DeepCopyObject().(client.Object)
+				}
 				obj, newWatcher, err := c.fetchAndWatch(ctx, cacheKey, info, objKey)
 				if err != nil {
 					rlog.WithValues("key", cacheKey).Error(err, "Failed to re-establish watch")
 					return
 				}
 
-				// Notify handlers so controllers re-check current state
-				c.callHandlers(ctx, cacheKey, watch.Event{Type: watch.Modified, Object: obj})
+				// Notify handlers so controllers re-check current state, including when the
+				// object no longer exists.
+				if obj == nil {
+					c.callHandlers(ctx, cacheKey, watch.Event{Type: watch.Deleted}, previous, nil)
+				} else if previous == nil {
+					c.callHandlers(ctx, cacheKey, watch.Event{Type: watch.Added}, nil, obj)
+				} else {
+					c.callHandlers(ctx, cacheKey, watch.Event{Type: watch.Modified}, previous, obj)
+				}
 
 				watcher = newWatcher
 				continue
 			}
 			rlog.V(1).WithValues("key", cacheKey, "event type", watchEvent.Type).Info("Event received")
+			var oldObject, newObject client.Object
+			if watchEvent.Type == watch.Added || watchEvent.Type == watch.Modified {
+				newObject, _ = watchEvent.Object.(client.Object)
+				oldObject = c.cachedObject(cacheKey)
+				if oldObject != nil {
+					oldObject = oldObject.DeepCopyObject().(client.Object)
+				}
+			}
 			if watchEvent.Type == watch.Added || watchEvent.Type == watch.Modified {
 				if err := c.setToCache(cacheKey, watchEvent.Object); err != nil {
 					rlog.WithValues("key", cacheKey).Error(err, "Error while updating cache")
 				}
 			} else if watchEvent.Type == watch.Deleted {
+				oldObject, _ = watchEvent.Object.(client.Object)
+				if oldObject != nil {
+					oldObject = oldObject.DeepCopyObject().(client.Object)
+				}
 				c.removeFromCache(cacheKey)
 			}
-			c.callHandlers(ctx, cacheKey, watchEvent)
+			c.callHandlers(ctx, cacheKey, watchEvent, oldObject, newObject)
 		}
 	}
 }
@@ -177,12 +220,25 @@ func (c *Client) setToCache(key string, obj runtime.Object) error {
 		return fmt.Errorf("could not convert runtime.Object to client.Object")
 	}
 
+	c.setCacheObject(key, cObj)
+	return nil
+}
+
+func (c *Client) setCacheObject(key string, obj client.Object) {
 	c.wmut.Lock()
 	defer c.wmut.Unlock()
 	if ca := c.watchedObjects[key]; ca != nil {
-		ca.cached = cObj
+		ca.cached = obj
 	} else {
-		c.watchedObjects[key] = &watchedObject{cached: cObj}
+		c.watchedObjects[key] = &watchedObject{cached: obj}
+	}
+}
+
+func (c *Client) cachedObject(key string) client.Object {
+	c.wmut.RLock()
+	defer c.wmut.RUnlock()
+	if ca := c.watchedObjects[key]; ca != nil {
+		return ca.cached
 	}
 	return nil
 }
@@ -209,7 +265,7 @@ func (c *Client) addHandler(ctx context.Context, key string, hoq handlerOnQueue)
 	return nil
 }
 
-func (c *Client) callHandlers(ctx context.Context, key string, ev watch.Event) {
+func (c *Client) callHandlers(ctx context.Context, key string, ev watch.Event, oldObject, newObject client.Object) {
 	if ctx.Err() != nil {
 		return
 	}
@@ -217,25 +273,23 @@ func (c *Client) callHandlers(ctx context.Context, key string, ev watch.Event) {
 	switch ev.Type {
 	case watch.Added:
 		fn = func(hoq handlerOnQueue) {
-			createEvent := event.CreateEvent{Object: ev.Object.(client.Object)}
+			createEvent := event.CreateEvent{Object: newObject}
 			hoq.handler.Create(ctx, createEvent, hoq.queue)
 		}
 	case watch.Modified:
 		fn = func(hoq handlerOnQueue) {
-			// old object unknown (not an issue for us - we just enqueue reconcile requests)
-			modEvent := event.UpdateEvent{ObjectOld: ev.Object.(client.Object), ObjectNew: ev.Object.(client.Object)}
+			modEvent := event.UpdateEvent{ObjectOld: oldObject, ObjectNew: newObject}
 			hoq.handler.Update(ctx, modEvent, hoq.queue)
 		}
 	case watch.Deleted:
 		fn = func(hoq handlerOnQueue) {
-			delEvent := event.DeleteEvent{Object: ev.Object.(client.Object)}
+			delEvent := event.DeleteEvent{Object: oldObject}
 			hoq.handler.Delete(ctx, delEvent, hoq.queue)
 		}
 	case watch.Bookmark:
 	case watch.Error:
-		// Not managed
 	}
-	if fn == nil {
+	if fn == nil || (ev.Type == watch.Deleted && oldObject == nil) || (ev.Type != watch.Deleted && newObject == nil) {
 		return
 	}
 	c.wmut.RLock()
@@ -249,6 +303,10 @@ func (c *Client) callHandlers(ctx context.Context, key string, ev watch.Event) {
 }
 
 func (c *Client) GetSource(ctx context.Context, obj client.Object, h handler.EventHandler) (source.Source, error) {
+	return c.getSource(ctx, obj, h, nil)
+}
+
+func (c *Client) getSource(ctx context.Context, obj client.Object, h handler.EventHandler, initialRequest *reconcile.Request) (source.Source, error) {
 	// Prepare a Source and make sure it is associated with a watch
 	rlog := log.FromContext(ctx).WithName("narrowcache")
 	rlog.V(1).WithValues("name", obj.GetName(), "namespace", obj.GetNamespace()).Info("Getting Source:")
@@ -263,14 +321,20 @@ func (c *Client) GetSource(ctx context.Context, obj client.Object, h handler.Eve
 	}
 
 	_, key, err := c.getAndCreateWatchIfNeeded(ctx, info, gvk, client.ObjectKeyFromObject(obj))
-	if err != nil {
+	if err != nil && !kerr.IsNotFound(err) {
 		return nil, err
 	}
 
 	return &NarrowSource{
 		handler: h,
 		onStart: func(ctx context.Context, q workqueue.TypedRateLimitingInterface[reconcile.Request]) error {
-			return c.addHandler(ctx, key, handlerOnQueue{handler: h, queue: q})
+			if err := c.addHandler(ctx, key, handlerOnQueue{handler: h, queue: q}); err != nil {
+				return err
+			}
+			if initialRequest != nil {
+				q.Add(*initialRequest)
+			}
+			return nil
 		},
 	}, nil
 }
@@ -279,14 +343,26 @@ func (c *Client) GetSource(ctx context.Context, obj client.Object, h handler.Eve
 // This function is NOT idempotent, it should be called at init, outside of any reconcile loop.
 // The variant SafeEnqueueRequestOnEvents can be called safely from a reconcile loop.
 func (c *Client) EnqueueRequestOnEvents(ctx context.Context, ctrl controller.Controller, obj client.Object, req reconcile.Request, predicate func(client.Object) bool) error {
-	s, err := c.GetSource(ctx, obj,
-		handler.EnqueueRequestsFromMapFunc(func(_ context.Context, o client.Object) []reconcile.Request {
-			if predicate != nil && predicate(o) {
-				return []reconcile.Request{req}
-			}
-			return nil
-		}),
-	)
+	filter := EventFilter(nil)
+	if predicate != nil {
+		filter = objectPredicateFilter(predicate)
+	}
+	return c.EnqueueRequestOnEventsWithFilter(ctx, ctrl, obj, req, filter)
+}
+
+func objectPredicateFilter(predicate func(client.Object) bool) EventFilter {
+	return func(oldObject, newObject client.Object) bool {
+		obj := newObject
+		if obj == nil {
+			obj = oldObject
+		}
+		return obj != nil && predicate(obj)
+	}
+}
+
+// EnqueueRequestOnEventsWithFilter registers a name-scoped watch that enqueues req for matching events.
+func (c *Client) EnqueueRequestOnEventsWithFilter(ctx context.Context, ctrl controller.Controller, obj client.Object, req reconcile.Request, filter EventFilter) error {
+	s, err := c.getSource(ctx, obj, requestEventHandler{request: req, filter: filter}, &req)
 	if err != nil {
 		return fmt.Errorf("could not create narrowcache source for %s/%s/%s: %w", obj.GetObjectKind(), obj.GetNamespace(), obj.GetName(), err)
 	}

@@ -179,6 +179,13 @@ func (c *StaticControllerEnqueuer) EnqueueOnChange(ctx context.Context, obj clie
 	return c.nc.SafeEnqueueRequestOnEvents(ctx, c.group, c.ctrl, obj, req, false)
 }
 
+func (c *StaticControllerEnqueuer) EnqueueOnChangeIfManaged(ctx context.Context, obj client.Object, req reconcile.Request, filter func(client.Object, client.Object) bool) error {
+	if !c.nc.IsManaged(obj) {
+		return nil
+	}
+	return c.nc.SafeEnqueueRequestOnEventsWithFilter(ctx, c.group, c.ctrl, obj, req, false, narrowcache.EventFilter(filter))
+}
+
 // DynamicControllerEnqueuer creates a dynamic enqueuer (implements enqueuer.Dynamic),
 // intended for tracking dynamic resources, tracking the watch status (active/inactive)
 type DynamicControllerEnqueuer struct {
@@ -195,6 +202,13 @@ func (m *Manager) NewDynamicControllerEnqueuer(group string, ctrl controller.Con
 
 func (c *DynamicControllerEnqueuer) EnqueueOnChange(ctx context.Context, obj client.Object, req reconcile.Request) error {
 	return c.nc.SafeEnqueueRequestOnEvents(ctx, c.group, c.ctrl, obj, req, true)
+}
+
+func (c *DynamicControllerEnqueuer) EnqueueOnChangeIfManaged(ctx context.Context, obj client.Object, req reconcile.Request, filter func(client.Object, client.Object) bool) error {
+	if !c.nc.IsManaged(obj) {
+		return nil
+	}
+	return c.nc.SafeEnqueueRequestOnEventsWithFilter(ctx, c.group, c.ctrl, obj, req, true, narrowcache.EventFilter(filter))
 }
 
 func (c *DynamicControllerEnqueuer) ResetActiveWatches() {

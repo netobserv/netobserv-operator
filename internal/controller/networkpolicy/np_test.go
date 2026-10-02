@@ -9,7 +9,6 @@ import (
 	"github.com/netobserv/netobserv-operator/internal/pkg/manager"
 	"github.com/stretchr/testify/assert"
 
-	ascv2 "k8s.io/api/autoscaling/v2"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -45,14 +44,10 @@ func getConfig() flowslatest.FlowCollector {
 	return flowslatest.FlowCollector{
 		Spec: flowslatest.FlowCollectorSpec{
 			DeploymentModel: flowslatest.DeploymentModelService,
-			Agent:           flowslatest.FlowCollectorAgent{Type: flowslatest.AgentEBPF},
+			Agent:           flowslatest.FlowCollectorAgent{},
 			Processor: flowslatest.FlowCollectorFLP{
 				LogLevel:         "trace",
 				ConsumerReplicas: ptr.To(int32(1)),
-				KafkaConsumerAutoscaler: flowslatest.FlowCollectorHPA{
-					Status:  flowslatest.HPAStatusEnabled,
-					Metrics: []ascv2.MetricSpec{},
-				},
 				Advanced: &flowslatest.AdvancedProcessorConfig{
 					Port:       ptr.To(int32(2055)),
 					HealthPort: ptr.To(int32(8080)),

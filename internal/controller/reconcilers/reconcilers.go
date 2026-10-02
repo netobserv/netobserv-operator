@@ -71,6 +71,28 @@ var (
 	}
 )
 
+// IgnoreStatusChangeEventFilter mirrors IgnoreStatusChange for name-scoped narrowcache sources.
+func IgnoreStatusChangeEventFilter(oldObject, newObject client.Object) bool {
+	if oldObject == nil || newObject == nil {
+		return true
+	}
+	return oldObject.GetGeneration() != newObject.GetGeneration() ||
+		IsMarkedForDeletion(newObject) != IsMarkedForDeletion(oldObject) ||
+		!equality.Semantic.DeepEqual(newObject.GetAnnotations(), oldObject.GetAnnotations()) ||
+		!equality.Semantic.DeepEqual(newObject.GetLabels(), oldObject.GetLabels())
+}
+
+// OperatorOwnedEventFilter mirrors OperatorOwned combined with IgnoreStatusChange.
+func OperatorOwnedEventFilter(namespace string) func(client.Object, client.Object) bool {
+	return func(oldObject, newObject client.Object) bool {
+		obj := newObject
+		if obj == nil {
+			obj = oldObject
+		}
+		return obj != nil && helper.IsOperatorOwned(namespace, obj) && IgnoreStatusChangeEventFilter(oldObject, newObject)
+	}
+}
+
 // IsMarkedForDeletion returns true when the object has a non-zero deletionTimestamp.
 func IsMarkedForDeletion(o client.Object) bool {
 	ts := o.GetDeletionTimestamp()
@@ -271,6 +293,23 @@ func ReconcileService(ctx context.Context, ci *Instance, old, n *corev1.Service,
 }
 
 func ReconcileNetworkPolicy(ctx context.Context, cl *helper.Client, name types.NamespacedName, desired *networkingv1.NetworkPolicy) error {
+	return ReconcileNetworkPolicyWithEnqueuer(ctx, nil, cl, name, desired)
+}
+
+func ReconcileNetworkPolicyWithEnqueuer(ctx context.Context, q enqueuer.Static, cl *helper.Client, name types.NamespacedName, desired *networkingv1.NetworkPolicy) error {
+	if q != nil {
+		watchObject := &networkingv1.NetworkPolicy{}
+		watchObject.SetName(name.Name)
+		watchObject.SetNamespace(name.Namespace)
+		request := reconcile.Request{NamespacedName: constants.FlowCollectorName}
+		if filtered, ok := q.(enqueuer.FilteredStatic); ok {
+			if err := filtered.EnqueueOnChangeIfManaged(ctx, watchObject, request, ManagedObjectEventFilter); err != nil {
+				return err
+			}
+		} else if err := q.EnqueueOnChange(ctx, watchObject, request); err != nil {
+			return err
+		}
+	}
 	current := networkingv1.NetworkPolicy{}
 	if err := cl.Get(ctx, name, &current); err != nil {
 		if errors.IsNotFound(err) {

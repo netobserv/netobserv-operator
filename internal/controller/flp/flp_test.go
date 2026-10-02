@@ -46,7 +46,7 @@ const testNamespace = "flp"
 func getConfig() flowslatest.FlowCollectorSpec {
 	return flowslatest.FlowCollectorSpec{
 		DeploymentModel: flowslatest.DeploymentModelDirect,
-		Agent:           flowslatest.FlowCollectorAgent{Type: flowslatest.AgentEBPF},
+		Agent:           flowslatest.FlowCollectorAgent{},
 		Processor: flowslatest.FlowCollectorFLP{
 			ImagePullPolicy: string(pullPolicy),
 			LogLevel:        "trace",
@@ -59,23 +59,9 @@ func getConfig() flowslatest.FlowCollectorSpec {
 					},
 				},
 			},
-			ConsumerReplicas: ptr.To(int32(1)),
-			KafkaConsumerAutoscaler: flowslatest.FlowCollectorHPA{
-				Status:      flowslatest.HPAStatusEnabled,
-				MinReplicas: &minReplicas,
-				MaxReplicas: maxReplicas,
-				Metrics: []ascv2.MetricSpec{{
-					Type: ascv2.ResourceMetricSourceType,
-					Resource: &ascv2.ResourceMetricSource{
-						Name: corev1.ResourceCPU,
-						Target: ascv2.MetricTarget{
-							Type:               ascv2.UtilizationMetricType,
-							AverageUtilization: &targetCPU,
-						},
-					},
-				}},
-			},
-			LogTypes: &outputRecordTypes,
+			ConsumerReplicas:  ptr.To(int32(1)),
+			UnmanagedReplicas: true,
+			LogTypes:          &outputRecordTypes,
 			Advanced: &flowslatest.AdvancedProcessorConfig{
 				Port:       ptr.To(int32(2055)),
 				HealthPort: ptr.To(int32(8080)),
@@ -123,13 +109,27 @@ func useLokiStack(cfg *flowslatest.FlowCollectorSpec) {
 
 func getConfigNoHPA() flowslatest.FlowCollectorSpec {
 	cfg := getConfig()
-	//nolint:staticcheck
-	cfg.Processor.KafkaConsumerAutoscaler.Status = flowslatest.HPAStatusDisabled
+	cfg.Processor.UnmanagedReplicas = false
 	return cfg
 }
 
 func getAutoScalerSpecs() (ascv2.HorizontalPodAutoscaler, flowslatest.FlowCollectorHPA) {
-	var autoScaler = ascv2.HorizontalPodAutoscaler{
+	config := flowslatest.FlowCollectorHPA{
+		Status:      flowslatest.HPAStatusEnabled,
+		MinReplicas: &minReplicas,
+		MaxReplicas: maxReplicas,
+		Metrics: []ascv2.MetricSpec{{
+			Type: ascv2.ResourceMetricSourceType,
+			Resource: &ascv2.ResourceMetricSource{
+				Name: corev1.ResourceCPU,
+				Target: ascv2.MetricTarget{
+					Type:               ascv2.UtilizationMetricType,
+					AverageUtilization: &targetCPU,
+				},
+			},
+		}},
+	}
+	autoScaler := ascv2.HorizontalPodAutoscaler{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: testNamespace,
 		},
@@ -138,23 +138,13 @@ func getAutoScalerSpecs() (ascv2.HorizontalPodAutoscaler, flowslatest.FlowCollec
 				Kind: "Deployment",
 				Name: constants.FLPName,
 			},
-			MinReplicas: &minReplicas,
-			MaxReplicas: maxReplicas,
-			Metrics: []ascv2.MetricSpec{{
-				Type: ascv2.ResourceMetricSourceType,
-				Resource: &ascv2.ResourceMetricSource{
-					Name: corev1.ResourceCPU,
-					Target: ascv2.MetricTarget{
-						Type:               ascv2.UtilizationMetricType,
-						AverageUtilization: &targetCPU,
-					},
-				},
-			}},
+			MinReplicas: config.MinReplicas,
+			MaxReplicas: config.MaxReplicas,
+			Metrics:     config.Metrics,
 		},
 	}
 
-	//nolint:staticcheck
-	return autoScaler, getConfig().Processor.KafkaConsumerAutoscaler
+	return autoScaler, config
 }
 
 func monoBuilder(ns string, cfg *flowslatest.FlowCollectorSpec) monolithBuilder {

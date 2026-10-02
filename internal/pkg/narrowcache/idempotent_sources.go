@@ -63,6 +63,12 @@ func (c *Client) ResetActiveWatches(group string) {
 // If checkActive is false, it creates an always-enabled watch, intended for static resource watching.
 // Else, the created watch is ignored when not actively looked-up for in a reconcile loop, so it is intended for dynamic resource watching, such as based on a potentially changing configuration.
 func (c *Client) SafeEnqueueRequestOnEvents(ctx context.Context, group string, ctrl controller.Controller, obj client.Object, req reconcile.Request, checkActive bool) error {
+	return c.SafeEnqueueRequestOnEventsWithFilter(ctx, group, ctrl, obj, req, checkActive, nil)
+}
+
+// SafeEnqueueRequestOnEventsWithFilter registers an idempotent name-scoped watch and only enqueues
+// requests for events accepted by filter. checkActive retains the dynamic-watch activation behavior.
+func (c *Client) SafeEnqueueRequestOnEventsWithFilter(ctx context.Context, group string, ctrl controller.Controller, obj client.Object, req reconcile.Request, checkActive bool, filter EventFilter) error {
 	gvk, err := c.GroupVersionKindFor(obj)
 	if err != nil {
 		return err
@@ -74,14 +80,18 @@ func (c *Client) SafeEnqueueRequestOnEvents(ctx context.Context, group string, c
 			return nil
 		}
 
-		predicate := func(_ client.Object) bool { return true }
 		if checkActive {
 			// The watch might be registered, but inactive
-			predicate = func(o client.Object) bool {
-				return c.idempotentSources.isActive(group, strGVK, o)
+			activeFilter := filter
+			filter = func(oldObject, newObject client.Object) bool {
+				obj := newObject
+				if obj == nil {
+					obj = oldObject
+				}
+				return obj != nil && c.idempotentSources.isActive(group, strGVK, obj) && (activeFilter == nil || activeFilter(oldObject, newObject))
 			}
 		}
-		if err := c.EnqueueRequestOnEvents(ctx, ctrl, obj, req, predicate); err != nil {
+		if err := c.EnqueueRequestOnEventsWithFilter(ctx, ctrl, obj, req, filter); err != nil {
 			// Roll back the reservation so a later reconcile can retry.
 			objKey := ipsKey(strGVK, obj)
 			c.idempotentSources.mut.Lock()

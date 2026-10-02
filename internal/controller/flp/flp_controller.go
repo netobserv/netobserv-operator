@@ -20,9 +20,6 @@ import (
 	"github.com/netobserv/netobserv-operator/internal/pkg/manager/enqueuer"
 	"github.com/netobserv/netobserv-operator/internal/pkg/manager/status"
 	"github.com/netobserv/netobserv-operator/internal/pkg/watchers"
-	appsv1 "k8s.io/api/apps/v1"
-	ascv2 "k8s.io/api/autoscaling/v2"
-	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -39,6 +36,7 @@ type Reconciler struct {
 	client.Client
 	mgr              *manager.Manager
 	ctrlQ            enqueuer.Static
+	managedQ         enqueuer.FilteredDynamic
 	watcher          *watchers.Watcher
 	status           status.Instance
 	currentNamespace string
@@ -56,12 +54,6 @@ func Start(ctx context.Context, mgr *manager.Manager) (manager.PostCreateHook, e
 	builder := ctrl.NewControllerManagedBy(mgr).
 		For(&flowslatest.FlowCollector{}, reconcilers.IgnoreStatusChange).
 		Named(ctrlName).
-		Owns(&appsv1.Deployment{}, reconcilers.UpdateOrDeleteOnlyPred).
-		Owns(&appsv1.DaemonSet{}, reconcilers.UpdateOrDeleteOnlyPred).
-		Owns(&ascv2.HorizontalPodAutoscaler{}, reconcilers.UpdateOrDeleteOnlyPred).
-		Owns(&corev1.Namespace{}, reconcilers.UpdateOrDeleteOnlyPred).
-		Owns(&corev1.Service{}, reconcilers.UpdateOrDeleteOnlyPred).
-		Owns(&corev1.ServiceAccount{}, reconcilers.UpdateOrDeleteOnlyPred).
 		Watches(
 			&metricslatest.FlowMetric{},
 			handler.EnqueueRequestsFromMapFunc(func(_ context.Context, o client.Object) []reconcile.Request {
@@ -83,6 +75,7 @@ func Start(ctx context.Context, mgr *manager.Manager) (manager.PostCreateHook, e
 		return nil, err
 	}
 	r.ctrlQ = mgr.NewStaticControllerEnqueuer(ctrlName, ctrl)
+	r.managedQ = mgr.NewDynamicControllerEnqueuer(ctrlName+"-managed", ctrl)
 	r.watcher = watchers.NewWatcher(
 		mgr.NewDynamicControllerEnqueuer(ctrlName+"-watcher", ctrl),
 		mgr.Config.Namespace,
@@ -107,7 +100,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Result
 	clh, fc, err := helper.NewFlowCollectorClientHelper(ctx, r.Client)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to get FlowCollector: %w", err)
-	} else if fc == nil {
+	}
+	r.managedQ.ResetActiveWatches()
+	if fc == nil {
 		// Delete case
 		return ctrl.Result{}, nil
 	}
@@ -232,14 +227,15 @@ func (r *Reconciler) updateExporterStatuses(fc *flowslatest.FlowCollector) {
 
 func (r *Reconciler) newCommonInfo(clh *helper.Client, ns string, loki *helper.LokiConfig) reconcilers.Common {
 	return reconcilers.Common{
-		Enqueuer:    r.ctrlQ,
-		Client:      *clh,
-		Namespace:   ns,
-		ClusterInfo: r.mgr.ClusterInfo,
-		Watcher:     r.watcher,
-		Loki:        loki,
-		Vendor:      r.mgr.Config.Vendor,
-		TLSConfig:   r.mgr.ClusterInfo.GetComponentTLSConfig(),
+		Enqueuer:        r.ctrlQ,
+		ManagedEnqueuer: r.managedQ,
+		Client:          *clh,
+		Namespace:       ns,
+		ClusterInfo:     r.mgr.ClusterInfo,
+		Watcher:         r.watcher,
+		Loki:            loki,
+		Vendor:          r.mgr.Config.Vendor,
+		TLSConfig:       r.mgr.ClusterInfo.GetComponentTLSConfig(),
 	}
 }
 

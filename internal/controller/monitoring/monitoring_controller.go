@@ -6,6 +6,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
@@ -21,6 +22,7 @@ import (
 	"github.com/netobserv/netobserv-operator/internal/controller/reconcilers"
 	"github.com/netobserv/netobserv-operator/internal/pkg/helper"
 	"github.com/netobserv/netobserv-operator/internal/pkg/manager"
+	"github.com/netobserv/netobserv-operator/internal/pkg/manager/enqueuer"
 	"github.com/netobserv/netobserv-operator/internal/pkg/manager/status"
 	"github.com/netobserv/netobserv-operator/internal/pkg/metrics"
 	"github.com/netobserv/netobserv-operator/internal/pkg/roles"
@@ -29,6 +31,7 @@ import (
 type Reconciler struct {
 	client.Client
 	mgr              *manager.Manager
+	ctrlQ            enqueuer.FilteredDynamic
 	status           status.Instance
 	currentNamespace string
 }
@@ -41,10 +44,9 @@ func Start(ctx context.Context, mgr *manager.Manager) (manager.PostCreateHook, e
 		mgr:    mgr,
 		status: mgr.Status.ForComponent(status.Monitoring),
 	}
-	return nil, ctrl.NewControllerManagedBy(mgr).
+	controller, err := ctrl.NewControllerManagedBy(mgr).
 		For(&flowslatest.FlowCollector{}, reconcilers.IgnoreStatusChange).
 		Named("monitoring").
-		Owns(&corev1.Namespace{}, reconcilers.UpdateOrDeleteOnlyPred).
 		Watches(
 			&metricslatest.FlowMetric{},
 			handler.EnqueueRequestsFromMapFunc(func(_ context.Context, o client.Object) []reconcile.Request {
@@ -55,7 +57,12 @@ func Start(ctx context.Context, mgr *manager.Manager) (manager.PostCreateHook, e
 			}),
 			reconcilers.IgnoreStatusChange,
 		).
-		Complete(&r)
+		Build(&r)
+	if err != nil {
+		return nil, err
+	}
+	r.ctrlQ = mgr.NewDynamicControllerEnqueuer("monitoring-namespaces", controller)
+	return nil, nil
 }
 
 // Reconcile is the controller entry point for reconciling current state with desired state.
@@ -68,7 +75,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Result
 	clh, desired, err := helper.NewFlowCollectorClientHelper(ctx, r.Client)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to get FlowCollector: %w", err)
-	} else if desired == nil {
+	}
+	r.ctrlQ.ResetActiveWatches()
+	if desired == nil {
 		// Delete case
 		return ctrl.Result{}, nil
 	}
@@ -213,6 +222,12 @@ func removeFromList(list *corev1.ConfigMapList, i int) {
 
 func (r *Reconciler) namespaceExist(ctx context.Context, nsName string) (*corev1.Namespace, error) {
 	ns := &corev1.Namespace{}
+	if filtered, ok := r.ctrlQ.(enqueuer.FilteredStatic); ok {
+		request := reconcile.Request{NamespacedName: constants.FlowCollectorName}
+		if err := filtered.EnqueueOnChangeIfManaged(ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: nsName}}, request, reconcilers.ManagedObjectEventFilter); err != nil {
+			return nil, err
+		}
+	}
 	err := r.Get(ctx, types.NamespacedName{Name: nsName}, ns)
 	if err != nil {
 		if errors.IsNotFound(err) {

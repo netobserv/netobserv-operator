@@ -17,13 +17,14 @@ import (
 
 type Common struct {
 	helper.Client
-	Enqueuer    enqueuer.Static
-	Watcher     *watchers.Watcher
-	Namespace   string
-	ClusterInfo *cluster.Info
-	Loki        *helper.LokiConfig
-	Vendor      constants.Vendor
-	TLSConfig   *tls.Config
+	Enqueuer        enqueuer.Static
+	ManagedEnqueuer enqueuer.FilteredDynamic
+	Watcher         *watchers.Watcher
+	Namespace       string
+	ClusterInfo     *cluster.Info
+	Loki            *helper.LokiConfig
+	Vendor          constants.Vendor
+	TLSConfig       *tls.Config
 }
 
 func (c *Common) PrivilegedNamespace() string {

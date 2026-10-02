@@ -6,6 +6,9 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/netobserv/netobserv-operator/internal/controller/constants"
+	"github.com/netobserv/netobserv-operator/internal/pkg/helper"
+	"github.com/netobserv/netobserv-operator/internal/pkg/manager/enqueuer"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	ascv2 "k8s.io/api/autoscaling/v2"
@@ -16,11 +19,13 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 // NamespacedObjectManager provides some helpers to manage (fetch, delete) namespace-scoped objects
 type NamespacedObjectManager struct {
 	client         client.Client
+	enqueuer       enqueuer.FilteredStatic
 	Namespace      string
 	managedObjects []managedObject
 }
@@ -29,12 +34,18 @@ type managedObject struct {
 	name        string
 	kind        string
 	placeholder client.Object
+	filter      func(client.Object, client.Object) bool
 	found       bool
 }
 
 func NewNamespacedObjectManager(cmn *Common) *NamespacedObjectManager {
+	var filteredEnqueuer enqueuer.FilteredStatic = cmn.ManagedEnqueuer
+	if filteredEnqueuer == nil {
+		filteredEnqueuer, _ = cmn.Enqueuer.(enqueuer.FilteredStatic)
+	}
 	return &NamespacedObjectManager{
 		client:    cmn.Client,
+		enqueuer:  filteredEnqueuer,
 		Namespace: cmn.Namespace,
 	}
 }
@@ -43,10 +54,15 @@ func NewNamespacedObjectManager(cmn *Common) *NamespacedObjectManager {
 // This is only for namespace-scoped objects that are installed in the desired namespace (in FlowCollector CRD: spec.namespace)
 // Cluster-scope objects, or objects installed in a different namespace (e.g. OVS configmap) should not be registered with this function.
 func (m *NamespacedObjectManager) AddManagedObject(name string, placeholder client.Object) {
+	m.AddManagedObjectWithFilter(name, placeholder, ManagedObjectEventFilter)
+}
+
+func (m *NamespacedObjectManager) AddManagedObjectWithFilter(name string, placeholder client.Object, filter func(client.Object, client.Object) bool) {
 	m.managedObjects = append(m.managedObjects, managedObject{
 		name:        name,
 		kind:        reflect.TypeOf(placeholder).String(),
 		placeholder: placeholder,
+		filter:      filter,
 	})
 }
 
@@ -112,7 +128,7 @@ func (m *NamespacedObjectManager) NewRB(name string) *rbacv1.RoleBinding {
 
 func (m *NamespacedObjectManager) NewNetworkPolicy(name string) *networkingv1.NetworkPolicy {
 	np := networkingv1.NetworkPolicy{}
-	m.AddManagedObject(name, &np)
+	m.AddManagedObjectWithFilter(name, &np, OperatorOwnedEventFilter(m.Namespace))
 	return &np
 }
 
@@ -125,6 +141,14 @@ func (m *NamespacedObjectManager) FetchAll(ctx context.Context) error {
 	for i, ref := range m.managedObjects {
 		m.managedObjects[i].found = false
 		objLog := ref.kind + "/" + ref.name
+		ref.placeholder.SetName(ref.name)
+		ref.placeholder.SetNamespace(m.Namespace)
+		if m.enqueuer != nil {
+			request := reconcile.Request{NamespacedName: constants.FlowCollectorName}
+			if err := m.enqueuer.EnqueueOnChangeIfManaged(ctx, ref.placeholder, request, ref.filter); err != nil {
+				return err
+			}
+		}
 		err := m.client.Get(ctx, types.NamespacedName{Name: ref.name, Namespace: m.Namespace}, ref.placeholder)
 		if err != nil {
 			if apierrors.IsNotFound(err) {
@@ -146,6 +170,18 @@ func (m *NamespacedObjectManager) FetchAll(ctx context.Context) error {
 		log.Info("(Items not deployed: " + strings.Join(notFound, ",") + ")")
 	}
 	return nil
+}
+
+// ManagedObjectEventFilter matches UpdateOrDeleteOnlyPred for name-scoped watch events.
+func ManagedObjectEventFilter(oldObject, newObject client.Object) bool {
+	if oldObject == nil { // Ignore creates, matching UpdateOrDeleteOnlyPred.
+		return false
+	}
+	obj := newObject
+	if obj == nil { // Deletes are confirmed by the API watch.
+		obj = oldObject
+	}
+	return helper.IsOwned(obj)
 }
 
 // TryDeleteAll is an helper function that tries to delete all managed objects previously loaded using FetchAll.
