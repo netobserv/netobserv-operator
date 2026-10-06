@@ -2760,6 +2760,7 @@ var _ = g.Describe("[sig-netobserv] Network_Observability", func() {
 	})
 
 	g.It("Author:aramesha-High-2783-BGP ASN enrichment [Serial][Disruptive]", func() {
+		SkipIfOCPBelow("v4.19")
 		g.By("Enable FRR via Network operator")
 		err := ensureFRREnabled()
 		o.Expect(err).NotTo(o.HaveOccurred(), "Failed to enable FRR")
