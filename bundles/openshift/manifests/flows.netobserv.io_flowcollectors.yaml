@@ -1082,7 +1082,7 @@ spec:
                             It requires using the OVN-Kubernetes network plugin with the Observability feature.
                             IMPORTANT: This feature is available as a Technology Preview.<br>
                             - `PacketTranslation`: Enable enriching flows with packet translation information, such as Service NAT.<br>
-                            - `EbpfManager`: [Unsupported (*)]. Use eBPF Manager to manage NetObserv eBPF programs. Pre-requisite: the eBPF Manager operator (or upstream bpfman operator) must be installed.<br>
+                            - `EbpfManager`: [Unsupported (*)]. Use eBPF Manager to manage Network Observability eBPF programs. Pre-requisite: the eBPF Manager operator (or upstream bpfman operator) must be installed.<br>
                             - `UDNMapping`: Enable interfaces mapping to User Defined Networks (UDN).<br>
                             This feature requires mounting the kernel debug filesystem, so the eBPF agent pods must run as privileged via `spec.agent.ebpf.privileged`.
                             It requires using the OVN-Kubernetes network plugin.<br>
@@ -1096,7 +1096,7 @@ spec:
                               - `FlowRTT`, to track TCP latency.<br>
                               - `NetworkEvents`, to track network events [Technology Preview].<br>
                               - `PacketTranslation`, to enrich flows with packets translation information, such as Service NAT.<br>
-                              - `EbpfManager`, to enable using eBPF Manager to manage NetObserv eBPF programs. [Unsupported (*)].<br>
+                              - `EbpfManager`, to enable using eBPF Manager to manage Network Observability eBPF programs. [Unsupported (*)].<br>
                               - `UDNMapping`, to enable interfaces mapping to UDN.<br>
                               - `IPSec`, to track flows between nodes with IPsec encryption.<br>
                               - `TLSTracking`, to track TLS usage.<br>
@@ -1344,7 +1344,7 @@ spec:
                           type: integer
                         logLevel:
                           default: info
-                          description: '`logLevel` defines the log level for the NetObserv eBPF Agent'
+                          description: '`logLevel` defines the log level for the Network Observability eBPF Agent'
                           enum:
                             - trace
                             - debug
@@ -1411,7 +1411,7 @@ spec:
                                         namespace:
                                           default: ""
                                           description: |-
-                                            Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+                                            Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
                                             If the namespace is different, the config map or the secret is copied so that it can be mounted as required.
                                           type: string
                                         type:
@@ -1433,7 +1433,7 @@ spec:
                                         namespace:
                                           default: ""
                                           description: |-
-                                            Namespace of the config map or secret containing the file. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+                                            Namespace of the config map or secret containing the file. If omitted, the default is to use the same namespace as where Network Observability is deployed.
                                             If the namespace is different, the config map or the secret is copied so that it can be mounted as required.
                                           type: string
                                         type:
@@ -3099,7 +3099,7 @@ spec:
                           enterpriseID:
                             default: 2
                             description: |-
-                              EnterpriseID, or Private Enterprise Number (PEN). To date, NetObserv does not own an assigned number,
+                              EnterpriseID, or Private Enterprise Number (PEN). To date, Network Observability does not own an assigned number,
                               so it is left open for configuration. The PEN is needed to collect non standard data, such as Kubernetes names,
                               RTT, etc.
                             type: integer
@@ -3156,7 +3156,7 @@ spec:
                                   namespace:
                                     default: ""
                                     description: |-
-                                      Namespace of the config map or secret containing the file. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+                                      Namespace of the config map or secret containing the file. If omitted, the default is to use the same namespace as where Network Observability is deployed.
                                       If the namespace is different, the config map or the secret is copied so that it can be mounted as required.
                                     type: string
                                   type:
@@ -3178,7 +3178,7 @@ spec:
                                   namespace:
                                     default: ""
                                     description: |-
-                                      Namespace of the config map or secret containing the file. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+                                      Namespace of the config map or secret containing the file. If omitted, the default is to use the same namespace as where Network Observability is deployed.
                                       If the namespace is different, the config map or the secret is copied so that it can be mounted as required.
                                     type: string
                                   type:
@@ -3220,7 +3220,7 @@ spec:
                                   namespace:
                                     default: ""
                                     description: |-
-                                      Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+                                      Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
                                       If the namespace is different, the config map or the secret is copied so that it can be mounted as required.
                                     type: string
                                   type:
@@ -3255,7 +3255,7 @@ spec:
                                   namespace:
                                     default: ""
                                     description: |-
-                                      Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+                                      Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
                                       If the namespace is different, the config map or the secret is copied so that it can be mounted as required.
                                     type: string
                                   type:
@@ -3268,7 +3268,7 @@ spec:
                             type: object
                           topic:
                             default: ""
-                            description: Kafka topic to use. It must exist. NetObserv does not create it.
+                            description: Kafka topic to use. It must exist. Network Observability does not create it.
                             type: string
                         required:
                           - address
@@ -3280,7 +3280,7 @@ spec:
                           fieldsMapping:
                             description: |-
                               Custom fields mapping to an OpenTelemetry conformant format.
-                              By default, NetObserv format proposal is used: https://github.com/rhobs/observability-data-model/blob/main/network-observability.md#format-proposal .
+                              By default, Network Observability format proposal is used: https://github.com/rhobs/observability-data-model/blob/main/network-observability.md#format-proposal .
                               As there is currently no accepted standard for L3 or L4 enriched network logs, you can freely override it with your own.
                             items:
                               properties:
@@ -3349,7 +3349,7 @@ spec:
                                   namespace:
                                     default: ""
                                     description: |-
-                                      Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+                                      Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
                                       If the namespace is different, the config map or the secret is copied so that it can be mounted as required.
                                     type: string
                                   type:
@@ -3384,7 +3384,7 @@ spec:
                                   namespace:
                                     default: ""
                                     description: |-
-                                      Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+                                      Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
                                       If the namespace is different, the config map or the secret is copied so that it can be mounted as required.
                                     type: string
                                   type:
@@ -3444,7 +3444,7 @@ spec:
                             namespace:
                               default: ""
                               description: |-
-                                Namespace of the config map or secret containing the file. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+                                Namespace of the config map or secret containing the file. If omitted, the default is to use the same namespace as where Network Observability is deployed.
                                 If the namespace is different, the config map or the secret is copied so that it can be mounted as required.
                               type: string
                             type:
@@ -3466,7 +3466,7 @@ spec:
                             namespace:
                               default: ""
                               description: |-
-                                Namespace of the config map or secret containing the file. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+                                Namespace of the config map or secret containing the file. If omitted, the default is to use the same namespace as where Network Observability is deployed.
                                 If the namespace is different, the config map or the secret is copied so that it can be mounted as required.
                               type: string
                             type:
@@ -3508,7 +3508,7 @@ spec:
                             namespace:
                               default: ""
                               description: |-
-                                Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+                                Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
                                 If the namespace is different, the config map or the secret is copied so that it can be mounted as required.
                               type: string
                             type:
@@ -3543,7 +3543,7 @@ spec:
                             namespace:
                               default: ""
                               description: |-
-                                Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+                                Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
                                 If the namespace is different, the config map or the secret is copied so that it can be mounted as required.
                               type: string
                             type:
@@ -3556,7 +3556,7 @@ spec:
                       type: object
                     topic:
                       default: ""
-                      description: Kafka topic to use. It must exist. NetObserv does not create it.
+                      description: Kafka topic to use. It must exist. Network Observability does not create it.
                       type: string
                   required:
                     - address
@@ -3676,7 +3676,7 @@ spec:
                                 namespace:
                                   default: ""
                                   description: |-
-                                    Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+                                    Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
                                     If the namespace is different, the config map or the secret is copied so that it can be mounted as required.
                                   type: string
                                 type:
@@ -3711,7 +3711,7 @@ spec:
                                 namespace:
                                   default: ""
                                   description: |-
-                                    Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+                                    Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
                                     If the namespace is different, the config map or the secret is copied so that it can be mounted as required.
                                   type: string
                                 type:
@@ -3755,7 +3755,7 @@ spec:
                                 namespace:
                                   default: ""
                                   description: |-
-                                    Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+                                    Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
                                     If the namespace is different, the config map or the secret is copied so that it can be mounted as required.
                                   type: string
                                 type:
@@ -3790,7 +3790,7 @@ spec:
                                 namespace:
                                   default: ""
                                   description: |-
-                                    Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+                                    Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
                                     If the namespace is different, the config map or the secret is copied so that it can be mounted as required.
                                   type: string
                                 type:
@@ -3838,7 +3838,7 @@ spec:
                                 namespace:
                                   default: ""
                                   description: |-
-                                    Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+                                    Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
                                     If the namespace is different, the config map or the secret is copied so that it can be mounted as required.
                                   type: string
                                 type:
@@ -3873,7 +3873,7 @@ spec:
                                 namespace:
                                   default: ""
                                   description: |-
-                                    Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+                                    Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
                                     If the namespace is different, the config map or the secret is copied so that it can be mounted as required.
                                   type: string
                                 type:
@@ -3934,7 +3934,7 @@ spec:
                                 namespace:
                                   default: ""
                                   description: |-
-                                    Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+                                    Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
                                     If the namespace is different, the config map or the secret is copied so that it can be mounted as required.
                                   type: string
                                 type:
@@ -3969,7 +3969,7 @@ spec:
                                 namespace:
                                   default: ""
                                   description: |-
-                                    Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+                                    Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
                                     If the namespace is different, the config map or the secret is copied so that it can be mounted as required.
                                   type: string
                                 type:
@@ -4011,17 +4011,17 @@ spec:
                     - mode
                   type: object
                 namespace:
-                  description: Namespace where NetObserv pods are deployed.
+                  description: Namespace where Network Observability pods are deployed.
                   type: string
                   x-kubernetes-validations:
                     - message: Namespace is immutable. If you need to change it, delete and recreate the resource.
                       rule: self == oldSelf
                 networkPolicy:
-                  description: '`networkPolicy` defines network policy settings for NetObserv components isolation.'
+                  description: '`networkPolicy` defines network policy settings for Network Observability components isolation.'
                   properties:
                     additionalNamespaces:
                       description: |-
-                        `additionalNamespaces` contains additional namespaces allowed to connect to the NetObserv namespace.
+                        `additionalNamespaces` contains additional namespaces allowed to connect to the Network Observability namespace.
                         It provides flexibility in the network policy configuration, but if you need a more specific
                         configuration, you can disable it and install your own instead.
                       items:
@@ -4029,9 +4029,9 @@ spec:
                       type: array
                     enable:
                       description: |-
-                        Deploys network policies on the namespaces used by NetObserv operands (main and privileged).
-                        These network policies better isolate the NetObserv components to prevent undesired connections from and to them.
-                        Because it cannot be tested with all CNIs, this option is only enabled by default when NetObserv runs in a known
+                        Deploys network policies on the namespaces used by Network Observability operands (main and privileged).
+                        These network policies better isolate the Network Observability components to prevent undesired connections from and to them.
+                        Because it cannot be tested with all CNIs, this option is only enabled by default when Network Observability runs in a known
                         supported environment, and it is disabled by default otherwise.
                         When disabled, it is highly recommended to create network policies manually, to prevent undesired accesses.
                         This setting is for operands only, and does not control the Operator network policy, which is covered by the `OPERATOR_NETWORK_POLICY`
@@ -5297,7 +5297,7 @@ spec:
                                     namespace:
                                       default: ""
                                       description: |-
-                                        Namespace of the config map or secret containing the file. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+                                        Namespace of the config map or secret containing the file. If omitted, the default is to use the same namespace as where Network Observability is deployed.
                                         If the namespace is different, the config map or the secret is copied so that it can be mounted as required.
                                       type: string
                                     type:
@@ -5322,7 +5322,7 @@ spec:
                                     namespace:
                                       default: ""
                                       description: |-
-                                        Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+                                        Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
                                         If the namespace is different, the config map or the secret is copied so that it can be mounted as required.
                                       type: string
                                     type:
@@ -5347,7 +5347,7 @@ spec:
                                     namespace:
                                       default: ""
                                       description: |-
-                                        Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+                                        Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
                                         If the namespace is different, the config map or the secret is copied so that it can be mounted as required.
                                       type: string
                                     type:
@@ -5980,7 +5980,7 @@ spec:
                                     namespace:
                                       default: ""
                                       description: |-
-                                        Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+                                        Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
                                         If the namespace is different, the config map or the secret is copied so that it can be mounted as required.
                                       type: string
                                     type:
@@ -6002,7 +6002,7 @@ spec:
                                     namespace:
                                       default: ""
                                       description: |-
-                                        Namespace of the config map or secret containing the file. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+                                        Namespace of the config map or secret containing the file. If omitted, the default is to use the same namespace as where Network Observability is deployed.
                                         If the namespace is different, the config map or the secret is copied so that it can be mounted as required.
                                       type: string
                                     type:
@@ -6118,7 +6118,7 @@ spec:
                                 namespace:
                                   default: ""
                                   description: |-
-                                    Namespace of the config map or secret containing the file. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+                                    Namespace of the config map or secret containing the file. If omitted, the default is to use the same namespace as where Network Observability is deployed.
                                     If the namespace is different, the config map or the secret is copied so that it can be mounted as required.
                                   type: string
                                 type:
@@ -6143,7 +6143,7 @@ spec:
                                 namespace:
                                   default: ""
                                   description: |-
-                                    Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+                                    Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
                                     If the namespace is different, the config map or the secret is copied so that it can be mounted as required.
                                   type: string
                                 type:
@@ -6168,7 +6168,7 @@ spec:
                                 namespace:
                                   default: ""
                                   description: |-
-                                    Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+                                    Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
                                     If the namespace is different, the config map or the secret is copied so that it can be mounted as required.
                                   type: string
                                 type:
@@ -6318,7 +6318,7 @@ spec:
                                         namespace:
                                           default: ""
                                           description: |-
-                                            Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+                                            Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
                                             If the namespace is different, the config map or the secret is copied so that it can be mounted as required.
                                           type: string
                                         type:
@@ -6353,7 +6353,7 @@ spec:
                                         namespace:
                                           default: ""
                                           description: |-
-                                            Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+                                            Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
                                             If the namespace is different, the config map or the secret is copied so that it can be mounted as required.
                                           type: string
                                         type:
@@ -6389,7 +6389,7 @@ spec:
                                     namespace:
                                       default: ""
                                       description: |-
-                                        Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+                                        Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
                                         If the namespace is different, the config map or the secret is copied so that it can be mounted as required.
                                       type: string
                                     type:
@@ -6424,7 +6424,7 @@ spec:
                                     namespace:
                                       default: ""
                                       description: |-
-                                        Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+                                        Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
                                         If the namespace is different, the config map or the secret is copied so that it can be mounted as required.
                                       type: string
                                     type:
@@ -6443,7 +6443,7 @@ spec:
                         mode:
                           default: Auto
                           description: |-
-                            `mode` must be set according to the type of Prometheus installation that stores NetObserv metrics:<br>
+                            `mode` must be set according to the type of Prometheus installation that stores Network Observability metrics:<br>
                             - Use `Auto` to configure automatically. It uses the Thanos querier from OpenShift Cluster Monitoring.<br>
                             - Use `Manual` for a manual setup.<br>
                           enum:

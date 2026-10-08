@@ -53,7 +53,12 @@ Resource Types:
         <td><b><a href="#flowcollectorspec">spec</a></b></td>
         <td>object</td>
         <td>
-          Defines the desired state of the FlowCollector resource.<br/>
+          Defines the desired state of the FlowCollector resource.
+<br><br>
+*: the mention of "unsupported" or "deprecated" for a feature throughout this document means that this feature
+is not officially supported by Red Hat. It might have been, for example, contributed by the community
+and accepted without a formal agreement for maintenance. The product maintainers might provide support
+for these features, without any guarantee.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -73,6 +78,11 @@ Resource Types:
 
 
 Defines the desired state of the FlowCollector resource.
+<br><br>
+*: the mention of "unsupported" or "deprecated" for a feature throughout this document means that this feature
+is not officially supported by Red Hat. It might have been, for example, contributed by the community
+and accepted without a formal agreement for maintenance. The product maintainers might provide support
+for these features, without any guarantee.
 
 <table>
     <thead>
@@ -94,7 +104,7 @@ Defines the desired state of the FlowCollector resource.
         <td><b><a href="#flowcollectorspecconsoleplugin">consolePlugin</a></b></td>
         <td>object</td>
         <td>
-          `consolePlugin` defines the settings related to the Web Console.<br/>
+          `consolePlugin` defines the settings related to the OpenShift Console plugin.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -144,7 +154,7 @@ Kafka can provide better scalability, resiliency, and high availability (for mor
         <td><b>namespace</b></td>
         <td>string</td>
         <td>
-          Namespace where NetObserv pods are deployed.<br/>
+          Namespace where Network Observability pods are deployed.<br/>
           <br/>
             <i>Validations</i>:<li>self == oldSelf: Namespace is immutable. If you need to change it, delete and recreate the resource.</li>
         </td>
@@ -153,7 +163,7 @@ Kafka can provide better scalability, resiliency, and high availability (for mor
         <td><b><a href="#flowcollectorspecnetworkpolicy">networkPolicy</a></b></td>
         <td>object</td>
         <td>
-          `networkPolicy` defines network policy settings for NetObserv components isolation.<br/>
+          `networkPolicy` defines network policy settings for Network Observability components isolation.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -270,7 +280,7 @@ however you can expect higher memory consumption and an increased latency in the
         <td>[]integer</td>
         <td>
           `dnsTrackingPorts` defines the list of DNS ports to track when DNSTracking feature is enabled.
-For example: [53, 5353, 8053]. Leave empty to use a vendor-contextual default (generally 53).
+For example: [53, 5353, 8053]. Leave empty to use OpenShift default (53, 5353).
 Maximum 8 ports allowed.<br/>
         </td>
         <td>false</td>
@@ -296,9 +306,10 @@ the kernel debug filesystem, so the eBPF agent pods must run as privileged via `
 - `FlowRTT`: Enable flow latency (sRTT) extraction in the eBPF agent from TCP traffic.<br>
 - `NetworkEvents`: Enable the network events monitoring feature, such as correlating flows and network policies.
 This feature requires mounting the kernel debug filesystem, so the eBPF agent pods must run as privileged via `spec.agent.ebpf.privileged`.
-It requires using the OVN-Kubernetes network plugin with the Observability feature.<br>
+It requires using the OVN-Kubernetes network plugin with the Observability feature.
+IMPORTANT: This feature is available as a Technology Preview.<br>
 - `PacketTranslation`: Enable enriching flows with packet translation information, such as Service NAT.<br>
-- `EbpfManager`: Use eBPF Manager to manage NetObserv eBPF programs. Pre-requisite: the eBPF Manager operator (or upstream bpfman operator) must be installed.<br>
+- `EbpfManager`: [Unsupported (*)]. Use eBPF Manager to manage Network Observability eBPF programs. Pre-requisite: the eBPF Manager operator (or upstream bpfman operator) must be installed.<br>
 - `UDNMapping`: Enable interfaces mapping to User Defined Networks (UDN).<br>
 This feature requires mounting the kernel debug filesystem, so the eBPF agent pods must run as privileged via `spec.agent.ebpf.privileged`.
 It requires using the OVN-Kubernetes network plugin.<br>
@@ -348,7 +359,7 @@ Otherwise it is matched as a case-sensitive string.<br/>
         <td><b>logLevel</b></td>
         <td>enum</td>
         <td>
-          `logLevel` defines the log level for the NetObserv eBPF Agent<br/>
+          `logLevel` defines the log level for the Network Observability eBPF Agent<br/>
           <br/>
             <i>Enum</i>: trace, debug, info, warn, error, fatal, panic<br/>
             <i>Default</i>: info<br/>
@@ -905,9 +916,8 @@ TLS configuration.
         <td>
           Select the type of TLS configuration:<br>
 - `Disabled` (default) to not configure TLS for the endpoint.
-- `Provided` to manually provide cert file and a key file.
-- `Auto` to use a default certificate, which may vary depending on the Kubernetes vendor.
-Refer to https://github.com/netobserv/netobserv-operator/blob/main/docs/TLS.md for more information.<br/>
+- `Provided` to manually provide cert file and a key file. [Unsupported (*)].
+- `Auto` to use OpenShift auto generated certificate using annotations.<br/>
           <br/>
             <i>Enum</i>: Disabled, Provided, Auto<br/>
             <i>Default</i>: Disabled<br/>
@@ -982,7 +992,7 @@ TLS configuration when `type` is set to `Provided`.
         <td><b>namespace</b></td>
         <td>string</td>
         <td>
-          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
 If the namespace is different, the config map or the secret is copied so that it can be mounted as required.<br/>
           <br/>
             <i>Default</i>: <br/>
@@ -1035,7 +1045,7 @@ Reference to the CA file when `type` is set to `Provided`.
         <td><b>namespace</b></td>
         <td>string</td>
         <td>
-          Namespace of the config map or secret containing the file. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+          Namespace of the config map or secret containing the file. If omitted, the default is to use the same namespace as where Network Observability is deployed.
 If the namespace is different, the config map or the secret is copied so that it can be mounted as required.<br/>
           <br/>
             <i>Default</i>: <br/>
@@ -1098,7 +1108,7 @@ More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-co
 
 
 
-`consolePlugin` defines the settings related to the Web Console.
+`consolePlugin` defines the settings related to the OpenShift Console plugin.
 
 <table>
     <thead>
@@ -1200,7 +1210,9 @@ For more information, see https://kubernetes.io/docs/concepts/configuration/mana
         <td><b>standalone</b></td>
         <td>boolean</td>
         <td>
-          Deploy as a standalone console. Supported vendors may use a plugin system instead.<br/>
+          Deploy as a standalone console, instead of a plugin of the OpenShift Console.
+This is not recommended, as it doesn't provide the same level of integration with OpenShift.
+[Unsupported (*)].<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -1268,8 +1280,9 @@ in edge debug or support scenarios.<br/>
         <td><b>register</b></td>
         <td>boolean</td>
         <td>
-          `register` allows, when set to `true`, to automatically register the console plugin when possible, depending on the vendor.
-It requires `spec.consolePlugin.standalone` to be `false`.<br/>
+          `register` allows, when set to `true`, to automatically register the provided console plugin with the OpenShift Console operator.
+When set to `false`, you can still register it manually by editing console.operator.openshift.io/cluster with the following command:
+`oc patch console.operator.openshift.io cluster --type='json' -p '[{"op": "add", "path": "/spec/plugins/-", "value": "netobserv-plugin"}]'`<br/>
           <br/>
             <i>Default</i>: true<br/>
         </td>
@@ -1557,7 +1570,7 @@ IPFIX configuration, such as the IP address and port to send enriched IPFIX flow
         <td><b>enterpriseID</b></td>
         <td>integer</td>
         <td>
-          EnterpriseID, or Private Enterprise Number (PEN). To date, NetObserv does not own an assigned number,
+          EnterpriseID, or Private Enterprise Number (PEN). To date, Network Observability does not own an assigned number,
 so it is left open for configuration. The PEN is needed to collect non standard data, such as Kubernetes names,
 RTT, etc.<br/>
           <br/>
@@ -1624,7 +1637,7 @@ Kafka configuration, such as the address and topic, to send enriched flows to.
         <td><b>topic</b></td>
         <td>string</td>
         <td>
-          Kafka topic to use. It must exist. NetObserv does not create it.<br/>
+          Kafka topic to use. It must exist. Network Observability does not create it.<br/>
           <br/>
             <i>Default</i>: <br/>
         </td>
@@ -1740,7 +1753,7 @@ Reference to the secret or config map containing the client ID
         <td><b>namespace</b></td>
         <td>string</td>
         <td>
-          Namespace of the config map or secret containing the file. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+          Namespace of the config map or secret containing the file. If omitted, the default is to use the same namespace as where Network Observability is deployed.
 If the namespace is different, the config map or the secret is copied so that it can be mounted as required.<br/>
           <br/>
             <i>Default</i>: <br/>
@@ -1793,7 +1806,7 @@ Reference to the secret or config map containing the client secret
         <td><b>namespace</b></td>
         <td>string</td>
         <td>
-          Namespace of the config map or secret containing the file. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+          Namespace of the config map or secret containing the file. If omitted, the default is to use the same namespace as where Network Observability is deployed.
 If the namespace is different, the config map or the secret is copied so that it can be mounted as required.<br/>
           <br/>
             <i>Default</i>: <br/>
@@ -1910,7 +1923,7 @@ If set to `true`, the `caCert` field is ignored. For security, this should not b
         <td><b>namespace</b></td>
         <td>string</td>
         <td>
-          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
 If the namespace is different, the config map or the secret is copied so that it can be mounted as required.<br/>
           <br/>
             <i>Default</i>: <br/>
@@ -1970,7 +1983,7 @@ If the namespace is different, the config map or the secret is copied so that it
         <td><b>namespace</b></td>
         <td>string</td>
         <td>
-          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
 If the namespace is different, the config map or the secret is copied so that it can be mounted as required.<br/>
           <br/>
             <i>Default</i>: <br/>
@@ -2028,7 +2041,7 @@ OpenTelemetry configuration, such as the IP address and port to send enriched lo
         <td>[]object</td>
         <td>
           Custom fields mapping to an OpenTelemetry conformant format.
-By default, NetObserv format proposal is used: https://github.com/rhobs/observability-data-model/blob/main/network-observability.md#format-proposal .
+By default, Network Observability format proposal is used: https://github.com/rhobs/observability-data-model/blob/main/network-observability.md#format-proposal .
 As there is currently no accepted standard for L3 or L4 enriched network logs, you can freely override it with your own.<br/>
         </td>
         <td>false</td>
@@ -2275,7 +2288,7 @@ If set to `true`, the `caCert` field is ignored. For security, this should not b
         <td><b>namespace</b></td>
         <td>string</td>
         <td>
-          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
 If the namespace is different, the config map or the secret is copied so that it can be mounted as required.<br/>
           <br/>
             <i>Default</i>: <br/>
@@ -2335,7 +2348,7 @@ If the namespace is different, the config map or the secret is copied so that it
         <td><b>namespace</b></td>
         <td>string</td>
         <td>
-          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
 If the namespace is different, the config map or the secret is copied so that it can be mounted as required.<br/>
           <br/>
             <i>Default</i>: <br/>
@@ -2383,7 +2396,7 @@ Kafka configuration, allowing to use Kafka as a broker as part of the flow colle
         <td><b>topic</b></td>
         <td>string</td>
         <td>
-          Kafka topic to use. It must exist. NetObserv does not create it.<br/>
+          Kafka topic to use. It must exist. Network Observability does not create it.<br/>
           <br/>
             <i>Default</i>: <br/>
         </td>
@@ -2499,7 +2512,7 @@ Reference to the secret or config map containing the client ID
         <td><b>namespace</b></td>
         <td>string</td>
         <td>
-          Namespace of the config map or secret containing the file. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+          Namespace of the config map or secret containing the file. If omitted, the default is to use the same namespace as where Network Observability is deployed.
 If the namespace is different, the config map or the secret is copied so that it can be mounted as required.<br/>
           <br/>
             <i>Default</i>: <br/>
@@ -2552,7 +2565,7 @@ Reference to the secret or config map containing the client secret
         <td><b>namespace</b></td>
         <td>string</td>
         <td>
-          Namespace of the config map or secret containing the file. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+          Namespace of the config map or secret containing the file. If omitted, the default is to use the same namespace as where Network Observability is deployed.
 If the namespace is different, the config map or the secret is copied so that it can be mounted as required.<br/>
           <br/>
             <i>Default</i>: <br/>
@@ -2669,7 +2682,7 @@ If set to `true`, the `caCert` field is ignored. For security, this should not b
         <td><b>namespace</b></td>
         <td>string</td>
         <td>
-          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
 If the namespace is different, the config map or the secret is copied so that it can be mounted as required.<br/>
           <br/>
             <i>Default</i>: <br/>
@@ -2729,7 +2742,7 @@ If the namespace is different, the config map or the secret is copied so that it
         <td><b>namespace</b></td>
         <td>string</td>
         <td>
-          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
 If the namespace is different, the config map or the secret is copied so that it can be mounted as required.<br/>
           <br/>
             <i>Default</i>: <br/>
@@ -3171,7 +3184,7 @@ If set to `true`, the `caCert` field is ignored. For security, this should not b
         <td><b>namespace</b></td>
         <td>string</td>
         <td>
-          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
 If the namespace is different, the config map or the secret is copied so that it can be mounted as required.<br/>
           <br/>
             <i>Default</i>: <br/>
@@ -3231,7 +3244,7 @@ If the namespace is different, the config map or the secret is copied so that it
         <td><b>namespace</b></td>
         <td>string</td>
         <td>
-          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
 If the namespace is different, the config map or the secret is copied so that it can be mounted as required.<br/>
           <br/>
             <i>Default</i>: <br/>
@@ -3344,7 +3357,7 @@ If set to `true`, the `caCert` field is ignored. For security, this should not b
         <td><b>namespace</b></td>
         <td>string</td>
         <td>
-          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
 If the namespace is different, the config map or the secret is copied so that it can be mounted as required.<br/>
           <br/>
             <i>Default</i>: <br/>
@@ -3404,7 +3417,7 @@ If the namespace is different, the config map or the secret is copied so that it
         <td><b>namespace</b></td>
         <td>string</td>
         <td>
-          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
 If the namespace is different, the config map or the secret is copied so that it can be mounted as required.<br/>
           <br/>
             <i>Default</i>: <br/>
@@ -3573,7 +3586,7 @@ If set to `true`, the `caCert` field is ignored. For security, this should not b
         <td><b>namespace</b></td>
         <td>string</td>
         <td>
-          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
 If the namespace is different, the config map or the secret is copied so that it can be mounted as required.<br/>
           <br/>
             <i>Default</i>: <br/>
@@ -3633,7 +3646,7 @@ If the namespace is different, the config map or the secret is copied so that it
         <td><b>namespace</b></td>
         <td>string</td>
         <td>
-          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
 If the namespace is different, the config map or the secret is copied so that it can be mounted as required.<br/>
           <br/>
             <i>Default</i>: <br/>
@@ -3675,7 +3688,8 @@ It is ignored for other modes.
         <td>boolean</td>
         <td>
           Set `installDemoLoki` to `true` to automatically create Loki deployment, service and storage.
-This is meant for development and demo use only, and not recommended in production.<br/>
+This is meant for development and demo use only, and not recommended in production.
+[Unsupported (*)].<br/>
           <br/>
             <i>Default</i>: false<br/>
         </td>
@@ -3803,7 +3817,7 @@ If set to `true`, the `caCert` field is ignored. For security, this should not b
         <td><b>namespace</b></td>
         <td>string</td>
         <td>
-          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
 If the namespace is different, the config map or the secret is copied so that it can be mounted as required.<br/>
           <br/>
             <i>Default</i>: <br/>
@@ -3863,7 +3877,7 @@ If the namespace is different, the config map or the secret is copied so that it
         <td><b>namespace</b></td>
         <td>string</td>
         <td>
-          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
 If the namespace is different, the config map or the secret is copied so that it can be mounted as required.<br/>
           <br/>
             <i>Default</i>: <br/>
@@ -3887,7 +3901,7 @@ If the namespace is different, the config map or the secret is copied so that it
 
 
 
-`networkPolicy` defines network policy settings for NetObserv components isolation.
+`networkPolicy` defines network policy settings for Network Observability components isolation.
 
 <table>
     <thead>
@@ -3902,7 +3916,7 @@ If the namespace is different, the config map or the secret is copied so that it
         <td><b>additionalNamespaces</b></td>
         <td>[]string</td>
         <td>
-          `additionalNamespaces` contains additional namespaces allowed to connect to the NetObserv namespace.
+          `additionalNamespaces` contains additional namespaces allowed to connect to the Network Observability namespace.
 It provides flexibility in the network policy configuration, but if you need a more specific
 configuration, you can disable it and install your own instead.<br/>
         </td>
@@ -3911,9 +3925,9 @@ configuration, you can disable it and install your own instead.<br/>
         <td><b>enable</b></td>
         <td>boolean</td>
         <td>
-          Deploys network policies on the namespaces used by NetObserv operands (main and privileged).
-These network policies better isolate the NetObserv components to prevent undesired connections from and to them.
-Because it cannot be tested with all CNIs, this option is only enabled by default when NetObserv runs in a known
+          Deploys network policies on the namespaces used by Network Observability operands (main and privileged).
+These network policies better isolate the Network Observability components to prevent undesired connections from and to them.
+Because it cannot be tested with all CNIs, this option is only enabled by default when Network Observability runs in a known
 supported environment, and it is disabled by default otherwise.
 When disabled, it is highly recommended to create network policies manually, to prevent undesired accesses.
 This setting is for operands only, and does not control the Operator network policy, which is covered by the `OPERATOR_NETWORK_POLICY`
@@ -3974,7 +3988,9 @@ advertised prefixes from FRRConfiguration resources. Requires frr-k8s to be inst
         <td><b>clusterName</b></td>
         <td>string</td>
         <td>
-          `clusterName` is the name of the cluster to appear in the flows data. In a multi-cluster context, it makes it possible to identify the flows provenance.<br/>
+          `clusterName` is the name of the cluster to appear in the flows data.
+In a multi-cluster context, it makes it possible to identify the flows provenance.
+Leave empty to make it determined automatically.<br/>
           <br/>
             <i>Default</i>: <br/>
         </td>
@@ -4136,7 +4152,7 @@ For more information, see https://kubernetes.io/docs/concepts/configuration/mana
         <td><b><a href="#flowcollectorspecprocessorsubnetlabels">subnetLabels</a></b></td>
         <td>object</td>
         <td>
-          `subnetLabels` allows to define custom labels on subnets and IPs and, for supported vendors, to enable automatic labeling of recognized subnets, which is used to identify cluster external traffic.
+          `subnetLabels` allows to define custom labels on subnets and IPs and to enable automatic labeling of recognized subnets, which is used to identify cluster external traffic.
 When a subnet matches the source or destination IP of a flow, a corresponding field is added: `SrcSubnetLabel` or `DstSubnetLabel`.<br/>
         </td>
         <td>false</td>
@@ -4722,8 +4738,8 @@ only the result of this request.<br/>
           Select the type of TLS configuration:<br>
 - `Disabled` to not configure TLS for the k8scache endpoint. Disabling TLS results in a less secure deployment model.<br>
 - `Provided` to manually provide cert/key references for mTLS.<br>
-- `Auto` (default) to use a default certificate, which may vary depending on the Kubernetes vendor.<br>
-- `Auto-mTLS` to preconfigure mTLS with cert-manager.<br>
+- `Auto` (default) to use OpenShift service-ca for automatic server certificate generation (simple TLS).<br>
+- `Auto-mTLS` to preconfigure mTLS with cert-manager. [Unsupported (*)].<br>
 See also: https://github.com/netobserv/netobserv-operator/blob/main/docs/TLS.md.<br/>
           <br/>
             <i>Enum</i>: Disabled, Provided, Auto, Auto-mTLS<br/>
@@ -4818,7 +4834,7 @@ Reference to the CA file.
         <td><b>namespace</b></td>
         <td>string</td>
         <td>
-          Namespace of the config map or secret containing the file. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+          Namespace of the config map or secret containing the file. If omitted, the default is to use the same namespace as where Network Observability is deployed.
 If the namespace is different, the config map or the secret is copied so that it can be mounted as required.<br/>
           <br/>
             <i>Default</i>: <br/>
@@ -4878,7 +4894,7 @@ TLS client certificate reference, used for mTLS. Leave unset for simple TLS.
         <td><b>namespace</b></td>
         <td>string</td>
         <td>
-          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
 If the namespace is different, the config map or the secret is copied so that it can be mounted as required.<br/>
           <br/>
             <i>Default</i>: <br/>
@@ -4938,7 +4954,7 @@ TLS server certificate reference.
         <td><b>namespace</b></td>
         <td>string</td>
         <td>
-          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
 If the namespace is different, the config map or the secret is copied so that it can be mounted as required.<br/>
           <br/>
             <i>Default</i>: <br/>
@@ -5273,10 +5289,9 @@ TLS configuration.
         <td>enum</td>
         <td>
           Select the type of TLS configuration:<br>
-- `Disabled` (default) to not configure TLS for the endpoint.
-- `Provided` to manually provide cert file and a key file.
-- `Auto` to use a default certificate, which may vary depending on the Kubernetes vendor.
-Refer to https://github.com/netobserv/netobserv-operator/blob/main/docs/TLS.md for more information.<br/>
+- `Disabled` (default) to not configure TLS for the endpoint.<br>
+- `Provided` to manually provide cert file and a key file. [Unsupported (*)].<br>
+- `Auto` to use OpenShift auto generated certificate using annotations.<br><br/>
           <br/>
             <i>Enum</i>: Disabled, Provided, Auto<br/>
             <i>Default</i>: Disabled<br/>
@@ -5351,7 +5366,7 @@ TLS configuration when `type` is set to `Provided`.
         <td><b>namespace</b></td>
         <td>string</td>
         <td>
-          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
 If the namespace is different, the config map or the secret is copied so that it can be mounted as required.<br/>
           <br/>
             <i>Default</i>: <br/>
@@ -5404,7 +5419,7 @@ Reference to the CA file when `type` is set to `Provided`.
         <td><b>namespace</b></td>
         <td>string</td>
         <td>
-          Namespace of the config map or secret containing the file. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+          Namespace of the config map or secret containing the file. If omitted, the default is to use the same namespace as where Network Observability is deployed.
 If the namespace is different, the config map or the secret is copied so that it can be mounted as required.<br/>
           <br/>
             <i>Default</i>: <br/>
@@ -5486,7 +5501,7 @@ Service configuration, only used when `spec.deploymentModel` is `Service`.
 - `Disabled` to not configure TLS for the endpoint. Disabling TLS results in a less secure deployment model.<br>
 - `Provided` to manually provide the key and certificate references.<br>
 - `Auto` (default) to enable automatically based on the running environment.<br>
-- `Auto-mTLS` to preconfigure mTLS.<br>
+- `Auto-mTLS` to preconfigure mTLS. [Unsupported (*)].<br>
 See also: https://github.com/netobserv/netobserv-operator/blob/main/docs/TLS.md.<br/>
           <br/>
             <i>Enum</i>: Disabled, Provided, Auto, Auto-mTLS<br/>
@@ -5579,7 +5594,7 @@ Reference to the CA file.
         <td><b>namespace</b></td>
         <td>string</td>
         <td>
-          Namespace of the config map or secret containing the file. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+          Namespace of the config map or secret containing the file. If omitted, the default is to use the same namespace as where Network Observability is deployed.
 If the namespace is different, the config map or the secret is copied so that it can be mounted as required.<br/>
           <br/>
             <i>Default</i>: <br/>
@@ -5639,7 +5654,7 @@ TLS client certificate reference, used for mTLS. Leave unset for simple TLS.
         <td><b>namespace</b></td>
         <td>string</td>
         <td>
-          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
 If the namespace is different, the config map or the secret is copied so that it can be mounted as required.<br/>
           <br/>
             <i>Default</i>: <br/>
@@ -5699,7 +5714,7 @@ TLS server certificate reference.
         <td><b>namespace</b></td>
         <td>string</td>
         <td>
-          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
 If the namespace is different, the config map or the secret is copied so that it can be mounted as required.<br/>
           <br/>
             <i>Default</i>: <br/>
@@ -5773,7 +5788,7 @@ This setting is ignored if `collectionMode` is different from `AllowList`.<br/>
 
 
 
-`subnetLabels` allows to define custom labels on subnets and IPs and, for supported vendors, to enable automatic labeling of recognized subnets, which is used to identify cluster external traffic.
+`subnetLabels` allows to define custom labels on subnets and IPs and to enable automatic labeling of recognized subnets, which is used to identify cluster external traffic.
 When a subnet matches the source or destination IP of a flow, a corresponding field is added: `SrcSubnetLabel` or `DstSubnetLabel`.
 
 <table>
@@ -5790,7 +5805,7 @@ When a subnet matches the source or destination IP of a flow, a corresponding fi
         <td>boolean</td>
         <td>
           `autoDetect` allows, when set to `true`, to detect automatically the machines, pods and services subnets based on
-vendor-specific configuration. It requires a vendor-specific implementation. Indirectly, this is a way to accurately detect
+OpenShift configuration. Indirectly, this is a way to accurately detect
 external traffic: flows that are not labeled for those subnets are external to the cluster. Enabled by default.<br/>
         </td>
         <td>false</td>
@@ -5800,7 +5815,7 @@ external traffic: flows that are not labeled for those subnets are external to t
         <td>
           `customLabels` allows you to customize subnets and IPs labeling, such as to identify cluster external workloads or web services.
 External subnets must be labeled with the prefix `EXT:`, or not labeled at all, in order to work with default quick filters and some metrics examples provided.<br/>
-If `autoDetect` is disabled or your Kubernetes vendor has no auto-detection implemented, it is recommended to manually configure labels for the cluster subnets, to distinguish internal traffic from external traffic.<br/>
+If `autoDetect` is disabled, it is recommended to manually configure labels for the cluster subnets, to distinguish internal traffic from external traffic.<br/>
 If `autoDetect` is enabled, `customLabels` overrides the detected subnets when they overlap.<br/><br/>
         </td>
         <td>false</td>
@@ -5809,7 +5824,7 @@ If `autoDetect` is enabled, `customLabels` overrides the detected subnets when t
         <td>boolean</td>
         <td>
           `openShiftAutoDetect` allows, when set to `true`, to detect automatically the machines, pods and services subnets based on
-vendor-specific configuration. Indirectly, this is a way to accurately detect
+OpenShift configuration. Indirectly, this is a way to accurately detect
 external traffic: flows that are not labeled for those subnets are external to the cluster.
 
 Deprecated: use `autoDetect` instead.<br/>
@@ -5901,8 +5916,8 @@ Prometheus querying configuration, such as client settings, used in the Console 
         <td><b>mode</b></td>
         <td>enum</td>
         <td>
-          `mode` must be set according to the type of Prometheus installation that stores NetObserv metrics:<br>
-- Use `Auto` to try configuring automatically for known vendors.<br>
+          `mode` must be set according to the type of Prometheus installation that stores Network Observability metrics:<br>
+- Use `Auto` to configure automatically. It uses the Thanos querier from OpenShift Cluster Monitoring.<br>
 - Use `Manual` for a manual setup.<br><br/>
           <br/>
             <i>Enum</i>: Manual, Auto<br/>
@@ -5965,7 +5980,9 @@ Prometheus configuration for `Manual` mode.
         <td><b><a href="#flowcollectorspecprometheusqueriermanualalertmanager">alertManager</a></b></td>
         <td>object</td>
         <td>
-          AlertManager configuration. This is used in the console to query silenced alerts, for displaying health information.<br/>
+          AlertManager configuration. This is used in the console to query silenced alerts, for displaying health information.
+It can be left empty to use the Console API instead.
+[Unsupported (*)].<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -6001,6 +6018,8 @@ Prometheus configuration for `Manual` mode.
 
 
 AlertManager configuration. This is used in the console to query silenced alerts, for displaying health information.
+It can be left empty to use the Console API instead.
+[Unsupported (*)].
 
 <table>
     <thead>
@@ -6123,7 +6142,7 @@ If set to `true`, the `caCert` field is ignored. For security, this should not b
         <td><b>namespace</b></td>
         <td>string</td>
         <td>
-          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
 If the namespace is different, the config map or the secret is copied so that it can be mounted as required.<br/>
           <br/>
             <i>Default</i>: <br/>
@@ -6183,7 +6202,7 @@ If the namespace is different, the config map or the secret is copied so that it
         <td><b>namespace</b></td>
         <td>string</td>
         <td>
-          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
 If the namespace is different, the config map or the secret is copied so that it can be mounted as required.<br/>
           <br/>
             <i>Default</i>: <br/>
@@ -6296,7 +6315,7 @@ If set to `true`, the `caCert` field is ignored. For security, this should not b
         <td><b>namespace</b></td>
         <td>string</td>
         <td>
-          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
 If the namespace is different, the config map or the secret is copied so that it can be mounted as required.<br/>
           <br/>
             <i>Default</i>: <br/>
@@ -6356,7 +6375,7 @@ If the namespace is different, the config map or the secret is copied so that it
         <td><b>namespace</b></td>
         <td>string</td>
         <td>
-          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where NetObserv is deployed.
+          Namespace of the config map or secret containing certificates. If omitted, the default is to use the same namespace as where Network Observability is deployed.
 If the namespace is different, the config map or the secret is copied so that it can be mounted as required.<br/>
           <br/>
             <i>Default</i>: <br/>

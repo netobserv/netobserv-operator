@@ -368,10 +368,8 @@ ifndef SKIP_CODE_GEN
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./api/..."
 endif
 
-doc: CRDOC ## Generate markdown documentation
-	$(CRDOC) --resources config/crd/bases/flows.netobserv.io_flowcollectors.yaml --output docs/FlowCollector.md
-	$(CRDOC) --resources config/crd/bases/flows.netobserv.io_flowmetrics.yaml --output docs/FlowMetric.md
-	$(CRDOC) --resources config/crd/bases/flows.netobserv.io_flowcollectorslices.yaml --output docs/FlowCollectorSlice.md
+doc: CRDOC YQ ## Generate markdown documentation
+	hack/crd-doc-gen.sh
 
 # Hack to reintroduce when the API stored version != latest version; see also envtest.go (CRD path config)
 # .PHONY: hack-crd-for-test
@@ -544,6 +542,9 @@ ifneq ("$(BUNDLE_SET_DATE)", "true")
 endif
 # CRD overrides
 	(shopt -s nullglob ; for file in $(BUNDLE_CONFIG)/crd-doc-override/*.yaml; do f="$$file" $(YQ) -i ".spec.versions[0].schema.openAPIV3Schema.properties *= load(env(f)) | ... head_comment=\"\"" "$(BUNDLE_OUT)/manifests/$$(basename $$file)" ; done)
+ifneq ("$(BUNDLE_PRODUCT_NAME)", "")
+	(shopt -s nullglob ; for file in $(BUNDLE_CONFIG)/crd-doc-override/*.yaml; do $(SED) -i -r "s/\<NetObserv\>/$(BUNDLE_PRODUCT_NAME)/g" "$(BUNDLE_OUT)/manifests/$$(basename $$file)" ; done)
+endif
 
 	sh -c '\
 	VALIDATION_OUTPUT=$$($(OPSDK) bundle validate $(BUNDLE_OUT) --select-optional suite=operatorframework); \
@@ -560,7 +561,7 @@ update-bundle: YQ ## Prepare clean bundles to be commited
 	cp ./config/csv/bases/netobserv-operator.clusterserviceversion.yaml ./config/csv/bases/transformed-csv.yaml
 	hack/crd2csvSpecDesc.sh v1beta2
 	$(MAKE) bundle VERSION=$(BUNDLE_VERSION) IMAGE_ORG=netobserv
-	$(MAKE) bundle VERSION=$(BUNDLE_VERSION) IMAGE_ORG=netobserv BUNDLE_TARGET=OpenShift
+	$(MAKE) bundle VERSION=$(BUNDLE_VERSION) IMAGE_ORG=netobserv BUNDLE_TARGET=OpenShift BUNDLE_PRODUCT_NAME="Network Observability"
 	$(MAKE) helm-update
 
 .PHONY: bundle-build
