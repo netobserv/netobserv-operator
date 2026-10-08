@@ -242,5 +242,12 @@ func (r *transformerReconciler) reconcileCRB(ctx context.Context, desired *flows
 		return err
 	}
 
+	// BGP enrichment reads FRRConfiguration directly from the FLP process, including
+	// when the centralized informer cache proxy is enabled.
+	useFRRReader := desired.Processor.IsBgpEnrichmentEnabled() && !isDelete
+	if err := r.ReconcileClusterRoleBinding(ctx, r.Namespace, transfoName, roles.FLPExtraReaderRole, !useFRRReader); err != nil {
+		return err
+	}
+
 	return nil
 }

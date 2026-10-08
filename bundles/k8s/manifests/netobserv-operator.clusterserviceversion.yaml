@@ -934,6 +934,7 @@ spec:
           - rbac.authorization.k8s.io
           resourceNames:
           - netobserv-flowcollector-viewer-role
+          - netobserv-flp-extra-reader
           - netobserv-hostnetwork
           - netobserv-informers
           - netobserv-loki-writer
@@ -948,6 +949,7 @@ spec:
           - rbac.authorization.k8s.io
           resourceNames:
           - netobserv-flowcollector-viewer-role
+          - netobserv-flp-extra-reader
           - netobserv-hostnetwork
           - netobserv-informers
           - netobserv-loki-writer

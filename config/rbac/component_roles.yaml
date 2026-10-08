@@ -97,14 +97,6 @@ rules:
   - list
   - watch
 - apiGroups:
-  - frrk8s.metallb.io
-  resources:
-  - frrconfigurations
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
   - coordination.k8s.io
   resources:
   - leases
@@ -113,6 +105,20 @@ rules:
   - get
   - list
   - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: flp-extra-reader
+rules:
+- apiGroups:
+  - frrk8s.metallb.io
+  resources:
+  - frrconfigurations
+  verbs:
+  - get
+  - list
+  - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole

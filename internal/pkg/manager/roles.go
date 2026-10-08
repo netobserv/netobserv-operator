@@ -32,9 +32,9 @@ package manager
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=rolebindings,verbs=get;list;create;delete;update;watch
 
 // Operator needs to update specific cluster roles bindings for operands
-//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterrolebindings,resourceNames=netobserv-loki-writer;netobserv-informers;netobserv-hostnetwork;netobserv-token-review;netobserv-flowcollector-viewer-role,verbs=get;update;watch
+//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterrolebindings,resourceNames=netobserv-loki-writer;netobserv-informers;netobserv-flp-extra-reader;netobserv-hostnetwork;netobserv-token-review;netobserv-flowcollector-viewer-role,verbs=get;update;watch
 // "Bind" allows to bind those exact CRBs without the operator needing the same rbac transitively
-//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles,verbs=bind,resourceNames=netobserv-loki-writer;netobserv-informers;netobserv-hostnetwork;netobserv-token-review;netobserv-flowcollector-viewer-role
+//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles,verbs=bind,resourceNames=netobserv-loki-writer;netobserv-informers;netobserv-flp-extra-reader;netobserv-hostnetwork;netobserv-token-review;netobserv-flowcollector-viewer-role
 
 // Operator needs to patch Console CR (cluster scope)
 //+kubebuilder:rbac:groups=operator.openshift.io,resources=consoles,verbs=get;list;patch;watch

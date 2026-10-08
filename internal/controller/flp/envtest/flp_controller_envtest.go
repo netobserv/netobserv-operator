@@ -108,6 +108,7 @@ func ControllerSpecs(env test.Environment, ctxGetter test.ContextGetter) {
 						InformerCacheProxy: &flowslatest.FlowCollectorInformerCacheProxy{
 							Enabled: ptr.To(true),
 						},
+						BgpEnrichment: ptr.To(true),
 					},
 				},
 			}
@@ -166,6 +167,11 @@ func ControllerSpecs(env test.Environment, ctxGetter test.ContextGetter) {
 
 			Eventually(func() any {
 				return expectClusterRoleBinding(ctx, k8sClient, roles.FLPInformersRole, operatorNamespace, "flowlogs-pipeline-informers")
+			}, timeout, interval).Should(Succeed())
+
+			By("Expecting FRR reader role binding for FLP with BGP enrichment")
+			Eventually(func() any {
+				return expectClusterRoleBinding(ctx, k8sClient, roles.FLPExtraReaderRole, operatorNamespace, "flowlogs-pipeline")
 			}, timeout, interval).Should(Succeed())
 
 			By("Not expecting Loki role (requires LokiStack)")
@@ -320,6 +326,7 @@ func ControllerSpecs(env test.Environment, ctxGetter test.ContextGetter) {
 		It("Should update kafka config successfully", func() {
 			test.UpdateCR(ctx, k8sClient, crKey, func(fc *flowslatest.FlowCollector) {
 				fc.Spec.DeploymentModel = flowslatest.DeploymentModelKafka
+				fc.Spec.Processor.BgpEnrichment = ptr.To(true)
 				fc.Spec.Kafka = flowslatest.FlowCollectorKafka{
 					Address: "localhost:9092",
 					Topic:   "FLP",
@@ -381,6 +388,11 @@ func ControllerSpecs(env test.Environment, ctxGetter test.ContextGetter) {
 			By("Not expecting hostnetwork role (not needed with Kafka)")
 			Eventually(func() interface{} {
 				return expectClusterRoleBinding(ctx, k8sClient, roles.HostNetworkRole, operatorNamespace /* empty expect list */)
+			}, timeout, interval).Should(Succeed())
+
+			By("Expecting FRR reader role binding for transformer with BGP enrichment")
+			Eventually(func() any {
+				return expectClusterRoleBinding(ctx, k8sClient, roles.FLPExtraReaderRole, operatorNamespace, "flowlogs-pipeline-transformer")
 			}, timeout, interval).Should(Succeed())
 
 			By("Not expecting Loki role (requires LokiStack)")

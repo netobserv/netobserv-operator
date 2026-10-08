@@ -16,6 +16,7 @@ const (
 	PromReaderRole          ClusterRoleName = "netobserv-metrics-reader"
 	ExposeMetricsRole       RoleName        = "netobserv-expose-metrics"
 	FLPInformersRole        ClusterRoleName = "netobserv-informers"
+	FLPExtraReaderRole      ClusterRoleName = "netobserv-flp-extra-reader"
 	HostNetworkRole         ClusterRoleName = "netobserv-hostnetwork"
 	ConsoleTokenReviewRole  ClusterRoleName = "netobserv-token-review"
 	FlowCollectorViewerRole ClusterRoleName = "netobserv-flowcollector-viewer-role"
@@ -28,6 +29,7 @@ const (
 var OperandClusterRoleBindings = []ClusterRoleName{
 	LokiWriterRole,
 	FLPInformersRole,
+	FLPExtraReaderRole,
 	HostNetworkRole,
 	ConsoleTokenReviewRole,
 	FlowCollectorViewerRole,
