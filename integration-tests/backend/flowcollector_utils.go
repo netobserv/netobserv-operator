@@ -343,6 +343,15 @@ func (lokilabels Lokilabels) getLokiQuery(filterType string, parameters ...strin
 }
 
 func (lokilabels Lokilabels) GetMonolithicLokiFlowLogs(lokiRoute string, startTime time.Time, parameters ...string) ([]FlowRecord, error) {
+	return lokilabels.getMonolithicLokiFlowLogs(lokiRoute, startTime, "JSON", parameters...)
+}
+
+// GetMonolithicLokiFlowLogsRegex queries monolithic Loki using raw-line regex filters.
+func (lokilabels Lokilabels) GetMonolithicLokiFlowLogsRegex(lokiRoute string, startTime time.Time, parameters ...string) ([]FlowRecord, error) {
+	return lokilabels.getMonolithicLokiFlowLogs(lokiRoute, startTime, "REGEX", parameters...)
+}
+
+func (lokilabels Lokilabels) getMonolithicLokiFlowLogs(lokiRoute string, startTime time.Time, filterType string, parameters ...string) ([]FlowRecord, error) {
 	// Expose Loki service via an OpenShift Route so queries work from outside the cluster
 	namespace, _ := parseMonolithicLokiURL(lokiRoute)
 	if namespace != "" {
@@ -352,7 +361,7 @@ func (lokilabels Lokilabels) GetMonolithicLokiFlowLogs(lokiRoute string, startTi
 
 	lc := newLokiClient(lokiRoute, startTime).retry(5)
 	lc.quiet = false
-	lokiQuery := lokilabels.getLokiQuery("JSON", parameters...)
+	lokiQuery := lokilabels.getLokiQuery(filterType, parameters...)
 	flowRecords := []FlowRecord{}
 	var res *lokiQueryResponse
 	err := wait.PollUntilContextTimeout(context.Background(), 30*time.Second, 300*time.Second, false, func(context.Context) (done bool, err error) {

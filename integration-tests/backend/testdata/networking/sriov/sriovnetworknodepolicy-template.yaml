@@ -1,0 +1,30 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: netobserv-sriov-node-policy
+objects:
+  - apiVersion: sriovnetwork.openshift.io/v1
+    kind: SriovNetworkNodePolicy
+    metadata:
+      name: ${POLICY_NAME}
+      namespace: ${NAMESPACE}
+    spec:
+      deviceType: netdevice
+      nicSelector:
+        deviceID: ${DEVICE_ID}
+        pfNames:
+          - ${PF_NAME}
+        vendor: ${VENDOR_ID}
+      nodeSelector:
+        kubernetes.io/hostname: ${NODE_NAME}
+      numVfs: ${{NUM_VFS}}
+      resourceName: ${RESOURCE_NAME}
+parameters:
+  - name: NAMESPACE
+  - name: POLICY_NAME
+  - name: DEVICE_ID
+  - name: PF_NAME
+  - name: VENDOR_ID
+  - name: NODE_NAME
+  - name: NUM_VFS
+  - name: RESOURCE_NAME

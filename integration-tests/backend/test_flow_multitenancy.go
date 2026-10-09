@@ -59,7 +59,7 @@ var _ = g.Describe("[sig-netobserv] Network_Observability Multi-Tenancy", g.Orde
 			o.Expect(rollbackCtxErr).NotTo(o.HaveOccurred())
 		}()
 
-		kubeadminToken = getKubeAdminToken(kubeAdminPasswd, serverURL, currentContext)
+		kubeadminToken = getKubeAdminToken(kubeAdminPasswd, serverURL)
 		o.Expect(kubeadminToken).NotTo(o.BeEmpty())
 
 		ipStackType = checkIPStackType()

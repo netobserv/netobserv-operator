@@ -1,0 +1,29 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: netobserv-sriov-pod
+objects:
+  - apiVersion: v1
+    kind: Pod
+    metadata:
+      name: ${POD_NAME}
+      namespace: ${NAMESPACE}
+      annotations:
+        k8s.v1.cni.cncf.io/networks: ${NETWORK_NAME}
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: ${NODE_NAME}
+      containers:
+        - name: traffic
+          image: quay.io/openshifttest/hello-sdn@sha256:c89445416459e7adea9a5a416b3365ed3d74f2491beb904d61dc8d1eb89a72a4
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -ec
+            - while :; do ping -c 1 ${PEER_IP} >/dev/null 2>&1 || true; sleep 1; done
+parameters:
+  - name: POD_NAME
+  - name: NAMESPACE
+  - name: NODE_NAME
+  - name: NETWORK_NAME
+  - name: PEER_IP

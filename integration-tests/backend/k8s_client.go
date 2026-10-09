@@ -78,6 +78,11 @@ var gvrMap = map[string]schema.GroupVersionResource{
 
 	// Network attachment
 	"net-attach-def": {Group: "k8s.cni.cncf.io", Version: "v1", Resource: "network-attachment-definitions"},
+	// SR-IOV
+	"sriovnetwork":           {Group: "sriovnetwork.openshift.io", Version: "v1", Resource: "sriovnetworks"},
+	"sriovnetworknodepolicy": {Group: "sriovnetwork.openshift.io", Version: "v1", Resource: "sriovnetworknodepolicies"},
+	"sriovnetworknodestate":  {Group: "sriovnetwork.openshift.io", Version: "v1", Resource: "sriovnetworknodestates"},
+	"sriovoperatorconfig":    {Group: "sriovnetwork.openshift.io", Version: "v1", Resource: "sriovoperatorconfigs"},
 
 	// Storage
 	"storageclass": {Group: "storage.k8s.io", Version: "v1", Resource: "storageclasses"},

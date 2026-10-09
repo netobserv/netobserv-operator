@@ -389,7 +389,7 @@ var _ = g.Describe("[sig-netobserv] Network_Observability with VMs", g.Ordered, 
 		}
 
 		g.By("Create secondary localnet CUDN")
-		defer removeResource(true, true, "clusteruserdefinednetwork", secondaryCUDNName)
+		defer removeResource("clusteruserdefinednetwork", secondaryCUDNName)
 		_, err := applyLocalnetCUDNtoMatchLabelNS(matchLabelKey, matchValue, secondaryCUDNName, "mylocalnet", "192.168.200.0/24", "192.168.200.1/32", false)
 		o.Expect(err).NotTo(o.HaveOccurred())
 

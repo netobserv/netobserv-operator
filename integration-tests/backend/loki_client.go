@@ -265,21 +265,13 @@ func (c *lokiClient) doRequest(path, query string, quiet bool, out interface{}) 
 	}
 	req.Header = h
 
-	var tr *http.Transport
-	proxy := getProxyFromEnv()
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
 
 	//  don't use proxy if svc/loki is port-forwarded to localhost
-	if !c.localhost && len(proxy) > 0 {
-		proxyURL, err := url.Parse(proxy)
-		o.Expect(err).NotTo(o.HaveOccurred())
-		tr = &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-			Proxy:           http.ProxyURL(proxyURL),
-		}
-	} else {
-		tr = &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		}
+	if !c.localhost {
+		tr.Proxy = http.ProxyFromEnvironment
 	}
 
 	client := &http.Client{Transport: tr}
@@ -481,6 +473,10 @@ type ContainerInfo struct {
 // getPodsNodesMap returns all pods per node
 func getPodsNodesMap(nodes []NodeInfo) map[string][]PodInfo {
 	podsMap := make(map[string][]PodInfo)
+	nodeSet := make(map[string]struct{}, len(nodes))
+	for _, node := range nodes {
+		nodeSet[node.Name] = struct{}{}
+	}
 
 	// Get all namespaces
 	nsList, err := k8sClient.CoreV1().Namespaces().List(context.Background(), metav1.ListOptions{})
@@ -498,6 +494,9 @@ func getPodsNodesMap(nodes []NodeInfo) map[string][]PodInfo {
 
 		for _, pod := range podList.Items {
 			if pod.Status.Phase == corev1.PodFailed || pod.Status.Phase == corev1.PodSucceeded {
+				continue
+			}
+			if _, found := nodeSet[pod.Spec.NodeName]; !found {
 				continue
 			}
 			var containers []ContainerInfo

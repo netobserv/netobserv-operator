@@ -1,0 +1,20 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: netobserv-sriov-network
+objects:
+  - apiVersion: sriovnetwork.openshift.io/v1
+    kind: SriovNetwork
+    metadata:
+      name: ${NETWORK_NAME}
+      namespace: ${NAMESPACE}
+    spec:
+      resourceName: ${RESOURCE_NAME}
+      networkNamespace: ${NETWORK_NAMESPACE}
+      ipam: '{ "type": "static", "addresses": [{"address": "${IP_ADDRESS}"}]}'
+parameters:
+  - name: NAMESPACE
+  - name: NETWORK_NAME
+  - name: RESOURCE_NAME
+  - name: NETWORK_NAMESPACE
+  - name: IP_ADDRESS

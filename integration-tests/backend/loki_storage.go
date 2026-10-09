@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
-	"net/url"
 	"os"
 	filePath "path/filepath"
 	"strconv"
@@ -72,12 +71,7 @@ func generateS3Config(cred s3Credential) aws.Config {
 		// For ODF and Minio, they're deployed in OCP clusters
 		// In some clusters, we can't connect it without proxy, here add proxy settings to s3 client when there has http_proxy or https_proxy in the env var
 		httpClient := awshttp.NewBuildableClient().WithTransportOptions(func(tr *http.Transport) {
-			proxy := getProxyFromEnv()
-			if len(proxy) > 0 {
-				proxyURL, err := url.Parse(proxy)
-				o.Expect(err).NotTo(o.HaveOccurred())
-				tr.Proxy = http.ProxyURL(proxyURL)
-			}
+			tr.Proxy = http.ProxyFromEnvironment
 			tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 		})
 		cfg, err = config.LoadDefaultConfig(context.TODO(),

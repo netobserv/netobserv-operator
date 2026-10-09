@@ -1849,7 +1849,7 @@ var _ = g.Describe("[sig-netobserv] Network_Observability", func() {
 				ipv6cidr = "2010:100:200::0/60"
 			}
 		}
-		defer removeResource(true, true, "clusteruserdefinednetwork", cudnName)
+		defer removeResource("clusteruserdefinednetwork", cudnName)
 		_, err := applyCUDNtoMatchLabelNS(matchLabelKey, matchValue, cudnName, ipv4cidr, ipv6cidr, cidr, "layer3")
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -1875,7 +1875,7 @@ var _ = g.Describe("[sig-netobserv] Network_Observability", func() {
 				label:     "hello-pod",
 				template:  udnPodTemplate,
 			}
-			defer removeResource(true, true, "pod", CUDNpods[i].name, "-n", CUDNpods[i].namespace)
+			defer removeResource("pod", CUDNpods[i].name, "-n", CUDNpods[i].namespace)
 			CUDNpods[i].createUdnPod()
 			assertAllPodsToBeReady(CUDNpods[i].namespace)
 		}
@@ -1889,7 +1889,7 @@ var _ = g.Describe("[sig-netobserv] Network_Observability", func() {
 				label:     "hello-pod",
 				template:  udnPodTemplate,
 			}
-			defer removeResource(true, true, "pod", UDNpods[j].name, "-n", UDNpods[j].namespace)
+			defer removeResource("pod", UDNpods[j].name, "-n", UDNpods[j].namespace)
 			UDNpods[j].createUdnPod()
 		}
 		assertAllPodsToBeReady(udnNS)
@@ -2050,13 +2050,13 @@ var _ = g.Describe("[sig-netobserv] Network_Observability", func() {
 		}
 
 		g.By("Create secondary localnet CUDN")
-		defer removeResource(true, true, "clusteruserdefinednetwork", secondaryCUDNName)
+		defer removeResource("clusteruserdefinednetwork", secondaryCUDNName)
 		_, err := applyLocalnetCUDNtoMatchLabelNS(matchLabelKey, matchValue, secondaryCUDNName, "mylocalnet", "192.168.100.0/24", "192.168.100.1/32", false)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("Deploy statefulset in both cudnNS")
 		for _, ns := range cudnNS {
-			defer removeResource(true, true, "statefulset", "hello", "-n", ns)
+			defer removeResource("statefulset", "hello", "-n", ns)
 			err := applyNsResourceFromTemplateByAdmin(ns, "-f", udnStatefulSetTemplate, "NETWORK_NAME="+secondaryCUDNName)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			assertAllPodsToBeReady(ns)

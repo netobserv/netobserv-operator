@@ -277,7 +277,7 @@ func setupCatalogSource(catSrc Resource, catSrcTemplate, imageDigest, catalogSou
 		NOSource.Channel = "latest"
 		NO.CatalogSource = NOSource
 	} else {
-		e2e.Logf("Using default ystream catalog")
+		e2e.Logf("Using catalog image from template defaults")
 		catsrcErr = catSrc.applyFromTemplate("-n", catSrc.Namespace, "-f", catSrcTemplate, "-p", "NAMESPACE="+catSrc.Namespace)
 	}
 	catSrc.WaitUntilCatSrcReady()
