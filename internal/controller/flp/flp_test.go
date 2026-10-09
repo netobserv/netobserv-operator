@@ -672,10 +672,8 @@ func TestConfigMapShouldDeserializeAsJSONWithLokiManual(t *testing.T) {
 	assert.EqualValues(*cfg.Loki.Advanced.WriteMaxRetries, lokiCfg.MaxRetries)
 	assert.EqualValues([]string{
 		"SrcK8S_Namespace",
-		"SrcK8S_OwnerName",
 		"SrcK8S_Type",
 		"DstK8S_Namespace",
-		"DstK8S_OwnerName",
 		"DstK8S_Type",
 		"K8S_FlowLayer",
 		"FlowDirection",
@@ -725,10 +723,8 @@ func TestConfigMapShouldDeserializeAsJSONWithLokiStack(t *testing.T) {
 	assert.EqualValues(*cfg.Loki.Advanced.WriteMaxRetries, lokiCfg.MaxRetries)
 	assert.EqualValues([]string{
 		"SrcK8S_Namespace",
-		"SrcK8S_OwnerName",
 		"SrcK8S_Type",
 		"DstK8S_Namespace",
-		"DstK8S_OwnerName",
 		"DstK8S_Type",
 		"K8S_FlowLayer",
 		"FlowDirection",
