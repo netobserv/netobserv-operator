@@ -118,7 +118,14 @@ func (r *Reconciler) reconcile(ctx context.Context, clh *helper.Client, desired 
 			return err
 		}
 	} else if !helper.SkipOwnership(nsExist) && !helper.IsSubSet(nsExist.ObjectMeta.Labels, desiredNs.ObjectMeta.Labels) {
-		err = r.Update(ctx, desiredNs)
+		// Preserve existing metadata, including OpenShift SCC allocation annotations.
+		if nsExist.Labels == nil {
+			nsExist.Labels = make(map[string]string)
+		}
+		for key, value := range desiredNs.Labels {
+			nsExist.Labels[key] = value
+		}
+		err = r.Update(ctx, nsExist)
 		if err != nil {
 			return err
 		}

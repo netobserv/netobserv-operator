@@ -157,6 +157,19 @@ func FlowCollectorEBPFSpecs(env test.Environment, ctxGetter test.ContextGetter) 
 		})
 
 		It("Should update fields that have changed", func() {
+			By("Starting with existing namespace metadata and a label that needs updating")
+			ns := v1.Namespace{}
+			Expect(k8sClient.Get(ctx, nsKey, &ns)).To(Succeed())
+			annotations := map[string]string{
+				"openshift.io/sa.scc.uid-range":           "1000730000/10000",
+				"openshift.io/sa.scc.supplemental-groups": "1000730000/10000",
+				"openshift.io/sa.scc.mcs":                 "s0:c27,c14",
+			}
+			ns.Annotations = annotations
+			ns.Labels["example.com/team"] = "network-observability"
+			ns.Labels["pod-security.kubernetes.io/enforce"] = "restricted"
+			Expect(k8sClient.Update(ctx, &ns)).To(Succeed())
+
 			test.UpdateCR(ctx, k8sClient, crKey, func(fc *flowslatest.FlowCollector) {
 				Expect(*fc.Spec.Agent.EBPF.Sampling).To(Equal(int32(123)))
 				*fc.Spec.Agent.EBPF.Sampling = 4
@@ -184,6 +197,16 @@ func FlowCollectorEBPFSpecs(env test.Environment, ctxGetter test.ContextGetter) 
 			Expect(container.SecurityContext.Privileged).To(Not(BeNil()))
 			Expect(*container.SecurityContext.Privileged).To(BeTrue())
 			Expect(container.SecurityContext.Capabilities).To(BeNil())
+
+			By("Updating namespace labels without losing existing metadata")
+			Eventually(func(g Gomega) {
+				updated := v1.Namespace{}
+				g.Expect(k8sClient.Get(ctx, nsKey, &updated)).To(Succeed())
+				g.Expect(updated.Labels).To(HaveKeyWithValue("pod-security.kubernetes.io/enforce", "privileged"))
+				g.Expect(updated.Annotations).To(Equal(annotations))
+				g.Expect(updated.Labels).To(HaveKeyWithValue("example.com/team", "network-observability"))
+				g.Expect(updated.UID).To(Equal(ns.UID))
+			}, timeout, interval).Should(Succeed())
 
 			By("Expecting to delete the netobserv-ebpf-agent prometheus service")
 			Eventually(func() interface{} {

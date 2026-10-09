@@ -57,7 +57,20 @@ func ControllerSpecs() {
 			})).Should(Succeed())
 		})
 
-		It("Should create successfully", func() {
+		It("Should create successfully while preserving existing namespace metadata", func() {
+			By("Starting with existing namespace annotations and labels")
+			nsKey := types.NamespacedName{Name: operatorNamespace}
+			ns := v1.Namespace{}
+			Expect(k8sClient.Get(ctx, nsKey, &ns)).Should(Succeed())
+			annotations := map[string]string{
+				"openshift.io/sa.scc.uid-range":           "1000730000/10000",
+				"openshift.io/sa.scc.supplemental-groups": "1000730000/10000",
+				"openshift.io/sa.scc.mcs":                 "s0:c27,c14",
+			}
+			ns.Annotations = annotations
+			ns.Labels["example.com/team"] = "network-observability"
+			Expect(k8sClient.Update(ctx, &ns)).Should(Succeed())
+
 			created := &flowslatest.FlowCollector{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: crKey.Name,
@@ -70,6 +83,16 @@ func ControllerSpecs() {
 
 			// Create
 			Expect(k8sClient.Create(ctx, created)).Should(Succeed())
+
+			By("Adding the managed label without losing existing namespace metadata")
+			Eventually(func(g Gomega) {
+				updated := v1.Namespace{}
+				g.Expect(k8sClient.Get(ctx, nsKey, &updated)).Should(Succeed())
+				g.Expect(updated.Labels).To(HaveKeyWithValue("netobserv-managed", "true"))
+				g.Expect(updated.Annotations).To(Equal(annotations))
+				g.Expect(updated.Labels).To(HaveKeyWithValue("example.com/team", "network-observability"))
+				g.Expect(updated.UID).To(Equal(ns.UID))
+			}, timeout, interval).Should(Succeed())
 
 			By("Expecting the monitoring dashboards configmap to be created")
 			Eventually(func() interface{} {

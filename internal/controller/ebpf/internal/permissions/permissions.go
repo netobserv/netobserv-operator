@@ -78,7 +78,15 @@ func (c *Reconciler) reconcileNamespace(ctx context.Context) error {
 	// it (if the user removes it manually, it's at their own risk)
 	if !helper.IsSubSet(actual.ObjectMeta.Labels, namespaceLabels(false, c.Vendor)) {
 		rlog.Info("updating namespace")
-		return c.UpdateIfOwned(ctx, actual, desired)
+		// Preserve existing metadata, including OpenShift SCC allocation annotations.
+		updated := actual.DeepCopy()
+		if updated.Labels == nil {
+			updated.Labels = make(map[string]string)
+		}
+		for key, value := range desired.Labels {
+			updated.Labels[key] = value
+		}
+		return c.UpdateIfOwned(ctx, actual, updated)
 	}
 
 	rlog.Info("namespace is already reconciled. Doing nothing")
