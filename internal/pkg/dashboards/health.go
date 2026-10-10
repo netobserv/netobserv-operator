@@ -104,8 +104,8 @@ func CreateHealthDashboard(netobsNs, nsFlowsMetric string) (string, error) {
 		NewPanel("Errors per minute", metricslatest.ChartTypeStackArea, "", 4,
 			NewTarget(`sum(increase(netobserv_agent_errors_total[1m])) by (component, error, severity)`, "{{component}} {{error}} (sev: {{severity}})"),
 		),
-		NewPanel("Filtered flows rate", metricslatest.ChartTypeStackArea, "", 4,
-			NewTarget("sum(rate(netobserv_agent_filtered_flows_total[1m])) by (source, reason)", "{{source}} {{reason}}"),
+		NewPanel("Filtered packets rate", metricslatest.ChartTypeStackArea, "", 4,
+			NewTarget("sum(rate(netobserv_agent_filtered_packets_total[1m])) by (source, reason)", "{{source}} {{reason}}"),
 		),
 	}))
 
