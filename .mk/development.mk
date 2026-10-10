@@ -6,6 +6,18 @@ else
 OPERATOR_NS ?= openshift-netobserv-operator
 endif
 
+# TLS validation of an installed NetObserv deployment.
+export TLS_SCANNER_NAMESPACE ?= $(NAMESPACE)
+export TLS_SCANNER_OPERATOR_NAMESPACE ?= $(OPERATOR_NS)
+export TLS_SCANNER_NAMESPACES ?= $(NAMESPACE),$(NAMESPACE)-privileged,$(TLS_SCANNER_OPERATOR_NAMESPACE)
+export TLS_SCANNER_OUTPUT_DIR ?= out/tls-scanner
+export TLS_SCANNER_PARALLEL ?= 4
+export TLS_SCANNER_TIMEOUT_SECONDS ?= 1800
+
+.PHONY: tls-scanner
+tls-scanner: ## Check NetObserv TLS endpoints for ML-KEM and cluster TLS profile adherence.
+	@bash ./hack/tls-scan.sh
+
 .PHONY: deploy-loki
 deploy-loki: ## Deploy loki.
 	@echo -e "\n==> Deploy loki"

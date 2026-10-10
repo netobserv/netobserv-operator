@@ -189,6 +189,13 @@ endif
 
 NAMESPACE ?= netobserv
 
+# TLS scanner image build. An empty source uses a managed upstream checkout.
+TLS_SCANNER_REF ?= 2e9b3c377b31810bcfe0711a2eb492314e2464be
+TLS_SCANNER_SOURCE ?=
+TLS_SCANNER_IMAGE ?= $(REPO)/tls-scanner:$(VERSION)
+TLS_SCANNER_PLATFORM ?= linux/$(GOARCH)
+export TLS_SCANNER_IMAGE
+
 all: help
 
 # build a single arch target provided as argument
@@ -423,6 +430,36 @@ build: fmt lint ## Build manager binary.
 	GOARCH=${GOARCH} go build -mod vendor -o bin/manager main.go
 
 ##@ Images
+
+.PHONY: tls-scanner-image-build tls-scanner-image-push
+tls-scanner-image-build: ## Build a local tls-scanner image from the pinned upstream source.
+	@source_dir="$(TLS_SCANNER_SOURCE)"; \
+	if [ -z "$$source_dir" ]; then \
+		source_dir="out/tls-scanner-source"; \
+		if [ ! -e "$$source_dir" ]; then \
+			mkdir -p out; \
+			git clone https://github.com/openshift/tls-scanner.git "$$source_dir"; \
+		fi; \
+		if [ "$$(cd "$$(git -C "$$source_dir" rev-parse --show-toplevel)" && pwd -P)" != "$$(cd "$$source_dir" && pwd -P)" ]; then \
+			echo "$$source_dir is not a standalone Git checkout" >&2; exit 1; \
+		fi; \
+		if [ -n "$$(git -C "$$source_dir" status --porcelain)" ]; then \
+			echo "$$source_dir has local changes; use TLS_SCANNER_SOURCE to build it explicitly" >&2; exit 1; \
+		fi; \
+		if ! git -C "$$source_dir" cat-file -e "$(TLS_SCANNER_REF)^{commit}" 2>/dev/null; then \
+			git -C "$$source_dir" fetch https://github.com/openshift/tls-scanner.git "$(TLS_SCANNER_REF)"; \
+		fi; \
+		git -C "$$source_dir" checkout --detach "$(TLS_SCANNER_REF)"; \
+	elif [ ! -f "$$source_dir/go.mod" ] || [ ! -d "$$source_dir/cmd/tls-scanner" ]; then \
+		echo "$$source_dir is not a tls-scanner source directory" >&2; exit 1; \
+	fi; \
+	if [ ! -f "$$source_dir/Dockerfile.local" ]; then \
+		echo "$$source_dir/Dockerfile.local is missing; select a source revision that provides it" >&2; exit 1; \
+	fi; \
+	$(OCI_BIN) build --platform "$(TLS_SCANNER_PLATFORM)" $(OCI_BUILD_OPTS) -f "$$source_dir/Dockerfile.local" -t "$(TLS_SCANNER_IMAGE)" "$$source_dir"
+
+tls-scanner-image-push: ## Push a locally built tls-scanner image to its registry.
+	$(OCI_BIN) push "$(TLS_SCANNER_IMAGE)"
 
 # note: to build and push custom image tag use: IMAGE_ORG=myuser VERSION=dev make images
 .PHONY: image-build

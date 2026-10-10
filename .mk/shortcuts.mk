@@ -1,4 +1,11 @@
 ##@ shortcuts helpers
+.PHONY: tls-scan
+tls-scan: tls-scanner ## Alias for tls-scanner.
+
+.PHONY: tls-scanner-image
+tls-scanner-image: tls-scanner-image-build ## Build and push the tls-scanner image.
+	$(MAKE) tls-scanner-image-push
+
 .PHONY: build-image
 build-image: image-build ## Build MULTIARCH_TARGETS images
 
