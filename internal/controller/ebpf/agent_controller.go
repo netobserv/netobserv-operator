@@ -265,6 +265,7 @@ func (c *AgentController) desired(ctx context.Context, coll *flowslatest.FlowCol
 	annotations := make(map[string]string)
 	if c.ClusterInfo.IsOpenShift() {
 		annotations[constants.OpenShiftReqSCCAnnotation] = constants.EBPFSecurityContext
+		annotations["target.workload.openshift.io/management"] = `{"effect": "PreferredDuringScheduling"}`
 	}
 	env, err := c.envConfig(ctx, coll, annotations)
 	if err != nil {
@@ -428,6 +429,15 @@ func (c *AgentController) desired(ctx context.Context, coll *flowslatest.FlowCol
 		Spec: v1.DaemonSetSpec{
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{"app": constants.EBPFAgentName},
+			},
+			UpdateStrategy: v1.DaemonSetUpdateStrategy{
+				Type: v1.RollingUpdateDaemonSetStrategyType,
+				RollingUpdate: &v1.RollingUpdateDaemonSet{
+					MaxUnavailable: &intstr.IntOrString{
+						Type:   intstr.String,
+						StrVal: "10%",
+					},
+				},
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{

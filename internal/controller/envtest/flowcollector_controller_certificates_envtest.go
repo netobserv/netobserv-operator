@@ -298,10 +298,10 @@ func FlowCollectorCertificatesSpecs(env test.Environment, ctxGetter test.Context
 				}
 				return test.VolumeNames(plugin.Spec.Template.Spec.Volumes)
 			}, timeout, interval).Should(ContainElements(expectedVolumes))
-			expectedAnnotLen := 1
+			expectedAnnotLen := 1 // config-digest
 			if env == test.EnvOpenShift {
-				// In OpenShift, pods come with more annotations
-				expectedAnnotLen = 2
+				// In OpenShift, pods come with more annotations (required-scc + workload annotation)
+				expectedAnnotLen = 3
 			}
 			Expect(plugin.Spec.Template.Annotations).To(HaveLen(expectedAnnotLen))
 

@@ -57,10 +57,15 @@ func (c *Reconciler) reconcileNamespace(ctx context.Context) error {
 			return fmt.Errorf("can't retrieve current namespace: %w", err)
 		}
 	}
+	annotations := map[string]string{}
+	if c.Vendor == constants.VendorOpenShiftDownstream {
+		annotations["workload.openshift.io/allowed"] = "management"
+	}
 	desired := &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   ns,
-			Labels: namespaceLabels(true, c.Vendor),
+			Name:        ns,
+			Labels:      namespaceLabels(true, c.Vendor),
+			Annotations: annotations,
 		},
 	}
 	if actual == nil {
@@ -76,7 +81,9 @@ func (c *Reconciler) reconcileNamespace(ctx context.Context) error {
 	// We noticed that audit labels are automatically removed
 	// in some configurations of K8s, so to avoid an infinite update loop, we just ignore
 	// it (if the user removes it manually, it's at their own risk)
-	if !helper.IsSubSet(actual.ObjectMeta.Labels, namespaceLabels(false, c.Vendor)) {
+	labelsMatch := helper.IsSubSet(actual.ObjectMeta.Labels, namespaceLabels(false, c.Vendor))
+	annotationsMatch := helper.IsSubSet(actual.ObjectMeta.Annotations, annotations)
+	if !labelsMatch || !annotationsMatch {
 		rlog.Info("updating namespace")
 		return c.UpdateIfOwned(ctx, actual, desired)
 	}
