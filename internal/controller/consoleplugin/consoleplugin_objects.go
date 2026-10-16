@@ -16,6 +16,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	ascv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/ptr"
@@ -185,6 +186,27 @@ func (b *builder) deployment(name, cmDigest string) *appsv1.Deployment {
 	}
 }
 
+// buildConsolePluginResources ensures resource requests have sensible defaults while allowing user overrides.
+// This is necessary because CRD defaults for ResourceRequirements  don't work properly (probably because the type is not defined here)
+func buildConsolePluginResources(desired corev1.ResourceRequirements) corev1.ResourceRequirements {
+	resources := desired.DeepCopy()
+
+	// Ensure Requests map exists
+	if resources.Requests == nil {
+		resources.Requests = corev1.ResourceList{}
+	}
+
+	// Apply defaults only for missing fields
+	if _, hasCPU := resources.Requests[corev1.ResourceCPU]; !hasCPU {
+		resources.Requests[corev1.ResourceCPU] = resource.MustParse("100m")
+	}
+	if _, hasMem := resources.Requests[corev1.ResourceMemory]; !hasMem {
+		resources.Requests[corev1.ResourceMemory] = resource.MustParse("50Mi")
+	}
+
+	return *resources
+}
+
 func (b *builder) podTemplate(name, cmDigest string) *corev1.PodTemplateSpec {
 	annotations := map[string]string{}
 	args := []string{
@@ -246,7 +268,7 @@ func (b *builder) podTemplate(name, cmDigest string) *corev1.PodTemplateSpec {
 				Name:                     name,
 				Image:                    b.info.Images[b.imageRef],
 				ImagePullPolicy:          corev1.PullPolicy(b.desired.ConsolePlugin.ImagePullPolicy),
-				Resources:                *b.desired.ConsolePlugin.Resources.DeepCopy(),
+				Resources:                buildConsolePluginResources(b.desired.ConsolePlugin.Resources),
 				VolumeMounts:             b.volumes.AppendMounts(volumeMounts),
 				Env:                      helper.AppendTLSEnvVars([]corev1.EnvVar{constants.EnvNoHTTP2}, b.info.TLSConfig),
 				Args:                     args,
