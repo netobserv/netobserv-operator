@@ -13,10 +13,8 @@ func TestDefaultLokiLabels(t *testing.T) {
 	assert.Equal(t, err, nil)
 	assert.Equal(t, []string{
 		"SrcK8S_Namespace",
-		"SrcK8S_OwnerName",
 		"SrcK8S_Type",
 		"DstK8S_Namespace",
-		"DstK8S_OwnerName",
 		"DstK8S_Type",
 		"K8S_FlowLayer",
 		"FlowDirection",
@@ -40,10 +38,8 @@ func TestAllLokiLabels(t *testing.T) {
 	assert.Equal(t, err, nil)
 	assert.Equal(t, []string{
 		"SrcK8S_Namespace",
-		"SrcK8S_OwnerName",
 		"SrcK8S_Type",
 		"DstK8S_Namespace",
-		"DstK8S_OwnerName",
 		"DstK8S_Type",
 		"K8S_FlowLayer",
 		"FlowDirection",
@@ -59,16 +55,14 @@ func TestExcludedLokiLabels(t *testing.T) {
 	labels, err := GetLabels(&flowslatest.FlowCollectorSpec{
 		Loki: flowslatest.FlowCollectorLoki{
 			Advanced: &flowslatest.AdvancedLokiConfig{
-				ExcludeLabels: []string{"SrcK8S_OwnerName", "DstK8S_OwnerName"},
+				ExcludeLabels: []string{"SrcK8S_Type", "DstK8S_Type"},
 			},
 		},
 	})
 	assert.Equal(t, err, nil)
 	assert.Equal(t, []string{
 		"SrcK8S_Namespace",
-		"SrcK8S_Type",
 		"DstK8S_Namespace",
-		"DstK8S_Type",
 		"K8S_FlowLayer",
 		"FlowDirection",
 	}, labels)
