@@ -140,7 +140,7 @@ func verifyEBPFMetrics() {
 
 // verify eBPF filter metrics
 func verifyEBPFFilterMetrics(reason string) {
-	query := fmt.Sprintf(`100 * sum(rate(netobserv_agent_filtered_flows_total{reason="%s"}[1m])) / sum(rate(netobserv_agent_filtered_flows_total[1m]))`, reason)
+	query := fmt.Sprintf(`100 * sum(rate(netobserv_agent_filtered_packets_total{reason="%s"}[1m])) / sum(rate(netobserv_agent_filtered_packets_total[1m]))`, reason)
 	metrics := pollMetrics(query)
 	switch reason {
 	case "FilterAccept":
