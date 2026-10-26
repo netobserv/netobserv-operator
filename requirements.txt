@@ -6,6 +6,6 @@ packaging==26.2
 # pyproject_hooks==1.2.0
 ruamel.yaml==0.19.1
 ruamel.yaml.clib==0.2.15
-setuptools==82.0.1
+setuptools==84.1.0
 setuptools-scm==9.2.2
 wheel==0.47.0
