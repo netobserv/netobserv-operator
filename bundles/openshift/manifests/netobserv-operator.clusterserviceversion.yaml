@@ -65,7 +65,6 @@ metadata:
                 "url": "http://loki.netobserv.svc.cluster.local.:3100/"
               }
             },
-            "namespace": "netobserv",
             "networkPolicy": {
               "additionalNamespaces": [],
               "enable": true
@@ -93,6 +92,17 @@ metadata:
     containerImage: quay.io/netobserv/network-observability-operator:2.0.1-community
     createdAt: "2026-09-30T12:42:15Z"
     description: Network flows collector and monitoring solution
+    features.operators.openshift.io/cnf: "false"
+    features.operators.openshift.io/cni: "false"
+    features.operators.openshift.io/csi: "false"
+    features.operators.openshift.io/disconnected: "true"
+    features.operators.openshift.io/fips-compliant: "false"
+    features.operators.openshift.io/proxy-aware: "false"
+    features.operators.openshift.io/tls-profiles: "true"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
+    operatorframework.io/cluster-monitoring: "true"
     operatorframework.io/initialization-resource: '{"apiVersion":"flows.netobserv.io/v1beta2",
       "kind":"FlowCollector","metadata":{"name":"cluster"},"spec": {}}'
     operatorframework.io/suggested-namespace: openshift-netobserv-operator
@@ -1055,6 +1065,8 @@ spec:
                   value: "true"
                 - name: VENDOR
                   value: OpenShift_Downstream
+                - name: DEFAULT_OPERANDS_NAMESPACE
+                  value: openshift-network-observability
                 - name: RELATED_IMAGE_WEB_CONSOLE_PF5
                   value: quay.io/netobserv/network-observability-console-plugin:v2.0.1-community-pf5
                 - name: RELATED_IMAGE_WEB_CONSOLE_PF4

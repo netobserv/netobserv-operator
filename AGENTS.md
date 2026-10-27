@@ -160,8 +160,8 @@ Use Ginkgo/Gomega patterns.
 ### Integration
 ```
 Test on Kind cluster:
-1. IMAGE="quay.io/me/netobserv:test" make image-build image-push deploy
-2. make deploy-sample-cr
+1. IMAGE="quay.io/me/netobserv:test" make image-build image-push helm-install
+2. make helm-configure-flowcollector
 3. Verify logs and functionality
 ```
 
@@ -203,9 +203,9 @@ Two types of configuration:
 make build lint test               # Build and test
 make update-bundle                 # After CRD changes
 make images                        # Build and push to quay OCI images
-make deploy                        # Deploy operator bundle on a running cluster
-make deploy-sample-cr              # Deploy FlowCollector
-make undeploy                      # Clean up
+make helm-install                  # Deploy operator bundle on a running cluster
+make helm-configure-flowcollector  # Deploy FlowCollector
+make helm-cleanup                  # Clean up
 ```
 
 **Key Files:**

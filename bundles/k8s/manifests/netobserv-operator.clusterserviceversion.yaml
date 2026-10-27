@@ -65,7 +65,6 @@ metadata:
                 "url": "http://loki.netobserv.svc.cluster.local.:3100/"
               }
             },
-            "namespace": "netobserv",
             "networkPolicy": {
               "additionalNamespaces": [],
               "enable": true
@@ -89,13 +88,12 @@ metadata:
       ]
     capabilities: Seamless Upgrades
     categories: Monitoring, Networking, Observability
-    console.openshift.io/plugins: '["netobserv-plugin"]'
     containerImage: quay.io/netobserv/network-observability-operator:2.0.1-community
     createdAt: "2026-09-30T12:42:10Z"
     description: Network flows collector and monitoring solution
     operatorframework.io/initialization-resource: '{"apiVersion":"flows.netobserv.io/v1beta2",
       "kind":"FlowCollector","metadata":{"name":"cluster"},"spec": {}}'
-    operatorframework.io/suggested-namespace: openshift-netobserv-operator
+    operatorframework.io/suggested-namespace: netobserv
     operators.operatorframework.io/builder: operator-sdk-v1.42.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
     repository: https://github.com/netobserv/netobserv-operator

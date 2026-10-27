@@ -105,26 +105,22 @@ Then open http://localhost:9001/ in your browser.
 
 ### Install from repository
 
-A couple of `make` targets are provided in this repository to allow installing without Helm or OLM:
+A couple of `make` targets are provided in this repository to allow installing the latest or custom builds:
 
 ```bash
 git clone https://github.com/netobserv/netobserv-operator.git && cd network-observability-operator
-USER=netobserv make deploy deploy-loki deploy-grafana
+USER=netobserv make helm-install
 ```
 
-It will deploy the operator in its latest version, with port-forwarded Loki and Grafana (they are optional).
+It will deploy the operator in its latest version (`main` branch). To deploy your own build, refer to the [development guide](./DEVELOPMENT.md).
 
-> Note: the `loki-deploy` script is provided as a quick install path and is not suitable for production. It deploys a single pod, configures a 10GB storage PVC, with 24 hours of retention. For a scalable deployment, please refer to [our distributed Loki guide](https://github.com/netobserv/documents/blob/main/loki_distributed.md) or [Grafana's official documentation](https://grafana.com/docs/loki/latest/).
-
-To deploy the monitoring pipeline, this `make` target installs a `FlowCollector` with default values:
+Then, this will install a default `FlowCollector`:
 
 ```bash
-make deploy-sample-cr
+make helm-configure-flowcollector
 ```
 
-Alternatively, you can [grab and edit](./config/samples/flows_v1beta2_flowcollector.yaml) this config before installing it.
-
-You can still edit the `FlowCollector` after it's installed: the operator will take care about reconciling everything with the updated configuration:
+You can edit the `FlowCollector` after it's installed, the operator will reconcile everything with the updated configuration:
 
 ```bash
 kubectl edit flowcollector cluster

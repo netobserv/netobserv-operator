@@ -31,12 +31,12 @@ Run the deployment command with the configured values:
 
 **If custom USER and VERSION:**
 ```bash
-USER=<user_value> VERSION=<version_value> make deploy
+USER=<user_value> VERSION=<version_value> make ocp-deploy
 ```
 
 **If using defaults:**
 ```bash
-USER=netobserv make deploy
+USER=netobserv make ocp-deploy
 ```
 
 ### 2. Configure for OpenShift (if applicable)
@@ -75,5 +75,5 @@ kubectl get flowcollector cluster -o yaml
 To remove the entire environment:
 
 ```bash
-make undeploy
+make ocp-undeploy
 ```

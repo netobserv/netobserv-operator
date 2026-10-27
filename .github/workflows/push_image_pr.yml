@@ -115,8 +115,11 @@ jobs:
 
             To deploy this build:
             \`\`\`bash
-            # Direct deployment, from operator repo
-            IMAGE=${mainImage} make deploy
+            # Direct deployment, from operator repo, via Helm
+            IMAGE=${mainImage} make helm-install
+
+            # Direct deployment, from operator repo, on OpenShift
+            IMAGE=${mainImage} make ocp-deploy
 
             # Or using operator-sdk
             operator-sdk run bundle ${bundleImage}

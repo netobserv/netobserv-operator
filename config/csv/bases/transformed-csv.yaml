@@ -5,12 +5,11 @@ metadata:
     alm-examples: '[]'
     capabilities: Seamless Upgrades
     categories: Monitoring, Networking, Observability
-    console.openshift.io/plugins: '["netobserv-plugin"]'
     containerImage: ':container-image:'
     createdAt: ''
     description: Network flows collector and monitoring solution
     support: NetObserv team
-    operatorframework.io/suggested-namespace: openshift-netobserv-operator
+    operatorframework.io/suggested-namespace: netobserv
     operatorframework.io/initialization-resource: '{"apiVersion":"flows.netobserv.io/v1beta2", "kind":"FlowCollector","metadata":{"name":"cluster"},"spec": {}}'
     repository: https://github.com/netobserv/netobserv-operator
   labels:

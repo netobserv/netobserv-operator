@@ -139,7 +139,7 @@ make vendors
 
 ## Understanding the config / kustomize structure
 
-The [config](./config/) directory contains assets required for creating the Operator bundle, which comes in two flavours: for vanilla Kubernetes and for vendors (OpenShift). Their entry points are `config/k8s/olm` and `config/openshift/olm` respectively. There is a third possibility that is not used for OLM bundling, but is used for development purpose to deploy directly on cluster with `make deploy`: it's `config/openshift` (a non-OLM variant). Subdirectories in `config/` that are not in `k8s/` or `openshift/`, such as `crd/` and `csv/`, are typically common for both bundles.
+The [config](./config/) directory contains assets required for creating the Operator bundle, which comes in two flavours: for vanilla Kubernetes and for vendors (OpenShift). Their entry points are `config/k8s/olm` and `config/openshift/olm` respectively. There is a third possibility that is not used for OLM bundling, but is used for development purpose to deploy directly on cluster with `make ocp-deploy`: it's `config/openshift` (a non-OLM variant). Subdirectories in `config/` that are not in `k8s/` or `openshift/`, such as `crd/` and `csv/`, are typically common for both bundles.
 
 The vanilla bundle is not distributed as is, but is used to derive helm charts.
 

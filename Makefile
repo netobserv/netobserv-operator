@@ -67,10 +67,12 @@ IMAGE_TAG_BASE ?= $(REPO)/network-observability-operator
 BUNDLE_IMAGE ?= $(IMAGE_TAG_BASE)-bundle:v$(BUNDLE_VERSION)
 
 ifeq ("$(BUNDLE_TARGET)", "OpenShift")
-	BUNDLE_CONFIG = config/openshift/olm
+	BUNDLE_MAIN_CONFIG = config/openshift/olm
+	BUNDLE_CSV_CONFIG = config/csv/openshift
 	BUNDLE_OUT = bundles/openshift
 else
-	BUNDLE_CONFIG = config/k8s/olm
+	BUNDLE_MAIN_CONFIG = config/k8s/olm
+	BUNDLE_CSV_CONFIG = config/csv
 	BUNDLE_OUT = bundles/k8s
 endif
 
@@ -492,18 +494,6 @@ ifeq ("$(BUNDLE_TARGET)", "OpenShift")
 endif
 endif
 
-deploy: BPF_VERSION=main
-deploy: FLP_VERSION=main
-deploy: PLG_VERSION=main
-deploy: kustomize set-manager-images ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	$(KUSTOMIZE) build config/openshift | kubectl apply --server-side --force-conflicts -f -
-	kubectl get ns openshift-netobserv-operator || kubectl create ns openshift-netobserv-operator
-	cat $(BUNDLE_OUT)/manifests/netobserv-operator.clusterserviceversion.yaml | $(SED) -E "s/operators.coreos.com\/v1/operators.coreos.com\/v1alpha1/" | $(SED) -E "s/placeholder/openshift-netobserv-operator/" | kubectl apply --server-side --force-conflicts -f -
-
-undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config.
-	$(KUSTOMIZE) build config/openshift | kubectl --ignore-not-found=true delete -f - || true
-	cat $(BUNDLE_OUT)/manifests/netobserv-operator.clusterserviceversion.yaml | $(SED) -E "s/operators.coreos.com\/v1/operators.coreos.com\/v1alpha1/" | $(SED) -E "s/placeholder/openshift-netobserv-operator/" | kubectl --ignore-not-found=true delete -f - || true
-
 run: fmt lint ## Run a controller from your host.
 	go run ./main.go
 
@@ -511,7 +501,7 @@ run: fmt lint ## Run a controller from your host.
 
 .PHONY: bundle-nogen
 bundle-nogen: YQ OPSDK kustomize set-manager-images ## Generate final bundle files, without prior code/doc generation.
-	$(SED) -i -E 's~netobserv-operator/blob/[^/]+/~netobserv-operator/blob/$(VERSION)/~g' $(BUNDLE_CONFIG)/description.md
+	$(SED) -i -E 's~netobserv-operator/blob/[^/]+/~netobserv-operator/blob/$(VERSION)/~g' $(BUNDLE_MAIN_CONFIG)/description.md
 	rm -r $(BUNDLE_OUT)/manifests || true
 	rm -r $(BUNDLE_OUT)/metadata || true
 # Dissociate kustomize builds csv, samples and the rest, because they don't share exactly the same properties (like namespace injection)
@@ -524,12 +514,12 @@ bundle-nogen: YQ OPSDK kustomize set-manager-images ## Generate final bundle fil
 		$(YQ) -i '(select(.kind == "ClusterRoleBinding") | .subjects) = [{"kind": "ServiceAccount", "name": "SUBJECT_PLACEHOLDER"}]' "$$f"; \
 	done; \
 	( \
-		($(KUSTOMIZE) build config/csv \
+		($(KUSTOMIZE) build $(BUNDLE_CSV_CONFIG) \
 			| $(YQ) '.metadata.annotations.containerImage = "$(BUNDLE_OPERATOR_IMAGE)"' \
-			| $(YQ) '.spec.description = load_str("$(BUNDLE_CONFIG)/description.md")' \
+			| $(YQ) '.spec.description = load_str("$(BUNDLE_MAIN_CONFIG)/description.md")' \
 		); \
 		echo "---"; $(KUSTOMIZE) build config/samples; \
-		echo "---"; $(KUSTOMIZE) build $(BUNDLE_CONFIG) \
+		echo "---"; $(KUSTOMIZE) build $(BUNDLE_MAIN_CONFIG) \
 	) | $(OPSDK) generate bundle --output-dir $(BUNDLE_OUT) -q --overwrite --version $(BUNDLE_VERSION) $(BUNDLE_METADATA_OPTS); \
 	for f in $$CRB_FILES; do mv "$$f.bak" "$$f"; done; \
 	trap - EXIT; \
@@ -541,9 +531,9 @@ ifneq ("$(BUNDLE_SET_DATE)", "true")
 	$(SED) -i 's/createdAt:.*/createdAt: ${BUNDLE_STORED_DATE}/' $(BUNDLE_OUT)/manifests/netobserv-operator.clusterserviceversion.yaml
 endif
 # CRD overrides
-	(shopt -s nullglob ; for file in $(BUNDLE_CONFIG)/crd-doc-override/*.yaml; do f="$$file" $(YQ) -i ".spec.versions[0].schema.openAPIV3Schema.properties *= load(env(f)) | ... head_comment=\"\"" "$(BUNDLE_OUT)/manifests/$$(basename $$file)" ; done)
+	(shopt -s nullglob ; for file in $(BUNDLE_MAIN_CONFIG)/crd-doc-override/*.yaml; do f="$$file" $(YQ) -i ".spec.versions[0].schema.openAPIV3Schema.properties *= load(env(f)) | ... head_comment=\"\"" "$(BUNDLE_OUT)/manifests/$$(basename $$file)" ; done)
 ifneq ("$(BUNDLE_PRODUCT_NAME)", "")
-	(shopt -s nullglob ; for file in $(BUNDLE_CONFIG)/crd-doc-override/*.yaml; do $(SED) -i -r "s/\<NetObserv\>/$(BUNDLE_PRODUCT_NAME)/g" "$(BUNDLE_OUT)/manifests/$$(basename $$file)" ; done)
+	(shopt -s nullglob ; for file in $(BUNDLE_MAIN_CONFIG)/crd-doc-override/*.yaml; do $(SED) -i -r "s/\<NetObserv\>/$(BUNDLE_PRODUCT_NAME)/g" "$(BUNDLE_OUT)/manifests/$$(basename $$file)" ; done)
 endif
 
 	sh -c '\
@@ -678,4 +668,5 @@ endif
 include .mk/sample.mk
 include .mk/development.mk
 include .mk/local.mk
+include .mk/ocp.mk
 include .mk/shortcuts.mk

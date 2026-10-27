@@ -40,6 +40,12 @@
 - op: add
   path: "/spec/template/spec/containers/0/env/-"
   value:
+    name: DEFAULT_OPERANDS_NAMESPACE
+    value: openshift-network-observability
+
+- op: add
+  path: "/spec/template/spec/containers/0/env/-"
+  value:
     name: RELATED_IMAGE_WEB_CONSOLE_PF5
     value: quay.io/netobserv/network-observability-console-plugin:v2.0.1-community-pf5
 
