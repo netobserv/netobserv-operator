@@ -1,0 +1,17 @@
+apiVersion: flows.netobserv.io/v1alpha1
+kind: FlowCapture
+metadata:
+  name: flowcapture-packet-sample
+spec:
+  # Packet captures are useful for inspecting a small, targeted slice of traffic.
+  # Keep maxBytes low enough to avoid filling the collector's output volume.
+  type: packets
+  maxTime: 30s
+  maxBytes: 10000000
+  sampling: 1
+  filters:
+  - action: Accept
+    protocol: TCP
+    destination_port: 443
+    tcp_flags: SYN
+

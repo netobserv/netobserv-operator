@@ -3,5 +3,8 @@ kind: Kustomization
 ## Append samples you want in your CSV to this file as resources ##
 resources:
 - flows_v1beta2_flowcollector.yaml
+- flows_v1alpha1_flowcapture_flow.yaml
+- flows_v1alpha1_flowcapture_packet.yaml
+- flows_v1alpha1_flowcapture_metrics.yaml
 - flows_v1alpha1_flowmetric.yaml
 - flows_v1alpha1_flowcollectorslice.yaml

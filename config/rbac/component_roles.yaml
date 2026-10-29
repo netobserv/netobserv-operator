@@ -137,6 +137,20 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
+  name: flowcapture-hostnetwork
+rules:
+- apiGroups:
+  - security.openshift.io
+  resourceNames:
+  - netobserv-flowcapture
+  resources:
+  - securitycontextconstraints
+  verbs:
+  - use
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
   name: token-review
 rules:
 - apiGroups:
@@ -158,4 +172,63 @@ rules:
   verbs:
   - get
   - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: flowcapture
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - endpoints
+  - namespaces
+  - nodes
+  - services
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - patch
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  - replicasets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - config.openshift.io
+  resources:
+  - apiservers
+  resourceNames:
+  - cluster
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: flowcapture-monitoring
+rules:
+- apiGroups:
+  - monitoring.coreos.com
+  resourceNames:
+  - k8s
+  resources:
+  - prometheuses/api
+  verbs:
+  - get
+  - create
+  - update
 ---

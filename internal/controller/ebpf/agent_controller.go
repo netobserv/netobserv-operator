@@ -18,6 +18,7 @@ import (
 	"github.com/netobserv/netobserv-operator/internal/pkg/helper"
 	"github.com/netobserv/netobserv-operator/internal/pkg/volumes"
 	"github.com/netobserv/netobserv-operator/internal/pkg/watchers"
+	sharedcapture "github.com/netobserv/netobserv-operator/pkg/capture"
 
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	v1 "k8s.io/api/apps/v1"
@@ -628,41 +629,15 @@ func (c *AgentController) envConfig(ctx context.Context, coll *flowslatest.FlowC
 		config = addEnv(config, envSampling, strconv.Itoa(int(*sampling)), advancedConfig.Env)
 	}
 
-	if coll.Spec.Agent.EBPF.IsFlowRTTEnabled() {
-		config = addEnv(config, envEnableFlowRTT, "true", advancedConfig.Env)
-	}
-
-	if coll.Spec.Agent.EBPF.IsNetworkEventsEnabled() {
-		config = addEnv(config, envEnableNetworkEvents, "true", advancedConfig.Env)
-	}
-
-	if coll.Spec.Agent.EBPF.IsUDNMappingEnabled() {
-		config = addEnv(config, envEnableUDNMapping, "true", advancedConfig.Env)
-	}
-
-	if coll.Spec.Agent.EBPF.IsPacketTranslationEnabled() {
-		config = addEnv(config, envEnablePacketTranslation, "true", advancedConfig.Env)
-	}
-
-	if coll.Spec.Agent.EBPF.IsEbpfManagerEnabled() {
-		config = addEnv(config, envEnableEbpfMgr, "true", advancedConfig.Env)
-	}
-
-	if coll.Spec.Agent.EBPF.IsPktDropEnabled() {
-		config = addEnv(config, envEnablePktDrop, "true", advancedConfig.Env)
-	}
-
-	if coll.Spec.Agent.EBPF.IsDNSTrackingEnabled() {
-		config = addEnv(config, envEnableDNSTracking, "true", advancedConfig.Env)
-	}
-
-	if coll.Spec.Agent.EBPF.IsIPSecEnabled() {
-		config = addEnv(config, envEnableIPsec, "true", advancedConfig.Env)
-	}
-
-	if coll.Spec.Agent.EBPF.IsTLSTrackingEnabled() {
-		config = addEnv(config, envEnableTLSTracking, "true", advancedConfig.Env)
-	}
+	config = addFeatureEnv(config, sharedcapture.FlowRTT, coll.Spec.Agent.EBPF.IsFlowRTTEnabled(), advancedConfig.Env)
+	config = addFeatureEnv(config, sharedcapture.NetworkEvents, coll.Spec.Agent.EBPF.IsNetworkEventsEnabled(), advancedConfig.Env)
+	config = addFeatureEnv(config, sharedcapture.UDNMapping, coll.Spec.Agent.EBPF.IsUDNMappingEnabled(), advancedConfig.Env)
+	config = addFeatureEnv(config, sharedcapture.PacketTranslation, coll.Spec.Agent.EBPF.IsPacketTranslationEnabled(), advancedConfig.Env)
+	config = addFeatureEnv(config, sharedcapture.EbpfManager, coll.Spec.Agent.EBPF.IsEbpfManagerEnabled(), advancedConfig.Env)
+	config = addFeatureEnv(config, sharedcapture.PacketDrop, coll.Spec.Agent.EBPF.IsPktDropEnabled(), advancedConfig.Env)
+	config = addFeatureEnv(config, sharedcapture.DNSTracking, coll.Spec.Agent.EBPF.IsDNSTrackingEnabled(), advancedConfig.Env)
+	config = addFeatureEnv(config, sharedcapture.IPSec, coll.Spec.Agent.EBPF.IsIPSecEnabled(), advancedConfig.Env)
+	config = addFeatureEnv(config, sharedcapture.TLSTracking, coll.Spec.Agent.EBPF.IsTLSTrackingEnabled(), advancedConfig.Env)
 
 	if coll.Spec.Agent.EBPF.IsEBPFMetricsEnabled() {
 		config = addEnv(config, envEnableMetrics, "true", advancedConfig.Env)
@@ -820,6 +795,17 @@ func (c *AgentController) envConfig(ctx context.Context, coll *flowslatest.FlowC
 	config = helper.AppendTLSEnvVars(config, c.TLSConfig)
 
 	return config, nil
+}
+
+func addFeatureEnv(config []corev1.EnvVar, feature sharedcapture.Feature, enabled bool, overrides map[string]string) []corev1.EnvVar {
+	if !enabled {
+		return config
+	}
+	name, ok := sharedcapture.FeatureEnvName(feature)
+	if !ok {
+		return config
+	}
+	return addEnv(config, name, "true", overrides)
 }
 
 func addEnv(envs []corev1.EnvVar, key, value string, overrides map[string]string) []corev1.EnvVar {

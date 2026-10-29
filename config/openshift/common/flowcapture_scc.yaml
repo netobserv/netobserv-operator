@@ -1,0 +1,54 @@
+apiVersion: security.openshift.io/v1
+kind: SecurityContextConstraints
+metadata:
+  name: flowcapture
+allowHostDirVolumePlugin: true
+allowHostIPC: false
+allowHostNetwork: true
+allowHostPID: false
+allowHostPorts: false
+allowPrivilegeEscalation: true
+allowPrivilegedContainer: false
+allowedCapabilities:
+- BPF
+- PERFMON
+- NET_ADMIN
+fsGroup:
+  type: RunAsAny
+runAsUser:
+  type: RunAsAny
+seLinuxContext:
+  type: RunAsAny
+supplementalGroups:
+  type: RunAsAny
+userNamespaceLevel: AllowHostLevel
+volumes:
+- awsElasticBlockStore
+- azureDisk
+- azureFile
+- cephFS
+- cinder
+- configMap
+- csi
+- downwardAPI
+- emptyDir
+- ephemeral
+- fc
+- flexVolume
+- flocker
+- gcePersistentDisk
+- gitRepo
+- glusterfs
+- hostPath
+- image
+- iscsi
+- nfs
+- persistentVolumeClaim
+- photonPersistentDisk
+- projected
+- quobyte
+- rbd
+- scaleIO
+- secret
+- storageOS
+- vsphere

@@ -25,6 +25,11 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
+      - description: '`FlowCapture` requests a short-lived capture of flows, packets, or metrics.'
+        displayName: Flow Capture
+        kind: FlowCapture
+        name: flowcaptures.flows.netobserv.io
+        version: v1alpha1
       - description: '`FlowCollector` is the schema for the network flows collection API, which pilots and configures the underlying deployments.'
         displayName: Flow Collector
         kind: FlowCollector

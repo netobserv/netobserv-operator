@@ -1,0 +1,16 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: netobserv-flowcapture-monitoring
+rules:
+- apiGroups:
+  - monitoring.coreos.com
+  resourceNames:
+  - k8s
+  resources:
+  - prometheuses/api
+  verbs:
+  - get
+  - create
+  - update

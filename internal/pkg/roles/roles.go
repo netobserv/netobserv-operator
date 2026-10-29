@@ -21,6 +21,9 @@ const (
 	ConsoleTokenReviewRole  ClusterRoleName = "netobserv-token-review"
 	FlowCollectorViewerRole ClusterRoleName = "netobserv-flowcollector-viewer-role"
 	ConfigWatcherRole       RoleName        = "netobserv-config-watcher"
+	FlowCaptureInformersRole   ClusterRoleName = "netobserv-flowcapture-informers"
+	FlowCaptureHostNetworkRole ClusterRoleName = "netobserv-flowcapture-hostnetwork"
+	FlowCaptureMonitoringRole  ClusterRoleName = "netobserv-flowcapture-monitoring"
 )
 
 // OperandClusterRoleBindings lists the preinstalled ClusterRoleBindings whose subjects are managed

@@ -13,6 +13,8 @@ type Config struct {
 	DemoLokiImage string
 	// EBPFAgentImage is the image of the eBPF agent that is managed by the operator
 	EBPFAgentImage string
+	// CLIImage is the image used by FlowCapture collector pods.
+	CLIImage string
 	// FlowlogsPipelineImage is the image of the Flowlogs-Pipeline that is managed by the operator
 	FlowlogsPipelineImage string
 	// WebConsoleImage is the image of the web console that is managed by the operator
@@ -85,6 +87,9 @@ func (c *Config) ResolveWebConsoleImage(clusterInfo *cluster.Info) string {
 func (c *Config) Validate() error {
 	if c.EBPFAgentImage == "" {
 		return errors.New("eBPF agent image env can't be empty")
+	}
+	if c.CLIImage == "" {
+		return errors.New("CLI image env can't be empty")
 	}
 	if c.FlowlogsPipelineImage == "" {
 		return errors.New("flowlogs-pipeline image env can't be empty")

@@ -138,6 +138,7 @@ rules:
   - apiGroups:
       - flows.netobserv.io
     resources:
+      - flowcaptures
       - flowcollectors
       - flowcollectorslices
       - flowmetrics
@@ -152,12 +153,14 @@ rules:
   - apiGroups:
       - flows.netobserv.io
     resources:
+      - flowcaptures/finalizers
       - flowcollectors/finalizers
     verbs:
       - update
   - apiGroups:
       - flows.netobserv.io
     resources:
+      - flowcaptures/status
       - flowcollectors/status
       - flowcollectorslices/status
       - flowmetrics/status
@@ -218,6 +221,10 @@ rules:
   - apiGroups:
       - rbac.authorization.k8s.io
     resourceNames:
+      - netobserv-flowcapture
+      - netobserv-flowcapture-hostnetwork
+      - netobserv-flowcapture-informers
+      - netobserv-flowcapture-monitoring
       - netobserv-flowcollector-viewer-role
       - netobserv-flp-extra-reader
       - netobserv-hostnetwork
@@ -233,6 +240,10 @@ rules:
   - apiGroups:
       - rbac.authorization.k8s.io
     resourceNames:
+      - netobserv-flowcapture
+      - netobserv-flowcapture-hostnetwork
+      - netobserv-flowcapture-informers
+      - netobserv-flowcapture-monitoring
       - netobserv-flowcollector-viewer-role
       - netobserv-flp-extra-reader
       - netobserv-hostnetwork

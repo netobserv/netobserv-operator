@@ -6,6 +6,57 @@ metadata:
       [
         {
           "apiVersion": "flows.netobserv.io/v1alpha1",
+          "kind": "FlowCapture",
+          "metadata": {
+            "name": "flowcapture-metrics-sample"
+          },
+          "spec": {
+            "features": [
+              "DNSTracking"
+            ],
+            "maxTime": "30s",
+            "type": "metrics"
+          }
+        },
+        {
+          "apiVersion": "flows.netobserv.io/v1alpha1",
+          "kind": "FlowCapture",
+          "metadata": {
+            "name": "flowcapture-packet-sample"
+          },
+          "spec": {
+            "filters": [
+              {
+                "action": "Accept",
+                "destination_port": 443,
+                "protocol": "TCP",
+                "tcp_flags": "SYN"
+              }
+            ],
+            "maxBytes": 10000000,
+            "maxTime": "30s",
+            "sampling": 1,
+            "type": "packets"
+          }
+        },
+        {
+          "apiVersion": "flows.netobserv.io/v1alpha1",
+          "kind": "FlowCapture",
+          "metadata": {
+            "name": "flowcapture-sample"
+          },
+          "spec": {
+            "excludeInterfaces": [
+              "lo"
+            ],
+            "maxBytes": 10000000,
+            "maxTime": "30s",
+            "sampling": 1,
+            "type": "flows"
+          }
+        },
+        {
+          "apiVersion": "flows.netobserv.io/v1alpha1",
           "kind": "FlowCollectorSlice",
           "metadata": {
             "name": "flowcollectorslice-sample"
@@ -112,6 +163,12 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
+    - description: '`FlowCapture` requests a short-lived capture of flows, packets,
+        or metrics.'
+      displayName: Flow Capture
+      kind: FlowCapture
+      name: flowcaptures.flows.netobserv.io
+      version: v1alpha1
     - description: '`FlowCollector` is the schema for the network flows collection
         API, which pilots and configures the underlying deployments.'
       displayName: Flow Collector
@@ -853,6 +910,7 @@ spec:
         - apiGroups:
           - flows.netobserv.io
           resources:
+          - flowcaptures
           - flowcollectors
           - flowcollectorslices
           - flowmetrics
@@ -867,12 +925,14 @@ spec:
         - apiGroups:
           - flows.netobserv.io
           resources:
+          - flowcaptures/finalizers
           - flowcollectors/finalizers
           verbs:
           - update
         - apiGroups:
           - flows.netobserv.io
           resources:
+          - flowcaptures/status
           - flowcollectors/status
           - flowcollectorslices/status
           - flowmetrics/status
@@ -933,6 +993,10 @@ spec:
         - apiGroups:
           - rbac.authorization.k8s.io
           resourceNames:
+          - netobserv-flowcapture
+          - netobserv-flowcapture-hostnetwork
+          - netobserv-flowcapture-informers
+          - netobserv-flowcapture-monitoring
           - netobserv-flowcollector-viewer-role
           - netobserv-flp-extra-reader
           - netobserv-hostnetwork
@@ -948,6 +1012,10 @@ spec:
         - apiGroups:
           - rbac.authorization.k8s.io
           resourceNames:
+          - netobserv-flowcapture
+          - netobserv-flowcapture-hostnetwork
+          - netobserv-flowcapture-informers
+          - netobserv-flowcapture-monitoring
           - netobserv-flowcollector-viewer-role
           - netobserv-flp-extra-reader
           - netobserv-hostnetwork
@@ -1035,6 +1103,8 @@ spec:
                 env:
                 - name: RELATED_IMAGE_EBPF_AGENT
                   value: quay.io/netobserv/netobserv-ebpf-agent:v2.0.1-community
+                - name: RELATED_IMAGE_CLI
+                  value: quay.io/netobserv/network-observability-cli:v2.0.0-community
                 - name: RELATED_IMAGE_FLOWLOGS_PIPELINE
                   value: quay.io/netobserv/flowlogs-pipeline:v2.0.1-community
                 - name: RELATED_IMAGE_WEB_CONSOLE
@@ -1183,6 +1253,8 @@ spec:
   relatedImages:
   - image: quay.io/netobserv/netobserv-ebpf-agent:v2.0.1-community
     name: ebpf-agent
+  - image: quay.io/netobserv/network-observability-cli:v2.0.0-community
+    name: cli
   - image: quay.io/netobserv/flowlogs-pipeline:v2.0.1-community
     name: flowlogs-pipeline
   - image: quay.io/netobserv/network-observability-console-plugin:v2.0.1-community

@@ -1,0 +1,10 @@
+apiVersion: flows.netobserv.io/v1alpha1
+kind: FlowCapture
+metadata:
+  name: flowcapture-metrics-sample
+spec:
+  # Metrics captures require the cluster monitoring stack.
+  type: metrics
+  maxTime: 30s
+  features:
+  - DNSTracking

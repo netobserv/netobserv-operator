@@ -1,6 +1,7 @@
 package v1beta2
 
 import (
+	sharedcapture "github.com/netobserv/netobserv-operator/pkg/capture"
 	ascv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -177,15 +178,15 @@ type FlowCollectorIPFIX struct {
 type AgentFeature string
 
 const (
-	PacketDrop        AgentFeature = "PacketDrop"
-	DNSTracking       AgentFeature = "DNSTracking"
-	FlowRTT           AgentFeature = "FlowRTT"
-	NetworkEvents     AgentFeature = "NetworkEvents"
-	PacketTranslation AgentFeature = "PacketTranslation"
-	EbpfManager       AgentFeature = "EbpfManager"
-	UDNMapping        AgentFeature = "UDNMapping"
-	IPSec             AgentFeature = "IPSec"
-	TLSTracking       AgentFeature = "TLSTracking"
+	PacketDrop        AgentFeature = AgentFeature(sharedcapture.PacketDrop)
+	DNSTracking       AgentFeature = AgentFeature(sharedcapture.DNSTracking)
+	FlowRTT           AgentFeature = AgentFeature(sharedcapture.FlowRTT)
+	NetworkEvents     AgentFeature = AgentFeature(sharedcapture.NetworkEvents)
+	PacketTranslation AgentFeature = AgentFeature(sharedcapture.PacketTranslation)
+	EbpfManager       AgentFeature = AgentFeature(sharedcapture.EbpfManager)
+	UDNMapping        AgentFeature = AgentFeature(sharedcapture.UDNMapping)
+	IPSec             AgentFeature = AgentFeature(sharedcapture.IPSec)
+	TLSTracking       AgentFeature = AgentFeature(sharedcapture.TLSTracking)
 )
 
 // Name of an eBPF agent alert.

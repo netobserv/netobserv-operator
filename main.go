@@ -55,6 +55,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
+	flowcapturev1alpha1 "github.com/netobserv/netobserv-operator/api/flowcapture/v1alpha1"
 	flowsv1beta2 "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
 	slicesv1alpha1 "github.com/netobserv/netobserv-operator/api/flowcollectorslice/v1alpha1"
 	metricsv1alpha1 "github.com/netobserv/netobserv-operator/api/flowmetrics/v1alpha1"
@@ -83,6 +84,7 @@ var crdBytes []byte
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(flowsv1beta2.AddToScheme(scheme))
+	utilruntime.Must(flowcapturev1alpha1.AddToScheme(scheme))
 	utilruntime.Must(metricsv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(slicesv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(corev1.AddToScheme(scheme))
@@ -299,6 +301,7 @@ func readConfigFromEnv() (*manager.Config, error) {
 	return &manager.Config{
 		Vendor:                   constants.Vendor(os.Getenv("VENDOR")),
 		EBPFAgentImage:           defaultStringEnv("RELATED_IMAGE_EBPF_AGENT", "quay.io/netobserv/netobserv-ebpf-agent:main"),
+		CLIImage:                 defaultStringEnv("RELATED_IMAGE_CLI", "quay.io/netobserv/network-observability-cli:main"),
 		EBPFByteCodeImage:        defaultStringEnv("RELATED_IMAGE_EBPF_BYTECODE", "quay.io/netobserv/ebpf-bytecode:main"), // TODO: productize for GA
 		FlowlogsPipelineImage:    defaultStringEnv("RELATED_IMAGE_FLOWLOGS_PIPELINE", "quay.io/netobserv/flowlogs-pipeline:main"),
 		WebConsoleImage:          defaultStringEnv("RELATED_IMAGE_WEB_CONSOLE", "quay.io/netobserv/network-observability-console-plugin:main"),

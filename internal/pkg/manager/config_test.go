@@ -103,6 +103,7 @@ func TestResolveWebConsoleImage_NoVendorNilInfo(t *testing.T) {
 func TestValidate_ValidConfig(t *testing.T) {
 	cfg := &Config{
 		EBPFAgentImage:        "agent:test",
+		CLIImage:              "cli:test",
 		FlowlogsPipelineImage: "flp:test",
 		WebConsoleImage:       "console:test",
 		Namespace:             "netobserv",

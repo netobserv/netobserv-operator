@@ -1,0 +1,14 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: netobserv-flowcapture-hostnetwork
+rules:
+- apiGroups:
+  - security.openshift.io
+  resourceNames:
+  - netobserv-flowcapture
+  resources:
+  - securitycontextconstraints
+  verbs:
+  - use

@@ -1,9 +1,9 @@
 package manager
 
 // Operator fully manages netobserv-defined resources (cluster role)
-//+kubebuilder:rbac:groups=flows.netobserv.io,resources=flowcollectors;flowmetrics;flowcollectorslices,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=flows.netobserv.io,resources=flowcollectors/status;flowmetrics/status;flowcollectorslices/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=flows.netobserv.io,resources=flowcollectors/finalizers,verbs=update
+//+kubebuilder:rbac:groups=flows.netobserv.io,resources=flowcollectors;flowmetrics;flowcollectorslices;flowcaptures,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=flows.netobserv.io,resources=flowcollectors/status;flowmetrics/status;flowcollectorslices/status;flowcaptures/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=flows.netobserv.io,resources=flowcollectors/finalizers;flowcaptures/finalizers,verbs=update
 
 // Operator reads Network config for configured CIDRs (cluster-scope resource)
 //+kubebuilder:rbac:groups=operator.openshift.io,resources=networks,verbs=get;list;watch
@@ -32,9 +32,9 @@ package manager
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=rolebindings,verbs=get;list;create;delete;update;watch
 
 // Operator needs to update specific cluster roles bindings for operands
-//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterrolebindings,resourceNames=netobserv-loki-writer;netobserv-informers;netobserv-flp-extra-reader;netobserv-hostnetwork;netobserv-token-review;netobserv-flowcollector-viewer-role,verbs=get;update;watch
+//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterrolebindings,resourceNames=netobserv-loki-writer;netobserv-informers;netobserv-flp-extra-reader;netobserv-hostnetwork;netobserv-token-review;netobserv-flowcollector-viewer-role;netobserv-flowcapture;netobserv-flowcapture-informers;netobserv-flowcapture-hostnetwork;netobserv-flowcapture-monitoring,verbs=get;update;watch
 // "Bind" allows to bind those exact CRBs without the operator needing the same rbac transitively
-//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles,verbs=bind,resourceNames=netobserv-loki-writer;netobserv-informers;netobserv-flp-extra-reader;netobserv-hostnetwork;netobserv-token-review;netobserv-flowcollector-viewer-role
+//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles,verbs=bind,resourceNames=netobserv-loki-writer;netobserv-informers;netobserv-flp-extra-reader;netobserv-hostnetwork;netobserv-token-review;netobserv-flowcollector-viewer-role;netobserv-flowcapture;netobserv-flowcapture-informers;netobserv-flowcapture-hostnetwork;netobserv-flowcapture-monitoring
 
 // Operator needs to patch Console CR (cluster scope)
 //+kubebuilder:rbac:groups=operator.openshift.io,resources=consoles,verbs=get;list;patch;watch
