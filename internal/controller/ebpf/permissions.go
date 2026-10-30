@@ -1,4 +1,4 @@
-package permissions
+package ebpf
 
 import (
 	"context"
@@ -18,20 +18,20 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// Reconciler reconciles the different resources to enable the privileged operation of the
+// permissionsReconciler reconciles the different resources to enable the privileged operation of the
 // Netobserv Agent:
 // - Create the privileged namespace with Pod Permissions annotations (for Vanilla K8s)
 // - Create netobserv-ebpf-agent service account in the privileged namespace
 // - For Openshift, apply the required SecurityContextConstraints for privileged Pod operation
-type Reconciler struct {
+type permissionsReconciler struct {
 	*reconcilers.Instance
 }
 
-func NewReconciler(cmn *reconcilers.Instance) Reconciler {
-	return Reconciler{Instance: cmn}
+func newPermissionsReconciler(cmn *reconcilers.Instance) permissionsReconciler {
+	return permissionsReconciler{Instance: cmn}
 }
 
-func (c *Reconciler) Reconcile(ctx context.Context, desired *flowslatest.FlowCollector) error {
+func (c *permissionsReconciler) reconcile(ctx context.Context, desired *flowslatest.FlowCollector) error {
 	log.IntoContext(ctx, log.FromContext(ctx).WithName("permissions"))
 
 	if err := c.reconcileNamespace(ctx); err != nil {
@@ -46,7 +46,7 @@ func (c *Reconciler) Reconcile(ctx context.Context, desired *flowslatest.FlowCol
 	return nil
 }
 
-func (c *Reconciler) reconcileNamespace(ctx context.Context) error {
+func (c *permissionsReconciler) reconcileNamespace(ctx context.Context) error {
 	ns := c.PrivilegedNamespace()
 	rlog := log.FromContext(ctx, "PrivilegedNamespace", ns)
 	actual := &v1.Namespace{}
@@ -107,7 +107,7 @@ func namespaceLabels(includeAudit bool, vendor constants.Vendor) map[string]stri
 	return l
 }
 
-func (c *Reconciler) reconcileServiceAccount(ctx context.Context, desired *flowslatest.FlowCollector) error {
+func (c *permissionsReconciler) reconcileServiceAccount(ctx context.Context, desired *flowslatest.FlowCollector) error {
 	rlog := log.FromContext(ctx, "serviceAccount", constants.EBPFServiceAccount)
 
 	sAcc := &v1.ServiceAccount{
@@ -138,7 +138,7 @@ func (c *Reconciler) reconcileServiceAccount(ctx context.Context, desired *flows
 	return nil
 }
 
-func (c *Reconciler) reconcileVendorPermissions(
+func (c *permissionsReconciler) reconcileVendorPermissions(
 	ctx context.Context, desired *flowslatest.FlowCollectorEBPF,
 ) error {
 	if c.ClusterInfo.IsOpenShift() {
@@ -147,7 +147,7 @@ func (c *Reconciler) reconcileVendorPermissions(
 	return nil
 }
 
-func (c *Reconciler) reconcileOpenshiftPermissions(
+func (c *permissionsReconciler) reconcileOpenshiftPermissions(
 	ctx context.Context, desired *flowslatest.FlowCollectorEBPF,
 ) error {
 	rlog := log.FromContext(ctx, "securityContextConstraints", constants.EBPFSecurityContext)
@@ -170,7 +170,10 @@ func (c *Reconciler) reconcileOpenshiftPermissions(
 		scc.AllowPrivilegedContainer = true
 		scc.AllowHostDirVolumePlugin = true
 	} else {
-		scc.AllowedCapabilities = GetAllowedCapabilities(desired)
+		if hostVols := getHostVolumesInfo(desired, c.Vendor); len(hostVols) > 0 {
+			scc.AllowHostDirVolumePlugin = true
+		}
+		scc.AllowedCapabilities = getAllowedCapabilities(desired)
 	}
 	if desired.IsEbpfManagerEnabled() {
 		rlog.Info("Using Ebpf Manager setting up custom SecurityContextConstraints")
@@ -204,8 +207,8 @@ func (c *Reconciler) reconcileOpenshiftPermissions(
 	return nil
 }
 
-// GetAllowedCapabilities description of what capabilities netobserv requires when running w/o ebpf manager and w/o full privileges
-func GetAllowedCapabilities(spec *flowslatest.FlowCollectorEBPF) []v1.Capability {
+// getAllowedCapabilities description of what capabilities netobserv requires when running w/o ebpf manager and w/o full privileges
+func getAllowedCapabilities(spec *flowslatest.FlowCollectorEBPF) []v1.Capability {
 	if spec.Privileged {
 		return nil
 	} else if spec.Advanced != nil && len(spec.Advanced.CapOverride) > 0 {
@@ -218,5 +221,14 @@ func GetAllowedCapabilities(spec *flowslatest.FlowCollectorEBPF) []v1.Capability
 	// BPF: Allows netobserv to use eBPF programs and maps.
 	// PERFMON: Allows access to perf monitoring and profiling features.
 	// NET_ADMIN: required for TC programs to attach/detach to/from qdisc and for TCX hooks.
-	return []v1.Capability{"BPF", "PERFMON", "NET_ADMIN"}
+	// SYS_ADMIN: required for secondary networks.
+	// DAC_OVERRIDE: required for OVS/OVN socket communication.
+	caps := []v1.Capability{"BPF", "PERFMON", "NET_ADMIN"}
+	if spec.IsSecondaryNetworksEnabled() {
+		caps = append(caps, "SYS_ADMIN")
+	}
+	if spec.IsNetworkEventsEnabled() || spec.IsUDNMappingEnabled() {
+		caps = append(caps, "DAC_OVERRIDE")
+	}
+	return caps
 }

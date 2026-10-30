@@ -289,23 +289,25 @@ Otherwise it is matched as a case-sensitive string.<br/>
         <td><b>features</b></td>
         <td>[]enum</td>
         <td>
-          List of additional features to enable. They are all disabled by default. Enabling additional features might have performance impacts. Possible values are:<br>
-- `PacketDrop`: Enable the packets drop flows logging feature. This feature requires mounting
-the kernel debug filesystem, so the eBPF agent pods must run as privileged via `spec.agent.ebpf.privileged`.<br>
+          List of additional features to enable. They are all disabled by default. Enabling additional features might have performance impacts, and may increase permissions granted to the eBPF agent pods. Possible values are:<br>
 - `DNSTracking`: Enable the DNS tracking feature.<br>
-- `FlowRTT`: Enable flow latency (sRTT) extraction in the eBPF agent from TCP traffic.<br>
-- `NetworkEvents`: Enable the network events monitoring feature, such as correlating flows and network policies.
-This feature requires mounting the kernel debug filesystem, so the eBPF agent pods must run as privileged via `spec.agent.ebpf.privileged`.
-It requires using the OVN-Kubernetes network plugin with the Observability feature.<br>
-- `PacketTranslation`: Enable enriching flows with packet translation information, such as Service NAT.<br>
 - `EbpfManager`: Use eBPF Manager to manage NetObserv eBPF programs. Pre-requisite: the eBPF Manager operator (or upstream bpfman operator) must be installed.<br>
-- `UDNMapping`: Enable interfaces mapping to User Defined Networks (UDN).<br>
-This feature requires mounting the kernel debug filesystem, so the eBPF agent pods must run as privileged via `spec.agent.ebpf.privileged`.
-It requires using the OVN-Kubernetes network plugin.<br>
+- `FlowRTT`: Enable flow latency (sRTT) extraction in the eBPF agent from TCP traffic.<br>
 - `IPSec`, to track flows between nodes with IPsec encryption.<br>
-- `TLSTracking`, to track TLS usage.<br><br/>
+- `NetworkEvents`: Enable the network events monitoring feature, such as correlating flows and network policies. Additional permissions are granted to the eBPF agent pods: CAP_DAC_OVERRIDE, and access to
+the OVS/OVN host filesystems.<br>
+It requires using the OVN-Kubernetes network plugin with the Observability feature.<br>
+- `PacketDrop`: Enable the packets drop flows logging feature. Additional permissions are granted to the eBPF agent pods: access to
+the kernel debug host filesystem.<br>
+- `PacketTranslation`: Enable enriching flows with packet translation information, such as Service NAT.<br>
+- `SecondaryNetworks`, to capture flows from all network namespaces. Additional permissions are granted to the eBPF agent pods: CAP_SYS_ADMIN, and access to
+the network namespaces host filesystem.<br>
+- `TLSTracking`, to track TLS usage.<br>
+- `UDNMapping`: Enable interfaces mapping to User Defined Networks (UDN). Additional permissions are granted to the eBPF agent pods: CAP_DAC_OVERRIDE, and access to
+the OVS/OVN host filesystems.<br>
+It requires using the OVN-Kubernetes network plugin.<br><br/>
           <br/>
-            <i>Enum</i>: PacketDrop, DNSTracking, FlowRTT, NetworkEvents, PacketTranslation, EbpfManager, UDNMapping, IPSec, TLSTracking<br/>
+            <i>Enum</i>: PacketDrop, DNSTracking, FlowRTT, NetworkEvents, PacketTranslation, EbpfManager, UDNMapping, IPSec, TLSTracking, SecondaryNetworks<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -365,9 +367,11 @@ Otherwise it is matched as a case-sensitive string.<br/>
         <td><b>privileged</b></td>
         <td>boolean</td>
         <td>
-          Privileged mode for the eBPF Agent container. When set to `true`, the agent is able to capture more traffic, including from secondary interfaces.
-When ignored or set to `false`, the operator sets granular capabilities (BPF, PERFMON, NET_ADMIN) to the container.
-Some agent features require the privileged mode, such as packet drops tracking (see `features`) and SR-IOV support.<br/>
+          `privileged` grants full privileges to the eBPF Agent container. As it weakens the security model,
+it should only be enabled as a last resort, if the agents cannot run otherwise.
+When unset or set to `false`, the operator sets granular capabilities (BPF, PERFMON, NET_ADMIN and possibly SYS_ADMIN and DAC_OVERRIDE) to the container.
+Capabilities can be overridden through `advanced.capOverride`: this should be preferred over granting full privileges.
+When privileged mode is on, the `SecondaryNetworks` feature is also implicitly enabled.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -418,7 +422,8 @@ override the default Linux capabilities from there.
         <td><b>capOverride</b></td>
         <td>[]string</td>
         <td>
-          Linux capabilities override, when not running as privileged. Default capabilities are BPF, PERFMON and NET_ADMIN.<br/>
+          Linux capabilities override, when not running as privileged. Default capabilities are BPF, PERFMON and NET_ADMIN.
+SYS_ADMIN and/or DAC_OVERRIDE may also be used depending on which features are enabled. `capOverride` replaces these defaults.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4280,7 +4285,7 @@ access it through local port-forwarding.<br/>
           Defines secondary networks to be checked for resources identification.
 To guarantee a correct identification, indexed values must form an unique identifier across the cluster.
 If the same index is used by several resources, those resources might be incorrectly labeled.
-If not provided and `spec.agent.ebpf.privileged` is `true`, secondary networks are detected automatically.<br/>
+If not provided and the agent feature `SecondaryNetworks` is enabled, secondary networks are detected automatically.<br/>
         </td>
         <td>false</td>
       </tr></tbody>

@@ -16,9 +16,9 @@ spec:
       sampling: 50
       cacheActiveTimeout: 15s
       cacheMaxFlows: 120000
-      # Change privileged to "true" on old kernel version not knowing CAP_BPF or when using "PacketDrop" feature
       privileged: false
       # features:
+      # - "SecondaryNetworks"
       # - "PacketDrop"
       # - "DNSTracking"
       # - "FlowRTT"

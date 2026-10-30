@@ -35,7 +35,6 @@ var (
 	log                    = logf.Log.WithName("flowcollector-resource")
 	CurrentClusterInfo     clusterInfo
 	OperatorNamespace      string
-	needPrivileged         = []AgentFeature{UDNMapping, NetworkEvents}
 	neededOpenShiftVersion = map[AgentFeature]string{
 		PacketDrop:    "4.14.0",
 		UDNMapping:    "4.18.0",
@@ -162,19 +161,6 @@ func (v *validator) validateAgent() {
 				v.warnings = append(v.warnings, fmt.Sprintf("Unknown environment, cannot detect if the feature %s is supported", feat))
 			}
 		}
-	}
-	if !v.fc.Agent.EBPF.Privileged {
-		for _, feat := range needPrivileged {
-			if slices.Contains(v.fc.Agent.EBPF.Features, feat) {
-				v.warnings = append(v.warnings, fmt.Sprintf("The %s feature requires eBPF Agent to run in privileged mode, which is currently disabled in spec.agent.ebpf.privileged", feat))
-			}
-		}
-	}
-
-	if slices.Contains(v.fc.Agent.EBPF.Features, PacketDrop) &&
-		!v.fc.Agent.EBPF.Privileged &&
-		!slices.Contains(v.fc.Agent.EBPF.Features, EbpfManager) {
-		v.warnings = append(v.warnings, "The PacketDrop feature requires eBPF Agent to run in privileged mode, which is currently disabled in spec.agent.ebpf.privileged, or to use with eBPF Manager")
 	}
 
 	v.validateDNSTrackingPorts()

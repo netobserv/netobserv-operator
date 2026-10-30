@@ -13,6 +13,7 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -598,7 +599,6 @@ var _ = g.Describe("[sig-netobserv] Network_Observability", func() {
 			ServerNS: "test-server-60701",
 			Template: serverTemplate,
 		}
-
 		defer deleteNamespace(testServerTemplate.ServerNS)
 		err := testServerTemplate.createServer()
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -611,7 +611,6 @@ var _ = g.Describe("[sig-netobserv] Network_Observability", func() {
 			ClientNS: "test-client-60701",
 			Template: clientTemplate,
 		}
-
 		defer deleteNamespace(testClientTemplate.ClientNS)
 		err = testClientTemplate.createClient()
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -1197,7 +1196,7 @@ var _ = g.Describe("[sig-netobserv] Network_Observability", func() {
 
 		// Scenario2:
 		// Accept only flows with drops
-		g.By("Deploy flowcollector with eBPF filter for flows with drops")
+		g.By("Deploy a non-privileged flowcollector with PacketDrop enabled")
 		filterRulesConfig = []map[string]interface{}{
 			{
 				"action":   "Accept",
@@ -1211,10 +1210,18 @@ var _ = g.Describe("[sig-netobserv] Network_Observability", func() {
 		filter = string(config)
 
 		_ = flow.DeleteFlowcollector()
-		flow.EBPFPrivileged = "true"
 		flow.EBPFeatures = []string{"\"PacketDrop\""}
 		flow.EBPFFilterRules = filter
 		flow.CreateFlowcollector()
+
+		g.By("Verify PacketDrop agent is not privileged")
+		agentDS, err := k8sClient.AppsV1().DaemonSets(namespace+"-privileged").Get(context.Background(), "netobserv-ebpf-agent", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(agentDS.Spec.Template.Spec.Containers).NotTo(o.BeEmpty())
+		securityContext := agentDS.Spec.Template.Spec.Containers[0].SecurityContext
+		o.Expect(securityContext).NotTo(o.BeNil())
+		o.Expect(securityContext.Privileged == nil || !*securityContext.Privileged).To(o.BeTrue())
+		o.Expect(securityContext.Capabilities.Add).NotTo(o.ContainElement(corev1.Capability("SYS_ADMIN")))
 
 		g.By("Wait for a min before logs gets collected and written to loki")
 		startTime = time.Now()
@@ -1454,7 +1461,6 @@ var _ = g.Describe("[sig-netobserv] Network_Observability", func() {
 		g.By("Deploy FlowCollector with all features enabled with sampling 50")
 		flow := Flowcollector{
 			Namespace:         namespace,
-			EBPFPrivileged:    "true",
 			EBPFeatures:       []string{"\"DNSTracking\", \"PacketDrop\", \"FlowRTT\", \"PacketTranslation\""},
 			Sampling:          "50",
 			MonolithicLokiURL: fmt.Sprintf("http://loki.%s.svc:3100/", namespace),
@@ -1666,7 +1672,6 @@ var _ = g.Describe("[sig-netobserv] Network_Observability", func() {
 			Template:          flowFixturePath,
 			MonolithicLokiURL: fmt.Sprintf("http://loki.%s.svc:3100/", namespace),
 			EBPFeatures:       []string{"\"NetworkEvents\""},
-			EBPFPrivileged:    "true",
 		}
 		defer func() { _ = flow.DeleteFlowcollector() }()
 		flow.CreateFlowcollector()
@@ -1894,17 +1899,26 @@ var _ = g.Describe("[sig-netobserv] Network_Observability", func() {
 		}
 		assertAllPodsToBeReady(udnNS)
 
-		g.By("Deploy FlowCollector with UDNMapping feature enabled with eBPF in privileged mode")
+		g.By("Deploy FlowCollector with UDNMapping and SecondaryNetworks enabled without privileged mode")
 		flow := Flowcollector{
 			Namespace:         namespace,
-			EBPFPrivileged:    "true",
-			EBPFeatures:       []string{"\"UDNMapping\""},
+			EBPFeatures:       []string{"\"UDNMapping\", \"SecondaryNetworks\""},
 			MonolithicLokiURL: fmt.Sprintf("http://loki.%s.svc:3100/", namespace),
 			Template:          flowFixturePath,
 		}
 
 		defer func() { _ = flow.DeleteFlowcollector() }()
 		flow.CreateFlowcollector()
+
+		g.By("Verify eBPF agent uses the non-privileged secondary-network setup")
+		agentDS, err := k8sClient.AppsV1().DaemonSets(namespace+"-privileged").Get(context.Background(), "netobserv-ebpf-agent", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(agentDS.Spec.Template.Spec.Containers).NotTo(o.BeEmpty())
+		securityContext := agentDS.Spec.Template.Spec.Containers[0].SecurityContext
+		o.Expect(securityContext).NotTo(o.BeNil())
+		o.Expect(securityContext.Privileged == nil || !*securityContext.Privileged).To(o.BeTrue())
+		o.Expect(securityContext.Capabilities.Add).To(o.ContainElement(corev1.Capability("SYS_ADMIN")))
+		o.Expect(securityContext.Capabilities.Add).To(o.ContainElement(corev1.Capability("DAC_OVERRIDE")))
 
 		startTime := time.Now()
 
@@ -2066,11 +2080,10 @@ var _ = g.Describe("[sig-netobserv] Network_Observability", func() {
 			assertAllPodsToBeReady(ns)
 		}
 
-		g.By("Deploy FlowCollector with UDNMapping feature enabled with eBPF in privileged mode")
+		g.By("Deploy FlowCollector with UDNMapping and SecondaryNetworks enabled without privileged mode")
 		flow := Flowcollector{
 			Namespace:         namespace,
-			EBPFPrivileged:    "true",
-			EBPFeatures:       []string{"\"UDNMapping\""},
+			EBPFeatures:       []string{"\"UDNMapping\", \"SecondaryNetworks\""},
 			MonolithicLokiURL: fmt.Sprintf("http://loki.%s.svc:3100/", namespace),
 			Template:          flowFixturePath,
 		}

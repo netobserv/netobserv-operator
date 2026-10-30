@@ -83,15 +83,8 @@ func (spec *FlowCollectorEBPF) IsAgentFeatureEnabled(feature AgentFeature) bool 
 	return false
 }
 
-func (spec *FlowCollectorEBPF) IsPrivileged() bool {
-	return spec.Privileged
-}
-
 func (spec *FlowCollectorEBPF) IsPktDropEnabled() bool {
-	if (spec.IsPrivileged() || spec.IsEbpfManagerEnabled()) && spec.IsAgentFeatureEnabled(PacketDrop) {
-		return true
-	}
-	return false
+	return spec.IsAgentFeatureEnabled(PacketDrop)
 }
 
 func (spec *FlowCollectorEBPF) IsDNSTrackingEnabled() bool {
@@ -145,6 +138,11 @@ func (spec *FlowCollectorEBPF) IsTLSTrackingEnabled() bool {
 	return spec.IsAgentFeatureEnabled(TLSTracking)
 }
 
+func (spec *FlowCollectorEBPF) IsSecondaryNetworksEnabled() bool {
+	// For backward compatibility, always enable SecondaryNetworks in priviliged mode
+	return spec.IsAgentFeatureEnabled(SecondaryNetworks) || spec.Privileged
+}
+
 func (spec *FlowCollectorEBPF) IsEBPFMetricsEnabled() bool {
 	return spec.Metrics.Enable == nil || *spec.Metrics.Enable
 }
@@ -193,7 +191,7 @@ func (spec *FlowCollectorSpec) GetSecondaryIndexes() []SecondaryNetwork {
 	if spec.Processor.Advanced != nil && len(spec.Processor.Advanced.SecondaryNetworks) > 0 {
 		return spec.Processor.Advanced.SecondaryNetworks
 	}
-	if spec.Agent.EBPF.Privileged {
+	if spec.Agent.EBPF.IsSecondaryNetworksEnabled() {
 		// Turn-on auto-detection in FLP by interface+MAC or interface+IP
 		return []SecondaryNetwork{
 			{Index: []SecondaryNetworkIndex{SecondaryNetworkIndexByInterface, SecondaryNetworkIndexByIP}},
