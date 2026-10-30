@@ -1,4 +1,12 @@
 # needed a patch because manifests.yaml gets overwritten by kustomize
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: system
+  annotations:
+    # OpenShift workload management annotation
+    workload.openshift.io/allowed: management
+---
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:

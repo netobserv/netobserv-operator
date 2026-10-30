@@ -11,6 +11,7 @@ metadata:
     description: Network flows collector and monitoring solution
     support: NetObserv team
     operatorframework.io/suggested-namespace: openshift-netobserv-operator
+    operatorframework.io/suggested-namespace-template: '{"apiVersion":"v1","kind":"Namespace","metadata":{"name":"openshift-netobserv-operator","annotations":{"workload.openshift.io/allowed":"management"}}}'
     operatorframework.io/initialization-resource: '{"apiVersion":"flows.netobserv.io/v1beta2", "kind":"FlowCollector","metadata":{"name":"cluster"},"spec": {}}'
     repository: https://github.com/netobserv/netobserv-operator
   labels:

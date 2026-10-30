@@ -117,17 +117,27 @@ func (r *Reconciler) reconcile(ctx context.Context, clh *helper.Client, desired 
 		if err != nil {
 			return err
 		}
-	} else if !helper.SkipOwnership(nsExist) && !helper.IsSubSet(nsExist.ObjectMeta.Labels, desiredNs.ObjectMeta.Labels) {
-		// Preserve existing metadata, including OpenShift SCC allocation annotations.
-		if nsExist.Labels == nil {
-			nsExist.Labels = make(map[string]string)
-		}
-		for key, value := range desiredNs.Labels {
-			nsExist.Labels[key] = value
-		}
-		err = r.Update(ctx, nsExist)
-		if err != nil {
-			return err
+	} else if !helper.SkipOwnership(nsExist) {
+		labelsMatch := helper.IsSubSet(nsExist.ObjectMeta.Labels, desiredNs.ObjectMeta.Labels)
+		annotationsMatch := helper.IsSubSet(nsExist.ObjectMeta.Annotations, desiredNs.ObjectMeta.Annotations)
+		if !labelsMatch || !annotationsMatch {
+			// Preserve existing metadata, including OpenShift SCC allocation annotations.
+			if nsExist.Labels == nil {
+				nsExist.Labels = make(map[string]string)
+			}
+			for key, value := range desiredNs.Labels {
+				nsExist.Labels[key] = value
+			}
+			if nsExist.Annotations == nil {
+				nsExist.Annotations = make(map[string]string)
+			}
+			for key, value := range desiredNs.Annotations {
+				nsExist.Annotations[key] = value
+			}
+			err = r.Update(ctx, nsExist)
+			if err != nil {
+				return err
+			}
 		}
 	}
 

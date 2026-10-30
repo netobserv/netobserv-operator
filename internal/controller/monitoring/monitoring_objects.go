@@ -25,13 +25,16 @@ var k8sInvalidChar = regexp.MustCompile(`[^a-z0-9\-]`)
 
 func buildNamespace(ns string, vendor constants.Vendor) *corev1.Namespace {
 	labels := map[string]string{}
+	annotations := map[string]string{}
 	if vendor == constants.VendorOpenShiftDownstream {
 		labels["openshift.io/cluster-monitoring"] = "true"
+		annotations["workload.openshift.io/allowed"] = "management"
 	}
 	return &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   ns,
-			Labels: labels,
+			Name:        ns,
+			Labels:      labels,
+			Annotations: annotations,
 		},
 	}
 }
