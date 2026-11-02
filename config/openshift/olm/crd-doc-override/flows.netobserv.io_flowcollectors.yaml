@@ -15,34 +15,37 @@ spec:
           properties:
             features:
               description: |-
-                List of additional features to enable. They are all disabled by default. Enabling additional features might have performance impacts. Possible values are:<br>
-                - `PacketDrop`: Enable the packets drop flows logging feature. This feature requires mounting
-                the kernel debug filesystem, so the eBPF agent pods must run as privileged via `spec.agent.ebpf.privileged`.<br>
+                List of additional features to enable. They are all disabled by default. Enabling additional features might have performance impacts, and may increase permissions granted to the eBPF agent pods. Possible values are:<br>
                 - `DNSTracking`: Enable the DNS tracking feature.<br>
+                - `EbpfManager`: [Unsupported (*)]. Use eBPF Manager to manage NetObserv eBPF programs. Pre-requisite: the eBPF Manager operator must be installed.<br>
                 - `FlowRTT`: Enable flow latency (sRTT) extraction in the eBPF agent from TCP traffic.<br>
-                - `NetworkEvents`: Enable the network events monitoring feature, such as correlating flows and network policies.
-                This feature requires mounting the kernel debug filesystem, so the eBPF agent pods must run as privileged via `spec.agent.ebpf.privileged`.
-                It requires using the OVN-Kubernetes network plugin with the Observability feature.
-                IMPORTANT: This feature is available as a Technology Preview.<br>
-                - `PacketTranslation`: Enable enriching flows with packet translation information, such as Service NAT.<br>
-                - `EbpfManager`: [Unsupported (*)]. Use eBPF Manager to manage NetObserv eBPF programs. Pre-requisite: the eBPF Manager operator (or upstream bpfman operator) must be installed.<br>
-                - `UDNMapping`: Enable interfaces mapping to User Defined Networks (UDN).<br>
-                This feature requires mounting the kernel debug filesystem, so the eBPF agent pods must run as privileged via `spec.agent.ebpf.privileged`.
-                It requires using the OVN-Kubernetes network plugin.<br>
                 - `IPSec`, to track flows between nodes with IPsec encryption.<br>
+                - `NetworkEvents`: Enable the network events monitoring feature, such as correlating flows and network policies. Additional permissions are granted to the eBPF agent pods: CAP_DAC_OVERRIDE, and access to
+                the OVS/OVN host filesystems.<br>
+                It requires using the OVN-Kubernetes network plugin with the Observability feature.<br>
+                IMPORTANT: This feature is available as a Technology Preview.<br>
+                - `PacketDrop`: Enable the packets drop flows logging feature. Additional permissions are granted to the eBPF agent pods: access to
+                the kernel debug host filesystem.<br>
+                - `PacketTranslation`: Enable enriching flows with packet translation information, such as Service NAT.<br>
+                - `SecondaryNetworks`, to capture flows from all network namespaces. Additional permissions are granted to the eBPF agent pods: CAP_SYS_ADMIN, and access to
+                the network namespaces host filesystem.<br>
                 - `TLSTracking`, to track TLS usage.<br>
+                - `UDNMapping`: Enable interfaces mapping to User Defined Networks (UDN). Additional permissions are granted to the eBPF agent pods: CAP_DAC_OVERRIDE, and access to
+                the OVS/OVN host filesystems.<br>
+                It requires using the OVN-Kubernetes network plugin.<br>
               items:
                 description: |-
                   Agent feature, can be one of:<br>
-                  - `PacketDrop`, to track packet drops.<br>
                   - `DNSTracking`, to track specific information on DNS traffic.<br>
-                  - `FlowRTT`, to track TCP latency.<br>
-                  - `NetworkEvents`, to track network events [Technology Preview].<br>
-                  - `PacketTranslation`, to enrich flows with packets translation information, such as Service NAT.<br>
                   - `EbpfManager`, to enable using eBPF Manager to manage NetObserv eBPF programs. [Unsupported (*)].<br>
-                  - `UDNMapping`, to enable interfaces mapping to UDN.<br>
+                  - `FlowRTT`, to track TCP latency.<br>
                   - `IPSec`, to track flows between nodes with IPsec encryption.<br>
+                  - `NetworkEvents`, to track network events [Technology Preview].<br>
+                  - `PacketDrop`, to track packet drops.<br>
+                  - `PacketTranslation`, to enrich flows with packets translation information, such as Service NAT.<br>
+                  - `SecondaryNetworks`, to capture flows from all network namespaces.<br>
                   - `TLSTracking`, to track TLS usage.<br>
+                  - `UDNMapping`, to enable interfaces mapping to UDN.<br>
             metrics:
               properties:
                 server:

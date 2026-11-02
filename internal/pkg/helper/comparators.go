@@ -43,14 +43,23 @@ func DaemonSetChanged(current, desired *appsv1.DaemonSet) ReconcileAction {
 		return ActionUpdate
 	}
 
-	// Env vars aren't covered by DeepDerivative when they are removed: deep-compare them
+	// Env vars / capabilities aren't covered by DeepDerivative when they are removed: deep-compare them
 	dConts := dSpec.Template.Spec.Containers
 	cConts := cSpec.Template.Spec.Containers
-	if len(dConts) > 0 && len(cConts) > 0 && !deepEqual(dConts[0].Env, cConts[0].Env) {
+	if len(dConts) > 0 && len(cConts) > 0 &&
+		(!deepEqual(dConts[0].Env, cConts[0].Env) ||
+			!deepEqual(containerCapabilities(&dConts[0]), containerCapabilities(&cConts[0]))) {
 		return ActionUpdate
 	}
 
 	return ActionNone
+}
+
+func containerCapabilities(c *corev1.Container) *corev1.Capabilities {
+	if c.SecurityContext == nil {
+		return nil
+	}
+	return c.SecurityContext.Capabilities
 }
 
 func DeploymentChanged(old, n *appsv1.Deployment, contName string, report *ChangeReport) bool {

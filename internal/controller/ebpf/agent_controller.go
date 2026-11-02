@@ -10,10 +10,8 @@ import (
 	"strings"
 
 	ebpfconfig "github.com/netobserv/netobserv-ebpf-agent/pkg/config"
-	ebpfmaps "github.com/netobserv/netobserv-ebpf-agent/pkg/maps"
 	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
 	"github.com/netobserv/netobserv-operator/internal/controller/constants"
-	"github.com/netobserv/netobserv-operator/internal/controller/ebpf/internal/permissions"
 	"github.com/netobserv/netobserv-operator/internal/controller/reconcilers"
 	"github.com/netobserv/netobserv-operator/internal/pkg/helper"
 	"github.com/netobserv/netobserv-operator/internal/pkg/volumes"
@@ -76,6 +74,7 @@ const (
 	envEnableUDNMapping           = "ENABLE_UDN_MAPPING"
 	envEnableIPsec                = "ENABLE_IPSEC_TRACKING"
 	envEnableTLSTracking          = "ENABLE_TLS_TRACKING"
+	envEnableSecondaryNetworks    = "ENABLE_SECONDARY_NETWORKS"
 	envDNSTrackingPort            = "DNS_TRACKING_PORT"
 	envPreferredInterface         = "PREFERRED_INTERFACE_FOR_MAC_PREFIX"
 	envAttachMode                 = "TC_ATTACH_MODE"
@@ -84,28 +83,12 @@ const (
 )
 
 const (
-	exportKafka                     = "kafka"
-	exportGRPC                      = "grpc"
-	averageMessageSize              = 100
-	bpfTraceMountName               = "bpf-kernel-debug"
-	bpfTraceMountPath               = "/sys/kernel/debug"
-	bpfNetNSMountName               = "var-run-netns"
-	bpfNetNSMountPath               = "/var/run/netns"
-	droppedFlowsAlertThreshold      = 100
-	ovnObservMountName              = "var-run-ovn"
-	ovnObservMountPath              = "/var/run/ovn"
-	ovnObservHostMountPathOpenShift = "/var/run/ovn-ic"
-	ovsMountPath                    = "/var/run/openvswitch"
-	ovsHostMountPath                = "/var/run/openvswitch"
-	ovsMountName                    = "var-run-ovs"
-	defaultNetworkEventsGroupID     = "10"
-	defaultPreferredInterface       = "0a:58=eth0" // Hard-coded default config to deal with OVN-generated MACs
-)
-
-const (
-	defaultDNSTrackingPort = "53"
-	bpfmanMapsVolumeName   = "bpfman-maps"
-	bpfManBpfFSPath        = "/run/netobserv/maps"
+	exportKafka                 = "kafka"
+	exportGRPC                  = "grpc"
+	averageMessageSize          = 100
+	droppedFlowsAlertThreshold  = 100
+	defaultNetworkEventsGroupID = "10"
+	defaultPreferredInterface   = "0a:58=eth0" // Hard-coded default config to deal with OVN-generated MACs
 )
 
 // AgentController reconciles the status of the eBPF agent Daemonset, as well as the
@@ -113,7 +96,7 @@ const (
 // accounts, SecurityContextConstraints...
 type AgentController struct {
 	*reconcilers.Instance
-	permissions    permissions.Reconciler
+	permissions    permissionsReconciler
 	volumes        volumes.Builder
 	promSvc        *corev1.Service
 	serviceMonitor *monitoringv1.ServiceMonitor
@@ -124,7 +107,7 @@ func NewAgentController(common *reconcilers.Instance) *AgentController {
 	common.Managed.Namespace = common.PrivilegedNamespace()
 	agent := AgentController{
 		Instance:    common,
-		permissions: permissions.NewReconciler(common),
+		permissions: newPermissionsReconciler(common),
 		promSvc:     common.Managed.NewService(constants.EBPFAgentMetricsSvcName),
 	}
 	if common.ClusterInfo.HasSvcMonitor() {
@@ -173,7 +156,7 @@ func (c *AgentController) reconcile(ctx context.Context, target *flowslatest.Flo
 		return err
 	}
 
-	if err := c.permissions.Reconcile(ctx, target); err != nil {
+	if err := c.permissions.reconcile(ctx, target); err != nil {
 		return fmt.Errorf("reconciling permissions: %w", err)
 	}
 
@@ -297,123 +280,7 @@ func (c *AgentController) desired(ctx context.Context, coll *flowslatest.FlowCol
 		}
 	}
 
-	volumeMounts := c.volumes.GetMounts()
-	volumes := c.volumes.GetVolumes()
-
-	if coll.Spec.Agent.EBPF.IsPrivileged() {
-		volume := corev1.Volume{
-			Name: bpfNetNSMountName,
-			VolumeSource: corev1.VolumeSource{
-				HostPath: &corev1.HostPathVolumeSource{
-					Type: newHostPathType(corev1.HostPathDirectory),
-					Path: bpfNetNSMountPath,
-				},
-			},
-		}
-		volumes = append(volumes, volume)
-		volumeMount := corev1.VolumeMount{
-			Name:             bpfNetNSMountName,
-			MountPath:        bpfNetNSMountPath,
-			MountPropagation: newMountPropagationMode(corev1.MountPropagationHostToContainer),
-		}
-		volumeMounts = append(volumeMounts, volumeMount)
-	}
-	// EBPF Manager takes care of mounting the kernel debug volume.
-	if coll.Spec.Agent.EBPF.IsAgentFeatureEnabled(flowslatest.PacketDrop) && !coll.Spec.Agent.EBPF.IsEbpfManagerEnabled() {
-		if !coll.Spec.Agent.EBPF.Privileged {
-			rlog.Error(fmt.Errorf("invalid configuration"), "To use PacketsDrop feature privileged mode needs to be enabled")
-			c.Status.SetDegraded("InvalidConfiguration", "PacketDrop feature requires privileged mode")
-		} else {
-			volume := corev1.Volume{
-				Name: bpfTraceMountName,
-				VolumeSource: corev1.VolumeSource{
-					HostPath: &corev1.HostPathVolumeSource{
-						Type: newHostPathType(corev1.HostPathDirectory),
-						Path: bpfTraceMountPath,
-					},
-				},
-			}
-			volumes = append(volumes, volume)
-			volumeMount := corev1.VolumeMount{
-				Name:             bpfTraceMountName,
-				MountPath:        bpfTraceMountPath,
-				MountPropagation: newMountPropagationMode(corev1.MountPropagationHostToContainer),
-			}
-			volumeMounts = append(volumeMounts, volumeMount)
-		}
-	}
-
-	if coll.Spec.Agent.EBPF.IsAgentFeatureEnabled(flowslatest.NetworkEvents) ||
-		coll.Spec.Agent.EBPF.IsAgentFeatureEnabled(flowslatest.UDNMapping) {
-		if !coll.Spec.Agent.EBPF.Privileged {
-			rlog.Error(fmt.Errorf("invalid configuration"), "To use NetworkEvents or UDNMapping features, privileged mode needs to be enabled")
-			c.Status.SetDegraded("InvalidConfiguration", "NetworkEvents/UDNMapping features require privileged mode")
-		} else {
-			hostPath := advancedConfig.Env[envOVNObservHostMountPath]
-			if hostPath == "" {
-				if c.ClusterInfo.IsOpenShift() {
-					hostPath = ovnObservHostMountPathOpenShift
-				} else {
-					hostPath = ovsHostMountPath
-				}
-			}
-			volume := corev1.Volume{
-				Name: ovnObservMountName,
-				VolumeSource: corev1.VolumeSource{
-					HostPath: &corev1.HostPathVolumeSource{
-						Type: newHostPathType(corev1.HostPathDirectory),
-						Path: hostPath,
-					},
-				},
-			}
-			volumes = append(volumes, volume)
-			volumeMount := corev1.VolumeMount{
-				Name:             ovnObservMountName,
-				MountPath:        ovnObservMountPath,
-				MountPropagation: newMountPropagationMode(corev1.MountPropagationHostToContainer),
-			}
-			volumeMounts = append(volumeMounts, volumeMount)
-
-			volume = corev1.Volume{
-				Name: ovsMountName,
-				VolumeSource: corev1.VolumeSource{
-					HostPath: &corev1.HostPathVolumeSource{
-						Type: newHostPathType(corev1.HostPathDirectory),
-						Path: ovsHostMountPath,
-					},
-				},
-			}
-			volumes = append(volumes, volume)
-			volumeMount = corev1.VolumeMount{
-				Name:             ovsMountName,
-				MountPath:        ovsMountPath,
-				MountPropagation: newMountPropagationMode(corev1.MountPropagationHostToContainer),
-			}
-			volumeMounts = append(volumeMounts, volumeMount)
-		}
-	}
-
-	if coll.Spec.Agent.EBPF.IsAgentFeatureEnabled(flowslatest.EbpfManager) {
-		volume := corev1.Volume{
-			Name: bpfmanMapsVolumeName,
-			VolumeSource: corev1.VolumeSource{
-				CSI: &corev1.CSIVolumeSource{
-					Driver: "csi.bpfman.io",
-					VolumeAttributes: map[string]string{
-						"csi.bpfman.io/program": "netobserv",
-						"csi.bpfman.io/maps":    strings.Join(ebpfmaps.Maps, ","),
-					},
-				},
-			},
-		}
-		volumes = append(volumes, volume)
-		volumeMount := corev1.VolumeMount{
-			Name:             bpfmanMapsVolumeName,
-			MountPath:        bpfManBpfFSPath,
-			MountPropagation: newMountPropagationMode(corev1.MountPropagationHostToContainer),
-		}
-		volumeMounts = append(volumeMounts, volumeMount)
-	}
+	volumeMounts, volumes := buildVolumes(&coll.Spec.Agent.EBPF, c.Vendor, c.volumes, advancedConfig.Env)
 
 	return &v1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -587,7 +454,7 @@ func (c *AgentController) securityContext(coll *flowslatest.FlowCollector) *core
 
 	sc := helper.ContainerDefaultSecurityContext()
 	sc.RunAsUser = ptr.To(int64(0))
-	sc.Capabilities.Add = permissions.GetAllowedCapabilities(&coll.Spec.Agent.EBPF)
+	sc.Capabilities.Add = getAllowedCapabilities(&coll.Spec.Agent.EBPF)
 	return sc
 }
 
@@ -664,6 +531,10 @@ func (c *AgentController) envConfig(ctx context.Context, coll *flowslatest.FlowC
 		config = addEnv(config, envEnableTLSTracking, "true", advancedConfig.Env)
 	}
 
+	if coll.Spec.Agent.EBPF.IsSecondaryNetworksEnabled() {
+		config = addEnv(config, envEnableSecondaryNetworks, "true", advancedConfig.Env)
+	}
+
 	if coll.Spec.Agent.EBPF.IsEBPFMetricsEnabled() {
 		config = addEnv(config, envEnableMetrics, "true", advancedConfig.Env)
 		config = addEnv(config, envMetricsPort, strconv.Itoa(int(coll.Spec.Agent.EBPF.GetMetricsPort())), advancedConfig.Env)
@@ -702,7 +573,7 @@ func (c *AgentController) envConfig(ctx context.Context, coll *flowslatest.FlowC
 		defaultAttach = "tc"
 	}
 
-	// Other default config that can be overriden by env
+	// Other default config that can be overridden by env
 	config = addEnv(config, envDNSTrackingPort, coll.Spec.Agent.EBPF.GetDNSTrackingPorts(c.Vendor), advancedConfig.Env)
 	config = addEnv(config, envNetworkEventsGroupID, defaultNetworkEventsGroupID, advancedConfig.Env)
 	config = addEnv(config, envPreferredInterface, defaultPreferredInterface, advancedConfig.Env)

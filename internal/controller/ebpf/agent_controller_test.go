@@ -88,6 +88,29 @@ func TestDaemonSetChanged(t *testing.T) {
 	desired.Spec.Template.Spec.Containers[0].Env[0] = corev1.EnvVar{}
 	action = helper.DaemonSetChanged(&current, &desired)
 	assert.Equal(helper.ActionUpdate, int(action))
+
+	// Make sure we don't use derivative for capabilities, which would ignore a trailing
+	// capability removed in "desired" (e.g. when a feature is disabled)
+	current = sampleDS()
+	current.Spec.Template.Spec.Containers[0].SecurityContext = &corev1.SecurityContext{
+		Capabilities: &corev1.Capabilities{
+			Add: []corev1.Capability{"BPF", "PERFMON", "NET_ADMIN", "DAC_OVERRIDE"},
+		},
+	}
+	desired = sampleDS()
+	desired.Spec.Template.Spec.Containers[0].SecurityContext = &corev1.SecurityContext{
+		Capabilities: &corev1.Capabilities{
+			Add: []corev1.Capability{"BPF", "PERFMON", "NET_ADMIN"},
+		},
+	}
+	action = helper.DaemonSetChanged(&current, &desired)
+	assert.Equal(helper.ActionUpdate, int(action))
+
+	// ... but an unchanged capability set must not trigger an update
+	current = sampleDS()
+	current.Spec.Template.Spec.Containers[0].SecurityContext = desired.Spec.Template.Spec.Containers[0].SecurityContext.DeepCopy()
+	action = helper.DaemonSetChanged(&current, &desired)
+	assert.Equal(helper.ActionNone, int(action))
 }
 
 func TestGetEnvConfig_Default(t *testing.T) {
@@ -306,8 +329,7 @@ func TestNetworkEventsOVNMount(t *testing.T) {
 		Spec: flowslatest.FlowCollectorSpec{
 			Agent: flowslatest.FlowCollectorAgent{
 				EBPF: flowslatest.FlowCollectorEBPF{
-					Privileged: true,
-					Features:   []flowslatest.AgentFeature{flowslatest.NetworkEvents},
+					Features: []flowslatest.AgentFeature{flowslatest.NetworkEvents},
 				},
 			},
 		},
@@ -320,18 +342,24 @@ func TestNetworkEventsOVNMount(t *testing.T) {
 	ds, err := agent.desired(context.Background(), &fc)
 	assert.NoError(t, err)
 	assert.NotNil(t, ds)
+	assertAgentSecurityContext(t, ds, false, []corev1.Capability{"BPF", "PERFMON", "NET_ADMIN", "DAC_OVERRIDE"})
 
-	assert.Equal(t, "var-run-ovn", ds.Spec.Template.Spec.Volumes[2].Name)
+	assert.Equal(t, "var-run-ovn", ds.Spec.Template.Spec.Volumes[1].Name)
+	assert.Equal(t, "/var/run/openvswitch", ds.Spec.Template.Spec.Volumes[1].HostPath.Path)
+	assert.Equal(t, "var-run-ovs", ds.Spec.Template.Spec.Volumes[2].Name)
 	assert.Equal(t, "/var/run/openvswitch", ds.Spec.Template.Spec.Volumes[2].HostPath.Path)
 
 	// OpenShift OVN
 	info.ClusterInfo = cluster.Mock(cluster.WithOpenShiftVersion("4.20.0"), cluster.WithCNI(flowslatest.OVNKubernetes))
+	info.Vendor = constants.VendorOpenShiftDownstream
 	ds, err = agent.desired(context.Background(), &fc)
 	assert.NoError(t, err)
 	assert.NotNil(t, ds)
 
-	assert.Equal(t, "var-run-ovn", ds.Spec.Template.Spec.Volumes[2].Name)
-	assert.Equal(t, "/var/run/ovn-ic", ds.Spec.Template.Spec.Volumes[2].HostPath.Path)
+	assert.Equal(t, "var-run-ovn", ds.Spec.Template.Spec.Volumes[1].Name)
+	assert.Equal(t, "/var/run/ovn-ic", ds.Spec.Template.Spec.Volumes[1].HostPath.Path)
+	assert.Equal(t, "var-run-ovs", ds.Spec.Template.Spec.Volumes[2].Name)
+	assert.Equal(t, "/var/run/openvswitch", ds.Spec.Template.Spec.Volumes[2].HostPath.Path)
 
 	// Custom
 	fc.Spec.Agent.EBPF.Advanced = &flowslatest.AdvancedAgentConfig{
@@ -343,6 +371,119 @@ func TestNetworkEventsOVNMount(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, ds)
 
-	assert.Equal(t, "var-run-ovn", ds.Spec.Template.Spec.Volumes[2].Name)
-	assert.Equal(t, "/foo/bar", ds.Spec.Template.Spec.Volumes[2].HostPath.Path)
+	assert.Equal(t, "var-run-ovn", ds.Spec.Template.Spec.Volumes[1].Name)
+	assert.Equal(t, "/foo/bar", ds.Spec.Template.Spec.Volumes[1].HostPath.Path)
+	assert.Equal(t, "var-run-ovs", ds.Spec.Template.Spec.Volumes[2].Name)
+	assert.Equal(t, "/var/run/openvswitch", ds.Spec.Template.Spec.Volumes[2].HostPath.Path)
+}
+
+func TestUDNMappingOVNMountWithoutPrivilege(t *testing.T) {
+	fc := flowslatest.FlowCollector{
+		Spec: flowslatest.FlowCollectorSpec{
+			Agent: flowslatest.FlowCollectorAgent{
+				EBPF: flowslatest.FlowCollectorEBPF{
+					Features: []flowslatest.AgentFeature{flowslatest.UDNMapping},
+				},
+			},
+		},
+	}
+
+	info := reconcilers.Common{
+		Namespace:   "netobserv",
+		ClusterInfo: cluster.Mock(cluster.WithOpenShiftVersion("4.20.0"), cluster.WithCNI(flowslatest.OVNKubernetes)),
+		Vendor:      constants.VendorOpenShiftDownstream,
+	}
+	inst := info.NewInstance(map[reconcilers.ImageRef]string{reconcilers.MainImage: "ebpf-agent"}, status.Instance{})
+	ds, err := NewAgentController(inst).desired(context.Background(), &fc)
+	require.NoError(t, err)
+	require.NotNil(t, ds)
+
+	assertAgentSecurityContext(t, ds, false, []corev1.Capability{"BPF", "PERFMON", "NET_ADMIN", "DAC_OVERRIDE"})
+	assert.Equal(t, "var-run-ovn", ds.Spec.Template.Spec.Volumes[1].Name)
+	assert.Equal(t, "/var/run/ovn-ic", ds.Spec.Template.Spec.Volumes[1].HostPath.Path)
+	assert.Equal(t, "var-run-ovs", ds.Spec.Template.Spec.Volumes[2].Name)
+	assert.Equal(t, "/var/run/openvswitch", ds.Spec.Template.Spec.Volumes[2].HostPath.Path)
+}
+
+func TestPacketDropMountWithoutPrivilege(t *testing.T) {
+	fc := flowslatest.FlowCollector{
+		Spec: flowslatest.FlowCollectorSpec{
+			Agent: flowslatest.FlowCollectorAgent{
+				EBPF: flowslatest.FlowCollectorEBPF{
+					Features: []flowslatest.AgentFeature{flowslatest.PacketDrop},
+				},
+			},
+		},
+	}
+
+	info := reconcilers.Common{Namespace: "netobserv", ClusterInfo: &cluster.Info{}}
+	inst := info.NewInstance(map[reconcilers.ImageRef]string{reconcilers.MainImage: "ebpf-agent"}, status.Instance{})
+	ds, err := NewAgentController(inst).desired(context.Background(), &fc)
+	require.NoError(t, err)
+	require.NotNil(t, ds)
+
+	assertAgentSecurityContext(t, ds, false, []corev1.Capability{"BPF", "PERFMON", "NET_ADMIN"})
+	assert.Equal(t, "bpf-kernel-debug", ds.Spec.Template.Spec.Volumes[1].Name)
+	assert.Equal(t, "/sys/kernel/debug", ds.Spec.Template.Spec.Volumes[1].HostPath.Path)
+}
+
+func TestNetNSMount(t *testing.T) {
+	fc := flowslatest.FlowCollector{
+		Spec: flowslatest.FlowCollectorSpec{
+			Agent: flowslatest.FlowCollectorAgent{
+				EBPF: flowslatest.FlowCollectorEBPF{
+					Features: []flowslatest.AgentFeature{flowslatest.SecondaryNetworks},
+				},
+			},
+		},
+	}
+
+	info := reconcilers.Common{Namespace: "netobserv", ClusterInfo: &cluster.Info{}}
+	inst := info.NewInstance(map[reconcilers.ImageRef]string{reconcilers.MainImage: "ebpf-agent"}, status.Instance{})
+	agent := NewAgentController(inst)
+	ds, err := agent.desired(context.Background(), &fc)
+	assert.NoError(t, err)
+	assert.NotNil(t, ds)
+	assertAgentSecurityContext(t, ds, false, []corev1.Capability{"BPF", "PERFMON", "NET_ADMIN", "SYS_ADMIN"})
+
+	assert.Equal(t, "var-run-netns", ds.Spec.Template.Spec.Volumes[1].Name)
+	assert.Equal(t, "/var/run/netns", ds.Spec.Template.Spec.Volumes[1].HostPath.Path)
+}
+
+func TestPrivilegedMount(t *testing.T) {
+	fc := flowslatest.FlowCollector{
+		Spec: flowslatest.FlowCollectorSpec{
+			Agent: flowslatest.FlowCollectorAgent{
+				EBPF: flowslatest.FlowCollectorEBPF{
+					Privileged: true,
+				},
+			},
+		},
+	}
+
+	info := reconcilers.Common{Namespace: "netobserv", ClusterInfo: &cluster.Info{}}
+	inst := info.NewInstance(map[reconcilers.ImageRef]string{reconcilers.MainImage: "ebpf-agent"}, status.Instance{})
+	agent := NewAgentController(inst)
+	ds, err := agent.desired(context.Background(), &fc)
+	assert.NoError(t, err)
+	assert.NotNil(t, ds)
+	assertAgentSecurityContext(t, ds, true, nil)
+
+	// For backward compatibility, privileged=true implictly enables netns
+	assert.Equal(t, "var-run-netns", ds.Spec.Template.Spec.Volumes[1].Name)
+	assert.Equal(t, "/var/run/netns", ds.Spec.Template.Spec.Volumes[1].HostPath.Path)
+}
+
+func assertAgentSecurityContext(t *testing.T, ds *appsv1.DaemonSet, privileged bool, capabilities []corev1.Capability) {
+	t.Helper()
+	require.NotEmpty(t, ds.Spec.Template.Spec.Containers)
+	securityContext := ds.Spec.Template.Spec.Containers[0].SecurityContext
+	require.NotNil(t, securityContext)
+
+	actualPrivileged := securityContext.Privileged != nil && *securityContext.Privileged
+	assert.Equal(t, privileged, actualPrivileged)
+	if !privileged {
+		require.NotNil(t, securityContext.Capabilities)
+		assert.Equal(t, capabilities, securityContext.Capabilities.Add)
+	}
 }

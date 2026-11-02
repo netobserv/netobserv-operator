@@ -49,7 +49,7 @@ func (m *clusterInfoMock) GetCNI() (NetworkType, error) {
 }
 
 func TestValidateAgent(t *testing.T) {
-	tests := []struct {
+	for _, tc := range []struct {
 		name             string
 		fc               *FlowCollector
 		ocpVersion       string
@@ -187,7 +187,7 @@ func TestValidateAgent(t *testing.T) {
 			},
 		},
 		{
-			name:       "PacketDrop without privilege triggers warning",
+			name:       "PacketDrop without privilege triggers no warning",
 			ocpVersion: "4.16.0",
 			fc: &FlowCollector{
 				ObjectMeta: metav1.ObjectMeta{
@@ -202,7 +202,7 @@ func TestValidateAgent(t *testing.T) {
 					},
 				},
 			},
-			expectedWarnings: admission.Warnings{"The PacketDrop feature requires eBPF Agent to run in privileged mode, which is currently disabled in spec.agent.ebpf.privileged, or to use with eBPF Manager"},
+			expectedWarnings: nil,
 		},
 		{
 			name:       "DNS ports (default) without DNSTracking feature - no warning",
@@ -299,7 +299,7 @@ func TestValidateAgent(t *testing.T) {
 			},
 		},
 		{
-			name:       "NetworkEvents without privilege triggers warning",
+			name:       "NetworkEvents without privilege triggers no warning",
 			ocpVersion: "4.19.0",
 			fc: &FlowCollector{
 				ObjectMeta: metav1.ObjectMeta{
@@ -314,10 +314,10 @@ func TestValidateAgent(t *testing.T) {
 					},
 				},
 			},
-			expectedWarnings: admission.Warnings{"The NetworkEvents feature requires eBPF Agent to run in privileged mode, which is currently disabled in spec.agent.ebpf.privileged"},
+			expectedWarnings: nil,
 		},
 		{
-			name:       "UDNMapping on ocp 4.18.0-0 doesn't trigger warnings",
+			name:       "UDNMapping without privilege on ocp 4.18.0-0 doesn't trigger warnings",
 			ocpVersion: "4.18.0-0.nightly-2025-06-30-082606",
 			fc: &FlowCollector{
 				ObjectMeta: metav1.ObjectMeta{
@@ -327,12 +327,12 @@ func TestValidateAgent(t *testing.T) {
 					Agent: FlowCollectorAgent{
 						Type: AgentEBPF,
 						EBPF: FlowCollectorEBPF{
-							Features:   []AgentFeature{UDNMapping},
-							Privileged: true,
+							Features: []AgentFeature{UDNMapping},
 						},
 					},
 				},
 			},
+			expectedWarnings: nil,
 		},
 		{
 			name: "FlowFilter different ports configs are mutually exclusive",
@@ -527,24 +527,24 @@ func TestValidateAgent(t *testing.T) {
 			},
 			expectedError: "invalid CIDR",
 		},
-	}
-
-	for _, test := range tests {
-		CurrentClusterInfo = &clusterInfoMock{version: test.ocpVersion}
-		v := validator{fc: &test.fc.Spec}
-		v.validateAgent()
-		if test.expectedError == "" {
-			assert.Empty(t, v.errors, test.name)
-		} else {
-			assert.Len(t, v.errors, 1, test.name)
-			assert.ErrorContains(t, v.errors[0], test.expectedError, test.name)
-		}
-		assert.Equal(t, test.expectedWarnings, v.warnings, test.name)
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			CurrentClusterInfo = &clusterInfoMock{version: tc.ocpVersion}
+			v := validator{fc: &tc.fc.Spec}
+			v.validateAgent()
+			if tc.expectedError == "" {
+				assert.Empty(t, v.errors)
+			} else {
+				assert.Len(t, v.errors, 1)
+				assert.ErrorContains(t, v.errors[0], tc.expectedError)
+			}
+			assert.Equal(t, tc.expectedWarnings, v.warnings)
+		})
 	}
 }
 
 func TestValidateConntrack(t *testing.T) {
-	tests := []struct {
+	for _, tc := range []struct {
 		name             string
 		fc               *FlowCollector
 		expectedError    string
@@ -615,23 +615,23 @@ func TestValidateConntrack(t *testing.T) {
 			},
 			expectedError: "cannot enable conversation tracking when spec.deploymentModel is Service: you must disable it, or change the deployment model",
 		},
-	}
-
-	r := FlowCollector{}
-	CurrentClusterInfo = &clusterInfoMock{}
-	for _, test := range tests {
-		warnings, err := r.Validate(context.TODO(), test.fc)
-		if test.expectedError == "" {
-			assert.NoError(t, err, test.name)
-		} else {
-			assert.ErrorContains(t, err, test.expectedError, test.name)
-		}
-		assert.Equal(t, test.expectedWarnings, warnings, test.name)
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			r := FlowCollector{}
+			CurrentClusterInfo = &clusterInfoMock{}
+			warnings, err := r.Validate(context.TODO(), tc.fc)
+			if tc.expectedError == "" {
+				assert.NoError(t, err)
+			} else {
+				assert.ErrorContains(t, err, tc.expectedError)
+			}
+			assert.Equal(t, tc.expectedWarnings, warnings)
+		})
 	}
 }
 
 func TestValidateFLP(t *testing.T) {
-	tests := []struct {
+	for _, tc := range []struct {
 		name             string
 		fc               *FlowCollector
 		expectedError    string
@@ -985,24 +985,24 @@ func TestValidateFLP(t *testing.T) {
 			},
 			expectedError: "missing configuration in spec.processor.providedCertificates despite spec.processor.tlsType being set to Provided",
 		},
-	}
-
-	r := FlowCollector{}
-	for _, test := range tests {
-		CurrentClusterInfo = &clusterInfoMock{version: test.ocpVersion}
-		warnings, err := r.Validate(context.TODO(), test.fc)
-		if test.expectedError == "" {
-			assert.NoError(t, err, test.name)
-		} else {
-			assert.ErrorContains(t, err, test.expectedError, test.name)
-		}
-		assert.Equal(t, test.expectedWarnings, warnings, test.name)
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			r := FlowCollector{}
+			CurrentClusterInfo = &clusterInfoMock{version: tc.ocpVersion}
+			warnings, err := r.Validate(context.TODO(), tc.fc)
+			if tc.expectedError == "" {
+				assert.NoError(t, err)
+			} else {
+				assert.ErrorContains(t, err, tc.expectedError)
+			}
+			assert.Equal(t, tc.expectedWarnings, warnings)
+		})
 	}
 }
 
 func TestValidateScheduling(t *testing.T) {
 	mismatchWarning := "Mismatch detected between spec.agent.ebpf.advanced.scheduling and spec.processor.advanced.scheduling. In Direct mode, it can lead to inconsistent pod scheduling that would result in errors in the flow collection process."
-	tests := []struct {
+	for _, tc := range []struct {
 		name             string
 		fc               *FlowCollector
 		expectedError    string
@@ -1143,18 +1143,18 @@ func TestValidateScheduling(t *testing.T) {
 				},
 			},
 		},
-	}
-
-	r := FlowCollector{}
-	for _, test := range tests {
-		CurrentClusterInfo = &clusterInfoMock{version: test.ocpVersion}
-		warnings, err := r.Validate(context.TODO(), test.fc)
-		if test.expectedError == "" {
-			assert.NoError(t, err, test.name)
-		} else {
-			assert.ErrorContains(t, err, test.expectedError, test.name)
-		}
-		assert.Equal(t, test.expectedWarnings, warnings, test.name)
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			r := FlowCollector{}
+			CurrentClusterInfo = &clusterInfoMock{version: tc.ocpVersion}
+			warnings, err := r.Validate(context.TODO(), tc.fc)
+			if tc.expectedError == "" {
+				assert.NoError(t, err)
+			} else {
+				assert.ErrorContains(t, err, tc.expectedError)
+			}
+			assert.Equal(t, tc.expectedWarnings, warnings)
+		})
 	}
 }
 
@@ -1183,7 +1183,7 @@ func TestElligibleMetrics(t *testing.T) {
 }
 
 func TestValidateNetPol(t *testing.T) {
-	tests := []struct {
+	for _, tc := range []struct {
 		name             string
 		fc               *FlowCollector
 		cni              NetworkType
@@ -1258,27 +1258,27 @@ func TestValidateNetPol(t *testing.T) {
 			cni:              "",
 			expectedWarnings: admission.Warnings{"Network policy is enabled via spec.networkPolicy.enable, despite running on an unknown CNI: this configuration has not been tested."},
 		},
-	}
-
-	for _, test := range tests {
-		CurrentClusterInfo = &clusterInfoMock{
-			version: "4.20.0",
-			cni:     test.cni,
-		}
-		v := validator{fc: &test.fc.Spec}
-		v.validateNetPol()
-		if test.expectedError == "" {
-			assert.Empty(t, v.errors, test.name)
-		} else {
-			assert.Len(t, v.errors, 1, test.name)
-			assert.ErrorContains(t, v.errors[0], test.expectedError, test.name)
-		}
-		assert.Equal(t, test.expectedWarnings, v.warnings, test.name)
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			CurrentClusterInfo = &clusterInfoMock{
+				version: "4.20.0",
+				cni:     tc.cni,
+			}
+			v := validator{fc: &tc.fc.Spec}
+			v.validateNetPol()
+			if tc.expectedError == "" {
+				assert.Empty(t, v.errors)
+			} else {
+				assert.Len(t, v.errors, 1)
+				assert.ErrorContains(t, v.errors[0], tc.expectedError)
+			}
+			assert.Equal(t, tc.expectedWarnings, v.warnings)
+		})
 	}
 }
 
 func TestHealthRuleVariant_GetMode(t *testing.T) {
-	tests := []struct {
+	for _, tc := range []struct {
 		name         string
 		variant      HealthRuleVariant
 		parentMode   HealthRuleMode
@@ -1316,12 +1316,10 @@ func TestHealthRuleVariant_GetMode(t *testing.T) {
 			parentMode:   ModeRecording,
 			expectedMode: ModeAlert,
 		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := tt.variant.GetMode(tt.parentMode)
-			assert.Equal(t, tt.expectedMode, result)
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			result := tc.variant.GetMode(tc.parentMode)
+			assert.Equal(t, tc.expectedMode, result)
 		})
 	}
 }
