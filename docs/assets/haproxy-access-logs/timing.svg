@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="480" viewBox="0 0 1800 480"><rect width="100%" height="100%" fill="white"/>
+<rect x="120" y="90" width="1600" height="285" rx="12" fill="#F2F5F8" stroke="#F2F5F8" stroke-width="3"/>
+<text x="148" y="127.5" font-family="Arial, sans-serif" font-size="25" font-weight="bold" fill="#536578" text-anchor="start">RECEPTION-TIME SEARCH WINDOW</text>
+<rect x="200" y="180" width="470" height="45" rx="8" fill="#245DB2" stroke="#245DB2" stroke-width="3"/>
+<text x="200" y="164.06" font-family="Arial, sans-serif" font-size="27" font-weight="bold" fill="#245DB2" text-anchor="start">Observed flow interval</text>
+<polyline points="670,231 670,260" fill="none" stroke="#245DB2" stroke-width="5"/>
+<polygon points="670,260 661.7356548518866,242.89150505529915 678.2643451481134,242.89150505529915" fill="#245DB2"/>
+<text x="680" y="264.72" font-family="Arial, sans-serif" font-size="24" font-weight="normal" fill="#245DB2" text-anchor="start">Flow export</text>
+<rect x="270" y="297" width="960" height="45" rx="8" fill="#147D78" stroke="#147D78" stroke-width="3"/>
+<text x="280" y="281.06" font-family="Arial, sans-serif" font-size="27" font-weight="bold" fill="#147D78" text-anchor="start">HTTP request interval</text>
+<polyline points="1240,320 1390,320" fill="none" stroke="#147D78" stroke-width="5"/>
+<polygon points="1390,320 1372.8915050552991,328.26434514811336 1372.8915050552991,311.73565485188664" fill="#147D78"/>
+<text x="1410" y="320.06" font-family="Arial, sans-serif" font-size="27" font-weight="bold" fill="#147D78" text-anchor="start">Log received</text>
+<text x="1080" y="368.72" font-family="Arial, sans-serif" font-size="24" font-weight="normal" fill="#147D78" text-anchor="start">Request completes</text>
+<text x="130" y="424.5" font-family="Arial, sans-serif" font-size="25" font-weight="normal" fill="#536578" text-anchor="start">Flow start − 2 s</text>
+<text x="1000" y="424.5" font-family="Arial, sans-serif" font-size="25" font-weight="normal" fill="#536578" text-anchor="start">Flow end + 10 min (or now)</text>
+</svg>
