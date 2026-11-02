@@ -152,7 +152,8 @@ func probeChanged(old, n *corev1.Probe) bool {
 }
 
 func ServiceChanged(old, n *corev1.Service, report *ChangeReport) bool {
-	return report.Check("Service annotations changed", !deepDerivative(n.Annotations, old.Annotations)) ||
+	return report.Check("Service ports removed", len(n.Spec.Ports) != len(old.Spec.Ports)) ||
+		report.Check("Service annotations changed", !deepDerivative(n.Annotations, old.Annotations)) ||
 		report.Check("Service labels changed", !deepDerivative(n.Labels, old.Labels)) ||
 		report.Check("Service spec changed", !deepDerivative(n.Spec, old.Spec))
 }

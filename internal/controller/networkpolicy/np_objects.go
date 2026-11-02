@@ -55,6 +55,11 @@ func buildMainNetworkPolicy(desired *flowslatest.FlowCollector, mgr *manager.Man
 		ingress = append(ingress, netpol.AllowHostNetworkFlows(mgr.ClusterInfo, mgr.Config.Vendor, &desired.Spec, fromNs))
 	}
 
+	for _, source := range desired.Spec.Processor.GetProxySources() {
+		if source.Type == flowslatest.ProxySourceHAProxy {
+			ingress = append(ingress, netpol.AllowHAProxyLogs(mgr.ClusterInfo, mgr.Config.Vendor, source.GetPort()))
+		}
+	}
 	if mgr.ClusterInfo.IsOpenShift() {
 		ingress = append(ingress, netpol.AllowVendorPrometheusScrape(mgr.Config.Vendor, desired.Spec.Processor.GetMetricsPort(), constants.CPMetricsPort))
 		egress = append(egress, netpol.AllowPrometheusQuery(mgr.Config.Vendor))

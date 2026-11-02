@@ -12,6 +12,7 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/dsl"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/validation"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
@@ -287,6 +288,7 @@ func (v *validator) validateFLP() {
 	v.validateFLPMetricsIncludeLists()
 	v.validateFLPTLS()
 	v.validatePortConflicts()
+	v.validateProxyCorrelation()
 }
 
 func (v *validator) validateScheduling() {
@@ -609,3 +611,50 @@ func GetElligibleMetricsForAlert(template HealthRuleTemplate, alertDef *HealthRu
 
 // Alias for backward compatibility
 var GetElligibleMetricsForHealthRule = GetElligibleMetricsForAlert
+
+func (v *validator) validateProxyCorrelation() {
+	cfg := v.fc.Processor.ProxyCorrelation
+	if cfg == nil {
+		return
+	}
+	path := "spec.processor.proxyCorrelation"
+	if cfg.Enable {
+		if !v.fc.UseLoki() {
+			v.errors = append(v.errors, fmt.Errorf("%s requires Loki", path))
+		}
+		if len(cfg.Sources) == 0 {
+			v.errors = append(v.errors, fmt.Errorf("%s.sources must contain at least one source", path))
+		}
+	}
+	names := map[string]bool{}
+	ports := map[int32]bool{}
+	for i, source := range cfg.Sources {
+		sourcePath := fmt.Sprintf("%s.sources[%d]", path, i)
+		if errs := validation.IsDNS1123Label(source.Name); len(errs) > 0 {
+			v.errors = append(v.errors, fmt.Errorf("%s.name: %s", sourcePath, strings.Join(errs, ", ")))
+		}
+		if names[source.Name] {
+			v.errors = append(v.errors, fmt.Errorf("%s.name must be unique", sourcePath))
+		}
+		names[source.Name] = true
+		switch source.Type {
+		case ProxySourceHAProxy:
+			if source.HAProxy == nil {
+				v.errors = append(v.errors, fmt.Errorf("%s.haproxy is required for type HAProxy", sourcePath))
+			}
+			if cfg.Enable && CurrentClusterInfo != nil && !CurrentClusterInfo.IsOpenShift() {
+				v.errors = append(v.errors, fmt.Errorf("%s: HAProxy sources require OpenShift", sourcePath))
+			}
+		default:
+			v.errors = append(v.errors, fmt.Errorf("%s.type: unsupported proxy source type %q", sourcePath, source.Type))
+		}
+		port := source.GetPort()
+		if port < 1024 || port > 65535 {
+			v.errors = append(v.errors, fmt.Errorf("%s.haproxy.port must be between 1024 and 65535", sourcePath))
+		}
+		if ports[port] {
+			v.errors = append(v.errors, fmt.Errorf("%s: receiver port %d must be unique", sourcePath, port))
+		}
+		ports[port] = true
+	}
+}
