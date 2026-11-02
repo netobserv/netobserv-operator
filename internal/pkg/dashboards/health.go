@@ -61,6 +61,12 @@ func CreateHealthDashboard(netobsNs, nsFlowsMetric string) (string, error) {
 				NewTarget(`sum(increase(netobserv_encode_prom_errors[1m])) by (error)`, "metrics {{error}}"),
 				NewTarget(`sum(increase(netobserv_loki_batch_retries_total[1m]))`, "loki retries"),
 			),
+			NewPanel("Long Kubernetes enrichment miss streaks per minute", metricslatest.ChartTypeStackArea, "", 4,
+				NewTarget(
+					`sum(increase(netobserv_kubernetes_enrichment_long_miss_streaks_total[1m])) by (side)`,
+					"{{side}}",
+				),
+			),
 			NewPanel("By namespace", metricslatest.ChartTypeLine, "", 4,
 				NewTarget(
 					fmt.Sprintf(`topk(10,sum(rate(%s{SrcK8S_Namespace!=""}[1m])) by (SrcK8S_Namespace))`, nsFlowsMetric),

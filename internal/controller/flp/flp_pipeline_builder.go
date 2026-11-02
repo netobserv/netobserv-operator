@@ -547,6 +547,9 @@ func (b *PipelineBuilder) addSubnetLabelsStage(previous config.PipelineBuilderSt
 		return previous.TransformNetwork("subnets", api.TransformNetwork{
 			Rules:        rules,
 			SubnetLabels: flpLabels,
+			KubeConfig: api.NetworkTransformKubeConfig{
+				EnrichmentMissStreak: &api.EnrichmentMissStreakConfig{},
+			},
 		}, config.Dynamic), nil
 	}
 

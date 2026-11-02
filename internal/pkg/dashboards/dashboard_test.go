@@ -187,6 +187,19 @@ func TestCreateHealthDashboard_Default(t *testing.T) {
 	assert.Equal("Flows per second", d.Rows[row].Panels[0].Title)
 	assert.Len(d.Rows[row].Panels[0].Targets, 1)
 	assert.Contains(d.Rows[row].Panels[0].Targets[0].Expr, "netobserv_ingest_flows_processed")
+
+	flpRow := d.FindRow("Flowlogs-pipeline statistics")
+	assert.Len(flpRow.Panels, 7)
+	panel := d.FindPanel("Long Kubernetes enrichment miss streaks per minute")
+	if assert.NotNil(panel) {
+		assert.Equal("graph", string(panel.Type))
+		assert.Len(panel.Targets, 1)
+		assert.Equal(
+			`sum(increase(netobserv_kubernetes_enrichment_long_miss_streaks_total[1m])) by (side)`,
+			panel.Targets[0].Expr,
+		)
+		assert.Equal("{{side}}", panel.Targets[0].LegendFormat)
+	}
 }
 
 func TestCreateCustomDashboard(t *testing.T) {
