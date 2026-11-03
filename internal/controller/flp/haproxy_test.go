@@ -5,6 +5,7 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
+	"github.com/netobserv/netobserv-operator/internal/controller/constants"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/yaml"
@@ -25,11 +26,11 @@ func TestHAProxyPipelineIsolationAndDisable(t *testing.T) {
 				if mode == flowslatest.DeploymentModelKafka {
 					b := transfBuilder("netobserv", &desired)
 					cm, _, _, err = b.configMaps()
-					svc = b.promService()
+					svc = b.proxyService()
 				} else {
 					b := monoBuilder("netobserv", &desired)
 					cm, _, _, err = b.configMaps()
-					svc = b.promService()
+					svc = b.proxyService()
 				}
 				require.NoError(t, err)
 				var cfg config.Root
@@ -56,6 +57,11 @@ func TestHAProxyPipelineIsolationAndDisable(t *testing.T) {
 						require.Contains(t, []string{"scope-proxy-router", "loki-proxy-router"}, stage.Name)
 					}
 				}
+				if !enabled {
+					require.Nil(t, svc, "disabling correlation must remove the dedicated Service")
+					continue
+				}
+				require.NotNil(t, svc)
 				udp := false
 				for _, port := range svc.Spec.Ports {
 					if port.Name == "proxy-0" {
@@ -85,11 +91,11 @@ func TestMultipleProxySources(t *testing.T) {
 			if mode == flowslatest.DeploymentModelKafka {
 				b := transfBuilder("netobserv", &desired)
 				cm, _, _, err = b.configMaps()
-				svc = b.promService()
+				svc = b.proxyService()
 			} else {
 				b := monoBuilder("netobserv", &desired)
 				cm, _, _, err = b.configMaps()
-				svc = b.promService()
+				svc = b.proxyService()
 			}
 			require.NoError(t, err)
 			var cfg config.Root
@@ -116,6 +122,41 @@ func TestMultipleProxySources(t *testing.T) {
 				}
 			}
 			require.Equal(t, map[string]int32{"proxy-0": 10514, "proxy-1": 11514}, ports)
+		})
+	}
+}
+
+func TestProxyServiceSeparateFromMonitoring(t *testing.T) {
+	for _, mode := range []flowslatest.FlowCollectorDeploymentModel{flowslatest.DeploymentModelService, flowslatest.DeploymentModelDirect, flowslatest.DeploymentModelKafka} {
+		t.Run(string(mode), func(t *testing.T) {
+			desired := getConfig()
+			desired.DeploymentModel = mode
+			desired.Processor.Metrics.Server.TLS.Type = flowslatest.TLSAuto
+			desired.Processor.ProxyCorrelation = &flowslatest.FlowCollectorProxyCorrelation{Enable: true, Sources: []flowslatest.FlowCollectorProxySource{
+				{Name: "router", Type: flowslatest.ProxySourceHAProxy, HAProxy: &flowslatest.FlowCollectorHAProxySource{}},
+			}}
+			var proxy, metrics *corev1.Service
+			var workload, name string
+			if mode == flowslatest.DeploymentModelKafka {
+				b := transfBuilder("netobserv", &desired)
+				proxy, metrics = b.proxyService(), b.promService()
+				workload, name = constants.FLPTransfoName, constants.FLPTransfoProxySvcName
+			} else {
+				b := monoBuilder("netobserv", &desired)
+				proxy, metrics = b.proxyService(), b.promService()
+				workload, name = constants.FLPName, constants.FLPProxySvcName
+			}
+			require.Equal(t, name, proxy.Name)
+			require.Equal(t, "netobserv", proxy.Namespace)
+			require.Equal(t, map[string]string{"app": workload}, proxy.Spec.Selector)
+			require.NotEqual(t, metrics.Labels["app"], proxy.Labels["app"], "metrics discovery must not select the proxy Service")
+			require.Empty(t, proxy.Annotations, "UDP logs must not request a metrics serving certificate")
+			require.Len(t, metrics.Spec.Ports, 1)
+			require.Equal(t, corev1.ProtocolTCP, metrics.Spec.Ports[0].Protocol)
+			require.EqualValues(t, 9401, metrics.Spec.Ports[0].Port)
+			require.Len(t, proxy.Spec.Ports, 1)
+			require.Equal(t, corev1.ProtocolUDP, proxy.Spec.Ports[0].Protocol)
+			require.EqualValues(t, 10514, proxy.Spec.Ports[0].TargetPort.IntVal)
 		})
 	}
 }

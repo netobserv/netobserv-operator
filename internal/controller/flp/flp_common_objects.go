@@ -390,10 +390,6 @@ func promService(desired *flowslatest.FlowCollectorSpec, svcName, namespace, app
 			}},
 		},
 	}
-	for i, source := range desired.Processor.GetProxySources() {
-		port := source.GetPort()
-		svc.Spec.Ports = append(svc.Spec.Ports, corev1.ServicePort{Name: flowslatest.ProxySourcePortName(i), Port: port, TargetPort: intstr.FromInt32(port), Protocol: corev1.ProtocolUDP})
-	}
 	if desired.Processor.Metrics.Server.TLS.Type == flowslatest.TLSAuto {
 		svc.ObjectMeta.Annotations = map[string]string{
 			constants.OpenShiftCertificateAnnotation: svcName,

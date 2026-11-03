@@ -129,15 +129,17 @@ In this example, `type: HAProxy` selects the supported access-log contract, and 
 
 Source names must be unique. For HAProxy sources, UDP receiver ports must also be unique. An omitted `haproxy.port` defaults to 10514; additional HAProxy sources need distinct ports. Validation rejects unknown types, missing HAProxy settings and enabled correlation without sources. The unpublished `haproxyLogs` field has been replaced by this configuration.
 
-Loki must be enabled, and the current HAProxy source requires OpenShift. The operator creates an isolated FLP pipeline and UDP container/Service port per source, network access rules and the shared console feature flag. Disabling the feature removes these receiver settings and hides the console entry point; stored Loki records remain governed by their existing retention policy.
+Loki must be enabled, and the current HAProxy source requires OpenShift. The operator creates an isolated FLP pipeline and UDP container/Service port per source, network access rules and the shared console feature flag. Proxy logs use a dedicated Service; the metrics Service remains limited to Prometheus traffic. Disabling the feature removes the dedicated receiver Service and pipeline settings and hides the console entry point; stored Loki records remain governed by their existing retention policy.
 
 | Deployment model | Receiver Service | Proxy-record delivery |
 | --- | --- | --- |
-| Service | `flowlogs-pipeline-prom` | Directly to an FLP processor |
-| Direct | `flowlogs-pipeline-prom` | Directly to an FLP processor |
-| Kafka | `flowlogs-pipeline-transformer-prom` | Directly to a transformer; bypasses Kafka |
+| Service | `flowlogs-pipeline-proxy` | Directly to an FLP processor |
+| Direct | `flowlogs-pipeline-proxy` | Directly to an FLP processor |
+| Kafka | `flowlogs-pipeline-transformer-proxy` | Directly to a transformer; bypasses Kafka |
 
 The administrator then configures the intended IngressController’s `spec.logging.access`: a Syslog destination pointing to the receiver Service’s allocated IP and UDP port, plus the exact versioned `httpLogFormat` in `flowlogs-pipeline/contrib/haproxy/log-format.txt`. The OpenShift API defines an IP address and a UDP port for this destination. [1]
+
+The logging configuration, field mapping and client-identity considerations are documented in [Appendix A — OpenShift ingress access-log configuration](#appendix-a--openshift-ingress-access-log-configuration).
 
 #### Configuration boundaries
 
@@ -223,3 +225,82 @@ The uprobe prototype remains preserved on `ext-lb-haproxy-tcp-correlation`. For 
 - **Local reproduction and reports:** the workspace directory `netobserv/haproxy-access-logs-integration/` contains the Python harness, its README and `results/`. These are maintained outside the component repositories.
 - **[1] OpenShift ingress API:** [logging destination and HTTP format semantics](https://github.com/openshift/api/blob/master/operator/v1/types_ingresscontroller.go).
 - **[2] HAProxy configuration manual:** [custom log formats and timing](https://docs.haproxy.org/2.8/configuration.html#8.2.6). The referenced version is a format reference, not a claim of router-version coverage.
+
+
+<!-- pagebreak -->
+
+### Appendix A — OpenShift ingress access-log configuration
+
+This appendix describes the OpenShift HAProxy configuration that supplies correlation evidence. It complements the deployment model in Section 4 with the logging contract, transport settings and client-identity considerations.
+
+#### A.1. Receiver and logging destination
+
+An enabled HAProxy source uses a UDP receiver whose default port is `10514`. The first configured source is exposed through the Service port named `proxy-0`; additional sources use distinct ports named `proxy-1`, `proxy-2`, etc. The receiver Service is `flowlogs-pipeline-proxy` for Service and Direct deployments, or `flowlogs-pipeline-transformer-proxy` for Kafka. In Kafka deployments, proxy records reach the transformer directly and bypass the broker.
+
+The IngressController's `spec.logging.access.destination` selects `type: Syslog`. The OpenShift API defines this destination's port as UDP, so the logging block has no separate `protocol: UDP` setting. Its `address` contains the receiver Service's allocated ClusterIP rather than its DNS name. The destination must track any change to that allocated IP. [1]
+
+The following excerpt expresses the access-log configuration. The address is installation-specific, and the port corresponds to the selected FlowCollector source:
+
+```yaml
+spec:
+  logging:
+    access:
+      destination:
+        type: Syslog
+        syslog:
+          address: <receiver-service-cluster-ip>
+          port: 10514
+          facility: local0
+          maxLength: 2048
+      httpLogFormat: >-
+        netobserv-proxy-v1 {"client_addr":"%ci","client_port":"%cp","frontend_addr":"%fi","frontend_port":"%fp","backend_addr":"%bi","backend_port":"%bp","server_addr":"%si","server_port":"%sp","request_time":"%trg","request_time_local":"%tr","duration_ms":"%Ta","instance":"%H","process":"%pid","request_id":"%rt"}
+```
+
+`facility: local0` selects the syslog facility. `maxLength: 2048` matches the receiver's default maximum datagram size. YAML's `>-` scalar yields a single-line log format without a trailing newline. The versioned prefix, field names and placeholders match the receiver contract maintained in `flowlogs-pipeline/contrib/haproxy/log-format.txt`.
+
+#### A.2. HTTP access-record contract
+
+HAProxy expands the placeholders for each completed HTTP request. The format retains the client endpoint, the frontend endpoint, both endpoints of the backend connection, request timing and scoped request identity:
+
+| Payload fields | HAProxy placeholders | Meaning |
+| --- | --- | --- |
+| `client_addr`, `client_port` | `%ci`, `%cp` | Client endpoint reported by the router |
+| `frontend_addr`, `frontend_port` | `%fi`, `%fp` | Frontend endpoint reported by the router |
+| `backend_addr`, `backend_port` | `%bi`, `%bp` | Router's local socket endpoint on the backend connection |
+| `server_addr`, `server_port` | `%si`, `%sp` | Application server endpoint on the backend connection |
+| `request_time` | `%trg` | Request start time in UTC, to the second |
+| `request_time_local` | `%tr` | Request start timestamp supplying the millisecond component |
+| `duration_ms` | `%Ta` | Active HTTP request duration in milliseconds |
+| `instance`, `process`, `request_id` | `%H`, `%pid`, `%rt` | Router identity, process and request counter used to construct a scoped request ID |
+
+The timestamps describe the request rather than connection acceptance. The receiver combines request-start time and active duration to obtain the interval used for correlation. Early logging through `logasap` is incompatible with this completed-request contract. The payload excludes request URLs, headers and bodies.
+
+This HTTP format supports HTTP, edge and reencrypt Routes. TLS passthrough does not produce the records required by this integration.
+
+#### A.3. Client identity and upstream load balancers
+
+When a Private IngressController receives application connections from an upstream LB using PROXY protocol, its publishing settings include:
+
+```yaml
+spec:
+  endpointPublishingStrategy:
+    type: Private
+    private:
+      protocol: PROXY
+```
+
+This setting applies to an LB-to-router setup using PROXY protocol; it is not required for UDP access logging. The LB and router must agree on how application connections carry client identity. Access logs travel independently over syslog UDP.
+
+The reported client is the identity available to HAProxy. An upstream LB that replaces the source address requires an explicitly configured identity-propagation mechanism to expose the original client. Without that propagation, the reported endpoint can identify the LB. The correlation receiver does not infer the original identity from X-Forwarded-For.
+
+#### A.4. Ownership and operational boundaries
+
+The NetObserv operator configures the receiver, its Service port, ingress NetworkPolicy and console feature availability. The administrator owns the IngressController's logging destination and format, router egress access and any upstream client-identity propagation. The receiver's ingress policy allows the configured port from `openshift-ingress`, with the OVN host-network peer where applicable.
+
+Logging changes can cause a router rollout. Replacing an existing destination or format also affects its current log consumer; preserving another consumer may require a relay. UDP syslog provides neither delivery guarantees nor sender authentication, and lost datagrams are not retransmitted. The receiver's network access restrictions and existing Loki authentication settings have the boundaries described in Section 5.
+
+#### A.5. Interpreting correlation results
+
+The lookup matches the backend connection tuple and the request intervals that overlap the selected flow record. A TCP connection can produce several flow records over its lifetime, so a late reset or close-only fragment can have no matching requests even when an earlier interval on the same socket carried application traffic.
+
+A **TCP flags equals SYN** filter can help locate records containing the initial request traffic. It is an inspection aid rather than a general requirement for correlation. UDP loss and requests that have not finished can also leave gaps; an empty result does not prove that no client used the connection.
