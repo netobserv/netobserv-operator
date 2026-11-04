@@ -9,29 +9,6 @@
     openshift.io/required-scc: restricted-v2
 
 - op: add
-  path: "/spec/template/spec/volumes/-"
-  value:
-    name: manager-metric-tls
-    secret:
-      secretName: manager-metrics-tls
-      defaultMode: 420
-
-- op: add
-  path: "/spec/template/spec/containers/0/volumeMounts/-"
-  value:
-    name: manager-metric-tls
-    readOnly: true
-    mountPath: /etc/tls/private
-
-- op: add
-  path: "/spec/template/spec/containers/0/args/-"
-  value: '--metrics-cert-file=/etc/tls/private/tls.crt'
-
-- op: add
-  path: "/spec/template/spec/containers/0/args/-"
-  value: '--metrics-cert-key-file=/etc/tls/private/tls.key'
-
-- op: add
   path: "/spec/template/spec/containers/0/env/-"
   value:
     name: VENDOR
@@ -48,3 +25,33 @@
   value:
     name: RELATED_IMAGE_WEB_CONSOLE_PF4
     value: quay.io/netobserv/network-observability-console-plugin:v2.0.2-community-pf4
+
+- op: add
+  path: "/spec/template/spec/containers/0/env/-"
+  value:
+    name: RELATED_IMAGE_DEMO_LOKI
+    value: grafana/loki:3.5.0
+
+- op: add
+  path: "/spec/template/spec/containers/0/env/-"
+  value:
+    name: STATIC_PLUGIN_CPU_REQUEST
+    value: "10m"
+
+- op: add
+  path: "/spec/template/spec/containers/0/env/-"
+  value:
+    name: STATIC_PLUGIN_MEMORY_REQUEST
+    value: "64Mi"
+
+- op: add
+  path: "/spec/template/spec/containers/0/env/-"
+  value:
+    name: STATIC_PLUGIN_CPU_LIMIT
+    value: ""
+
+- op: add
+  path: "/spec/template/spec/containers/0/env/-"
+  value:
+    name: STATIC_PLUGIN_MEMORY_LIMIT
+    value: ""
