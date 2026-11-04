@@ -190,15 +190,15 @@ func TestCreateHealthDashboard_Default(t *testing.T) {
 
 	flpRow := d.FindRow("Flowlogs-pipeline statistics")
 	assert.Len(flpRow.Panels, 7)
-	panel := d.FindPanel("Long Kubernetes enrichment miss streaks per minute")
+	panel := d.FindPanel("Unenriched Flows %")
 	if assert.NotNil(panel) {
 		assert.Equal("graph", string(panel.Type))
-		assert.Len(panel.Targets, 1)
-		assert.Equal(
-			`sum(increase(netobserv_kubernetes_enrichment_long_miss_streaks_total[1m])) by (side)`,
-			panel.Targets[0].Expr,
-		)
-		assert.Equal("{{side}}", panel.Targets[0].LegendFormat)
+		assert.Len(panel.Targets, 2)
+		assert.Contains(panel.Targets[0].Expr, "netobserv_workload_egress_bytes_total")
+		assert.Contains(panel.Targets[1].Expr, "netobserv_workload_egress_bytes_total")
+		assert.Equal("source", panel.Targets[0].LegendFormat)
+		assert.Equal("destination", panel.Targets[1].LegendFormat)
+
 	}
 }
 

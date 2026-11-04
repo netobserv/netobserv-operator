@@ -61,10 +61,18 @@ func CreateHealthDashboard(netobsNs, nsFlowsMetric string) (string, error) {
 				NewTarget(`sum(increase(netobserv_encode_prom_errors[1m])) by (error)`, "metrics {{error}}"),
 				NewTarget(`sum(increase(netobserv_loki_batch_retries_total[1m]))`, "loki retries"),
 			),
-			NewPanel("Long Kubernetes enrichment miss streaks per minute", metricslatest.ChartTypeStackArea, "", 4,
+			NewPanel("Unenriched Flows %", metricslatest.ChartTypeStackArea, "", 4,
 				NewTarget(
-					`sum(increase(netobserv_kubernetes_enrichment_long_miss_streaks_total[1m])) by (side)`,
-					"{{side}}",
+					`100* (sum(rate(netobserv_workload_egress_bytes_total{SrcK8S_Type="", SrcSubnetLabel="Pods"}[1m])) or vector(0))   /  clamp_min(
+					sum(rate(netobserv_workload_egress_bytes_total{
+					SrcSubnetLabel="Pods"}[1m])),1e-9)`,
+					"source",
+				),
+				NewTarget(
+					`100* (sum(rate(netobserv_workload_egress_bytes_total{DstK8S_Type="", DstSubnetLabel="Pods"}[1m])) or vector(0))   /  clamp_min(
+					sum(rate(netobserv_workload_egress_bytes_total{
+					DstSubnetLabel="Pods"}[1m])),1e-9)`,
+					"destination",
 				),
 			),
 			NewPanel("By namespace", metricslatest.ChartTypeLine, "", 4,
