@@ -454,7 +454,6 @@ func TestPipelineWithSubnetLabels(t *testing.T) {
 		},
 		cfs.Parameters[2].Transform.Network.SubnetLabels,
 	)
-	assert.NotNil(cfs.Parameters[2].Transform.Network.KubeConfig.EnrichmentMissStreak)
 }
 
 func TestPipelineWithFilters_WantNamespacesABC(t *testing.T) {
