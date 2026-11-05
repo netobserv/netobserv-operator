@@ -1,0 +1,14 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: netobserv-flowcapture-plaintext-scc
+rules:
+- apiGroups:
+  - security.openshift.io
+  resourceNames:
+  - flowcapture-plaintext
+  resources:
+  - securitycontextconstraints
+  verbs:
+  - use

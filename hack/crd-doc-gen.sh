@@ -11,7 +11,7 @@ mkdir -p _tmp
 
 # Copy and edit CRDs
 for bundle in bundles/*; do
-  for crd in "flows.netobserv.io_flowcollectors.yaml" "flows.netobserv.io_flowmetrics.yaml" "flows.netobserv.io_flowcollectorslices.yaml"; do
+  for crd in "flows.netobserv.io_flowcollectors.yaml" "flows.netobserv.io_flowmetrics.yaml" "flows.netobserv.io_flowcollectorslices.yaml" "flows.netobserv.io_flowcaptures.yaml"; do
     cp $bundle/manifests/$crd _tmp/
     $YQ -i 'del(.spec.conversion) | del(.spec.versions[] | select(.deprecated == true))' _tmp/$crd
   done
@@ -39,4 +39,5 @@ for bundle in bundles/*; do
 	$CRDOC --resources _tmp/flows.netobserv.io_flowcollectors.yaml --output docs/$target/FlowCollector.md
 	$CRDOC --resources _tmp/flows.netobserv.io_flowmetrics.yaml --output docs/$target/FlowMetric.md
 	$CRDOC --resources _tmp/flows.netobserv.io_flowcollectorslices.yaml --output docs/$target/FlowCollectorSlice.md
+	$CRDOC --resources _tmp/flows.netobserv.io_flowcaptures.yaml --output docs/$target/FlowCapture.md
 done

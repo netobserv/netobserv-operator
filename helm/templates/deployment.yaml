@@ -37,6 +37,12 @@ spec:
 {{- else }}
             value: '{{ .Values.ebpfAgent.image }}:{{ .Values.ebpfAgent.version }}'
 {{- end }}
+          - name: RELATED_IMAGE_CLI
+{{- if .Values.cli.digest }}
+            value: '{{ .Values.cli.image }}@{{ .Values.cli.digest }}'
+{{- else }}
+            value: '{{ .Values.cli.image }}:{{ .Values.cli.version }}'
+{{- end }}
           - name: RELATED_IMAGE_FLOWLOGS_PIPELINE
 {{- if .Values.flowlogsPipeline.digest }}
             value: '{{ .Values.flowlogsPipeline.image }}@{{ .Values.flowlogsPipeline.digest }}'

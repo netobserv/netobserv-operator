@@ -11,3 +11,9 @@ patches:
     target:
       kind: ServiceMonitor
       name: metrics-monitor
+  - path: ./flowcapture-scc-delete.yaml
+    target:
+      group: security.openshift.io
+      version: v1
+      kind: SecurityContextConstraints
+      name: flowcapture

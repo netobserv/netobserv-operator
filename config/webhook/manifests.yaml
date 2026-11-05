@@ -46,3 +46,23 @@ webhooks:
     resources:
     - flowmetrics
   sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-flows-netobserv-io-v1alpha1-flowcapture
+  failurePolicy: Fail
+  name: flowcapturevalidationwebhook.netobserv.io
+  rules:
+  - apiGroups:
+    - flows.netobserv.io
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - flowcaptures
+  sideEffects: None

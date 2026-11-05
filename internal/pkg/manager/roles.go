@@ -1,9 +1,9 @@
 package manager
 
 // Operator fully manages netobserv-defined resources (cluster role)
-//+kubebuilder:rbac:groups=flows.netobserv.io,resources=flowcollectors;flowmetrics;flowcollectorslices,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=flows.netobserv.io,resources=flowcollectors/status;flowmetrics/status;flowcollectorslices/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=flows.netobserv.io,resources=flowcollectors/finalizers,verbs=update
+//+kubebuilder:rbac:groups=flows.netobserv.io,resources=flowcollectors;flowmetrics;flowcollectorslices;flowcaptures,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=flows.netobserv.io,resources=flowcollectors/status;flowmetrics/status;flowcollectorslices/status;flowcaptures/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=flows.netobserv.io,resources=flowcollectors/finalizers;flowcaptures/finalizers,verbs=update
 
 // Operator reads Network config for configured CIDRs (cluster-scope resource)
 //+kubebuilder:rbac:groups=operator.openshift.io,resources=networks,verbs=get;list;watch
@@ -19,22 +19,24 @@ package manager
 //+kubebuilder:rbac:groups=discovery.k8s.io,resources=endpointslices,verbs=get;list;watch
 
 // Operator reads pods and nodes info for cluster info & self health
-//+kubebuilder:rbac:groups=core,resources=pods;nodes;endpoints,verbs=get;list;watch
+//+kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch;create;patch
+//+kubebuilder:rbac:groups=core,resources=nodes;endpoints,verbs=get;list;watch
 
 // Operator fires events to signal degraded status (cluster-scope)
 //+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 
 // Operator needs to create deployments, daemonsets in a user-defined namespace
 // Also needed transitively for FLP (read)
-//+kubebuilder:rbac:groups=apps,resources=deployments;daemonsets,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=apps,resources=deployments;daemonsets;replicasets,verbs=get;list;watch;create;update;patch;delete
 
 // Operator needs to create roles and cluster roles for granting transitive rights to its workloads
+//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles,verbs=get;list;create;delete;update;patch;watch
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=rolebindings,verbs=get;list;create;delete;update;watch
 
 // Operator needs to update specific cluster roles bindings for operands
-//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterrolebindings,resourceNames=netobserv-loki-writer;netobserv-informers;netobserv-flp-extra-reader;netobserv-hostnetwork;netobserv-token-review;netobserv-flowcollector-viewer-role,verbs=get;update;watch
+//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterrolebindings,resourceNames=netobserv-loki-writer;netobserv-informers;netobserv-flp-extra-reader;netobserv-hostnetwork;netobserv-token-review;netobserv-flowcollector-viewer-role;netobserv-flowcapture-informers;netobserv-flowcapture-scc;netobserv-flowcapture-plaintext-scc,verbs=get;update;watch
 // "Bind" allows to bind those exact CRBs without the operator needing the same rbac transitively
-//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles,verbs=bind,resourceNames=netobserv-loki-writer;netobserv-informers;netobserv-flp-extra-reader;netobserv-hostnetwork;netobserv-token-review;netobserv-flowcollector-viewer-role
+//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles,verbs=bind,resourceNames=netobserv-loki-writer;netobserv-informers;netobserv-flp-extra-reader;netobserv-hostnetwork;netobserv-token-review;netobserv-flowcollector-viewer-role;netobserv-flowcapture-informers;netobserv-flowcapture-scc
 
 // Operator needs to patch Console CR (cluster scope)
 //+kubebuilder:rbac:groups=operator.openshift.io,resources=consoles,verbs=get;list;patch;watch
@@ -44,10 +46,13 @@ package manager
 
 // Operator needs to grant hostnetwork usage permission to eBPF Agent pods in a user-defined namespace
 //+kubebuilder:rbac:groups=security.openshift.io,resources=securitycontextconstraints,resourceNames=hostnetwork,verbs=use
+// Operator needs to grant plaintext SCC usage permission to FlowCapture agent pods.
+//+kubebuilder:rbac:groups=security.openshift.io,resources=securitycontextconstraints,resourceNames=flowcapture-plaintext,verbs=use
 
-// Operator needs to create SCC for its workloads in a user-defined namespace
-//+kubebuilder:rbac:groups=security.openshift.io,resources=securitycontextconstraints,verbs=create;list;watch
+// Operator needs to create and reconcile the SCC for FlowCapture agents.
+//+kubebuilder:rbac:groups=security.openshift.io,resources=securitycontextconstraints,verbs=get;list;watch;create;update
 //+kubebuilder:rbac:groups=security.openshift.io,resources=securitycontextconstraints,resourceNames=netobserv-ebpf-agent,verbs=update
+// Operator needs to grant FlowCapture agent service accounts use of the preinstalled SCC
 
 // Operator needs to get API services for available API discovery (cluster scope)
 //+kubebuilder:rbac:groups=apiregistration.k8s.io,resources=apiservices,verbs=list;get;watch
