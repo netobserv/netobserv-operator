@@ -190,7 +190,7 @@ func TestCreateHealthDashboard_Default(t *testing.T) {
 
 	flpRow := d.FindRow("Flowlogs-pipeline statistics")
 	assert.Len(flpRow.Panels, 7)
-	panel := d.FindPanel("Unenriched Flows %")
+	panel := d.FindPanel("Unenriched traffic (% bytes)")
 	if assert.NotNil(panel) {
 		assert.Equal("graph", string(panel.Type))
 		assert.Len(panel.Targets, 2)

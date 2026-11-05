@@ -61,7 +61,7 @@ func CreateHealthDashboard(netobsNs, nsFlowsMetric string) (string, error) {
 				NewTarget(`sum(increase(netobserv_encode_prom_errors[1m])) by (error)`, "metrics {{error}}"),
 				NewTarget(`sum(increase(netobserv_loki_batch_retries_total[1m]))`, "loki retries"),
 			),
-			NewPanel("Unenriched Flows %", metricslatest.ChartTypeStackArea, "", 4,
+			NewPanel("Unenriched traffic (% bytes)", metricslatest.ChartTypeStackArea, "", 4,
 				NewTarget(
 					`100* (sum(rate(netobserv_workload_egress_bytes_total{SrcK8S_Type="", SrcSubnetLabel="Pods"}[1m])) or vector(0))   /  clamp_min(
 					sum(rate(netobserv_workload_egress_bytes_total{
@@ -109,8 +109,8 @@ func CreateHealthDashboard(netobsNs, nsFlowsMetric string) (string, error) {
 		NewPanel("Dropped flows rate", metricslatest.ChartTypeStackArea, "", 4,
 			NewTarget(`sum(rate(netobserv_agent_dropped_flows_total[1m])) by (source, reason)`, "{{source}} {{reason}}"),
 		),
-		NewPanel("Ringbuffer / HashMap ratio", metricslatest.ChartTypeLine, "", 4,
-			NewTarget(`(sum(rate(netobserv_agent_evicted_flows_total{source="accounter"}[1m])) OR on() vector(0)) / sum(rate(netobserv_agent_evicted_flows_total{source="hashmap"}[1m]))`, "ratio"),
+		NewPanel("Maximum buffer utilization by type (%)", metricslatest.ChartTypeLine, "", 4,
+			NewTarget(`100 * max by (name) (netobserv_agent_buffer_size / ignoring(name) group_left netobserv_agent_bpf_map_capacity)`, "{{name}}"),
 		),
 		NewPanel("Buffer size", metricslatest.ChartTypeLine, "", 4,
 			NewTarget(`sum(netobserv_agent_buffer_size) by (name)`, "{{name}}"),
@@ -152,12 +152,17 @@ func CreateHealthDashboard(netobsNs, nsFlowsMetric string) (string, error) {
 		NewPanel("eBPF agent memory - top 10 pods", metricslatest.ChartTypeStackArea, "", 6,
 			NewTarget(`topk(10, container_memory_working_set_bytes{container="netobserv-ebpf-agent"})`, "{{pod}}"),
 		),
+		NewPanel("eBPF agent file descriptors - top 10 pods", metricslatest.ChartTypeStackArea, "", 6,
+			NewTarget(`topk(10, container_file_descriptors{container="netobserv-ebpf-agent"})`, "{{pod}}"),
+		),
 		NewPanel("Flowlogs-pipeline CPU - top 10 pods", metricslatest.ChartTypeStackArea, "", 6,
 			NewTarget(`topk(10, node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{container="flowlogs-pipeline"})`, "{{pod}}"),
 		),
 		NewPanel("Flowlogs-pipeline memory - top 10 pods", metricslatest.ChartTypeStackArea, "", 6,
-			NewTarget(`topk(10, container_memory_working_set_bytes{container="flowlogs-pipeline"})`, "{{pod}}"),
+			NewTarget(`topk(10, container_memory_working_set_bytes{container=~"flowlogs-pipeline.*"})`, "{{pod}}"),
 		),
+		NewPanel("Flowlogs-pipeline file descriptors - top 10 pods", metricslatest.ChartTypeStackArea, "", 6,
+			NewTarget(`topk(10, container_file_descriptors{container="flowlogs-pipeline"})`, "{{pod}}")),
 	}))
 
 	return d.ToGrafanaJSON(), nil
