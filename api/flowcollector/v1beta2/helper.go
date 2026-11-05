@@ -1,6 +1,7 @@
 package v1beta2
 
 import (
+	"slices"
 	"strconv"
 	"strings"
 
@@ -13,9 +14,30 @@ func (spec *FlowCollectorSpec) OnHold() bool {
 
 func (spec *FlowCollectorSpec) GetSampling() int {
 	if spec.Agent.EBPF.Sampling == nil {
+		// Profile-dependent default
+		switch spec.Profile {
+		case ProfileLowResources:
+			return 400
+		case ProfileHighResources:
+			return 1
+		case ProfileDefault:
+		}
 		return 50
 	}
 	return int(*spec.Agent.EBPF.Sampling)
+}
+
+func (spec *FlowCollectorSpec) GetCacheMaxFlows() int {
+	if spec.Agent.EBPF.CacheMaxFlows == nil || *spec.Agent.EBPF.CacheMaxFlows == 0 {
+		// Profile-dependent default
+		switch spec.Profile {
+		case ProfileLowResources:
+			return 50_000
+		case ProfileHighResources, ProfileDefault:
+		}
+		return 120_000
+	}
+	return int(*spec.Agent.EBPF.CacheMaxFlows)
 }
 
 func (spec *FlowCollectorSpec) UseKafka() bool {
@@ -36,8 +58,11 @@ func (cfg *SASLConfig) UseSASL() bool {
 }
 
 func (spec *FlowCollectorSpec) UseLoki() bool {
-	// nil should fallback to default value, which is "true"
-	return spec.Loki.Enable == nil || *spec.Loki.Enable
+	// nil should fallback to default value, which is "true", unless LowProfile is set
+	if spec.Loki.Enable == nil {
+		return spec.Profile != ProfileLowResources
+	}
+	return *spec.Loki.Enable
 }
 
 func (spec *FlowCollectorSpec) UseLokiDev() bool {
@@ -74,20 +99,18 @@ func (spec *FlowCollectorSpec) UseHostNetwork() bool {
 	return spec.DeploymentModel == DeploymentModelDirect
 }
 
-func (spec *FlowCollectorEBPF) IsAgentFeatureEnabled(feature AgentFeature) bool {
-	for _, f := range spec.Features {
-		if f == feature {
-			return true
-		}
+func (spec *FlowCollectorSpec) IsAgentFeatureEnabled(feature AgentFeature) bool {
+	if spec.Agent.EBPF.Features == nil && spec.Profile == ProfileHighResources {
+		return slices.Contains(HighProfileFeatures, feature)
 	}
-	return false
+	return slices.Contains(spec.Agent.EBPF.Features, feature)
 }
 
-func (spec *FlowCollectorEBPF) IsPktDropEnabled() bool {
+func (spec *FlowCollectorSpec) IsPktDropEnabled() bool {
 	return spec.IsAgentFeatureEnabled(PacketDrop)
 }
 
-func (spec *FlowCollectorEBPF) IsDNSTrackingEnabled() bool {
+func (spec *FlowCollectorSpec) IsDNSTrackingEnabled() bool {
 	return spec.IsAgentFeatureEnabled(DNSTracking)
 }
 
@@ -110,37 +133,37 @@ func (spec *FlowCollectorEBPF) GetDNSTrackingPorts(vendor constants.Vendor) stri
 	return strings.Join(ports, ",")
 }
 
-func (spec *FlowCollectorEBPF) IsFlowRTTEnabled() bool {
+func (spec *FlowCollectorSpec) IsFlowRTTEnabled() bool {
 	return spec.IsAgentFeatureEnabled(FlowRTT)
 }
 
-func (spec *FlowCollectorEBPF) IsNetworkEventsEnabled() bool {
+func (spec *FlowCollectorSpec) IsNetworkEventsEnabled() bool {
 	return spec.IsAgentFeatureEnabled(NetworkEvents)
 }
 
-func (spec *FlowCollectorEBPF) IsPacketTranslationEnabled() bool {
+func (spec *FlowCollectorSpec) IsPacketTranslationEnabled() bool {
 	return spec.IsAgentFeatureEnabled(PacketTranslation)
 }
 
-func (spec *FlowCollectorEBPF) IsEbpfManagerEnabled() bool {
+func (spec *FlowCollectorSpec) IsEbpfManagerEnabled() bool {
 	return spec.IsAgentFeatureEnabled(EbpfManager)
 }
 
-func (spec *FlowCollectorEBPF) IsUDNMappingEnabled() bool {
+func (spec *FlowCollectorSpec) IsUDNMappingEnabled() bool {
 	return spec.IsAgentFeatureEnabled(UDNMapping)
 }
 
-func (spec *FlowCollectorEBPF) IsIPSecEnabled() bool {
+func (spec *FlowCollectorSpec) IsIPSecEnabled() bool {
 	return spec.IsAgentFeatureEnabled(IPSec)
 }
 
-func (spec *FlowCollectorEBPF) IsTLSTrackingEnabled() bool {
+func (spec *FlowCollectorSpec) IsTLSTrackingEnabled() bool {
 	return spec.IsAgentFeatureEnabled(TLSTracking)
 }
 
-func (spec *FlowCollectorEBPF) IsSecondaryNetworksEnabled() bool {
+func (spec *FlowCollectorSpec) IsSecondaryNetworksEnabled() bool {
 	// For backward compatibility, always enable SecondaryNetworks in priviliged mode
-	return spec.IsAgentFeatureEnabled(SecondaryNetworks) || spec.Privileged
+	return spec.IsAgentFeatureEnabled(SecondaryNetworks) || spec.Agent.EBPF.Privileged
 }
 
 func (spec *FlowCollectorEBPF) IsEBPFMetricsEnabled() bool {
@@ -191,7 +214,7 @@ func (spec *FlowCollectorSpec) GetSecondaryIndexes() []SecondaryNetwork {
 	if spec.Processor.Advanced != nil && len(spec.Processor.Advanced.SecondaryNetworks) > 0 {
 		return spec.Processor.Advanced.SecondaryNetworks
 	}
-	if spec.Agent.EBPF.IsSecondaryNetworksEnabled() {
+	if spec.IsSecondaryNetworksEnabled() {
 		// Turn-on auto-detection in FLP by interface+MAC or interface+IP
 		return []SecondaryNetwork{
 			{Index: []SecondaryNetworkIndex{SecondaryNetworkIndexByInterface, SecondaryNetworkIndexByIP}},

@@ -69,7 +69,7 @@ func FlowCollectorEBPFSpecs(env test.Environment, ctxGetter test.ContextGetter) 
 						EBPF: flowslatest.FlowCollectorEBPF{
 							Sampling:           ptr.To(int32(123)),
 							CacheActiveTimeout: "1s",
-							CacheMaxFlows:      100,
+							CacheMaxFlows:      ptr.To(int32(100)),
 							Interfaces:         []string{"veth0", "/^br-/"},
 							ExcludeInterfaces:  []string{"br-3", "lo"},
 							LogLevel:           "trace",
@@ -285,6 +285,117 @@ func FlowCollectorEBPFSpecs(env test.Environment, ctxGetter test.ContextGetter) 
 				return sa
 			}).WithTimeout(timeout).WithPolling(interval).
 				Should(BeGarbageCollectedBy(flowCR))
+		})
+	})
+
+	Context("Using FlowCollector profiles", func() {
+		ns := "ns-test-profiles"
+		It("Should set up agent config for Low profile", func() {
+			Eventually(func() interface{} {
+				return k8sClient.Create(ctx, &flowslatest.FlowCollector{
+					ObjectMeta: metav1.ObjectMeta{Name: crKey.Name},
+					Spec: flowslatest.FlowCollectorSpec{
+						Namespace: ns,
+						Profile:   flowslatest.ProfileLowResources,
+					},
+				})
+			}).WithTimeout(timeout).WithPolling(interval).Should(Succeed())
+
+			By("Expecting to update the agent DaemonSet for low resources")
+			ds := appsv1.DaemonSet{}
+			Eventually(func() interface{} {
+				return k8sClient.Get(ctx, types.NamespacedName{Name: constants.EBPFAgentName, Namespace: ns + "-privileged"}, &ds)
+			}).WithTimeout(timeout).WithPolling(interval).Should(Succeed())
+
+			Expect(ds.Spec.Template.Spec.Containers[0].SecurityContext.Privileged).To(BeNil())
+			Expect(ds.Spec.Template.Spec.Containers[0].SecurityContext.Capabilities.Add).To(ConsistOf(
+				[]v1.Capability{"BPF", "PERFMON", "NET_ADMIN"},
+			))
+			Expect(ds.Spec.Template.Spec.Containers[0].Env).To(And(
+				ContainElements(
+					v1.EnvVar{Name: "CACHE_MAX_FLOWS", Value: "50000"},
+					v1.EnvVar{Name: "SAMPLING", Value: "400"},
+				),
+				Not(ContainElements(
+					v1.EnvVar{Name: "ENABLE_RTT", Value: "true"},
+					v1.EnvVar{Name: "ENABLE_UDN_MAPPING", Value: "true"},
+					v1.EnvVar{Name: "ENABLE_PKT_DROPS", Value: "true"},
+					v1.EnvVar{Name: "ENABLE_DNS_TRACKING", Value: "true"},
+					v1.EnvVar{Name: "ENABLE_TLS_TRACKING", Value: "true"},
+					v1.EnvVar{Name: "ENABLE_SECONDARY_NETWORKS", Value: "true"},
+				)),
+			))
+		})
+
+		It("Should set up agent config for High profile", func() {
+			test.UpdateCR(ctx, k8sClient, crKey, func(fc *flowslatest.FlowCollector) {
+				fc.Spec.Profile = flowslatest.ProfileHighResources
+			})
+
+			By("Expecting to update the agent DaemonSet for high resources")
+			ds := appsv1.DaemonSet{}
+			Eventually(func() interface{} {
+				if err := k8sClient.Get(ctx, types.NamespacedName{Name: constants.EBPFAgentName, Namespace: ns + "-privileged"}, &ds); err != nil {
+					return err
+				}
+				return ds.Spec.Template.Spec.Containers[0].Env
+			}).WithTimeout(timeout).WithPolling(interval).Should(ContainElements(
+				v1.EnvVar{Name: "CACHE_MAX_FLOWS", Value: "120000"},
+				v1.EnvVar{Name: "SAMPLING", Value: "1"},
+				v1.EnvVar{Name: "ENABLE_RTT", Value: "true"},
+				v1.EnvVar{Name: "ENABLE_UDN_MAPPING", Value: "true"},
+				v1.EnvVar{Name: "ENABLE_PKT_DROPS", Value: "true"},
+				v1.EnvVar{Name: "ENABLE_DNS_TRACKING", Value: "true"},
+				v1.EnvVar{Name: "ENABLE_TLS_TRACKING", Value: "true"},
+				v1.EnvVar{Name: "ENABLE_SECONDARY_NETWORKS", Value: "true"},
+			))
+
+			Expect(ds.Spec.Template.Spec.Containers[0].SecurityContext.Privileged).To(BeNil())
+			Expect(ds.Spec.Template.Spec.Containers[0].SecurityContext.Capabilities.Add).To(ConsistOf(
+				[]v1.Capability{"BPF", "PERFMON", "NET_ADMIN", "SYS_ADMIN", "DAC_OVERRIDE"},
+			))
+		})
+
+		It("Should set up agent config for Default profile", func() {
+			test.UpdateCR(ctx, k8sClient, crKey, func(fc *flowslatest.FlowCollector) {
+				fc.Spec.Profile = flowslatest.ProfileDefault
+			})
+
+			By("Expecting to update the agent DaemonSet for medium resources")
+			ds := appsv1.DaemonSet{}
+			Eventually(func() interface{} {
+				if err := k8sClient.Get(ctx, types.NamespacedName{Name: constants.EBPFAgentName, Namespace: ns + "-privileged"}, &ds); err != nil {
+					return err
+				}
+				return ds.Spec.Template.Spec.Containers[0].Env
+			}).WithTimeout(timeout).WithPolling(interval).Should(SatisfyAll(
+				ContainElements(
+					v1.EnvVar{Name: "CACHE_MAX_FLOWS", Value: "120000"},
+					v1.EnvVar{Name: "SAMPLING", Value: "50"},
+				),
+				Not(ContainElements(
+					v1.EnvVar{Name: "ENABLE_RTT", Value: "true"},
+					v1.EnvVar{Name: "ENABLE_UDN_MAPPING", Value: "true"},
+					v1.EnvVar{Name: "ENABLE_PKT_DROPS", Value: "true"},
+					v1.EnvVar{Name: "ENABLE_DNS_TRACKING", Value: "true"},
+					v1.EnvVar{Name: "ENABLE_TLS_TRACKING", Value: "true"},
+					v1.EnvVar{Name: "ENABLE_SECONDARY_NETWORKS", Value: "true"},
+				)),
+			))
+
+			Expect(ds.Spec.Template.Spec.Containers[0].SecurityContext.Privileged).To(BeNil())
+			Expect(ds.Spec.Template.Spec.Containers[0].SecurityContext.Capabilities.Add).To(ConsistOf(
+				[]v1.Capability{"BPF", "PERFMON", "NET_ADMIN"},
+			))
+		})
+
+		It("Should delete FlowCollector", func() {
+			Eventually(func() error {
+				if err := k8sClient.Delete(ctx, &flowslatest.FlowCollector{ObjectMeta: metav1.ObjectMeta{Name: crKey.Name}}); err != nil {
+					return err
+				}
+				return k8sClient.Get(ctx, types.NamespacedName{Name: crKey.Name}, &flowslatest.FlowCollector{})
+			}).WithTimeout(timeout).WithPolling(interval).Should(Satisfy(errors.IsNotFound))
 		})
 	})
 }

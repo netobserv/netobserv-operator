@@ -479,6 +479,8 @@ spec:
             displayName: Custom labels
           - path: processor.unmanagedReplicas
             displayName: Unmanaged replicas
+          - path: profile
+            displayName: Profile
           - path: prometheus
             displayName: Prometheus
           - path: prometheus.querier

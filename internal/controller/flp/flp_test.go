@@ -18,6 +18,7 @@ import (
 	v1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
 	ascv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
@@ -996,4 +997,60 @@ func TestK8sCacheInformerTLSServerName(t *testing.T) {
 		}
 	}
 	assert.True(foundCA, "k8scache-server-ca volume should exist")
+}
+
+func TestLokiPresencePerProfile(t *testing.T) {
+	// LOW PROFILE => NO LOKI
+	cfg := flowslatest.FlowCollectorSpec{
+		Profile: flowslatest.ProfileLowResources,
+	}
+	b := monoBuilder("any-ns", &cfg)
+	cm, _, _, err := b.configMaps()
+	require.NoError(t, err)
+
+	data := cm.Data[configFile]
+	var decoded config.Root
+	err = yaml.Unmarshal([]byte(data), &decoded)
+	require.NoError(t, err)
+
+	assert.Equal(t, []config.Stage{
+		{Name: "grpc"},
+		{Name: "enrich", Follows: "grpc"},
+		{Name: "prometheus", Follows: "enrich"},
+	}, decoded.Pipeline)
+
+	// DEFAULT PROFILE => HAS LOKI
+	cfg.Profile = flowslatest.ProfileDefault
+	b = monoBuilder("any-ns", &cfg)
+	cm, _, _, err = b.configMaps()
+	require.NoError(t, err)
+
+	data = cm.Data[configFile]
+	err = yaml.Unmarshal([]byte(data), &decoded)
+	require.NoError(t, err)
+
+	assert.Equal(t, []config.Stage{
+		{Name: "grpc"},
+		{Name: "enrich", Follows: "grpc"},
+		{Name: "loki", Follows: "enrich"},
+		{Name: "prometheus", Follows: "enrich"},
+	}, decoded.Pipeline)
+
+	// HIGH PROFILE => HAS LOKI
+	cfg.Profile = flowslatest.ProfileDefault
+	b = monoBuilder("any-ns", &cfg)
+	cm, _, _, err = b.configMaps()
+	require.NoError(t, err)
+
+	data = cm.Data[configFile]
+	err = yaml.Unmarshal([]byte(data), &decoded)
+	require.NoError(t, err)
+
+	// Default profile => No Loki
+	assert.Equal(t, []config.Stage{
+		{Name: "grpc"},
+		{Name: "enrich", Follows: "grpc"},
+		{Name: "loki", Follows: "enrich"},
+		{Name: "prometheus", Follows: "enrich"},
+	}, decoded.Pipeline)
 }

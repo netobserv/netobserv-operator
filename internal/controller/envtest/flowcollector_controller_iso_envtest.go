@@ -111,7 +111,7 @@ func FlowCollectorIsoSpecs(ctxGetter test.ContextGetter) {
 				EBPF: flowslatest.FlowCollectorEBPF{
 					Sampling:           &zero,
 					CacheActiveTimeout: "15s",
-					CacheMaxFlows:      100,
+					CacheMaxFlows:      ptr.To(int32(100)),
 					ImagePullPolicy:    "Always",
 					Advanced:           &flowslatest.AdvancedAgentConfig{},
 					LogLevel:           "trace",

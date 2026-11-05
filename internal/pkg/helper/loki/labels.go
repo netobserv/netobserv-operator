@@ -58,7 +58,7 @@ func GetLabels(desired *flowslatest.FlowCollectorSpec) ([]string, error) {
 		labels = addExcluding(labels, labelsPerType[Zones], excluding)
 	}
 
-	if desired.Agent.EBPF.IsUDNMappingEnabled() {
+	if desired.IsUDNMappingEnabled() {
 		labels = addExcluding(labels, labelsPerType[UDN], excluding)
 	}
 

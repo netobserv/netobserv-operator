@@ -560,6 +560,8 @@ spec:
         path: processor.subnetLabels.customLabels
       - displayName: Unmanaged replicas
         path: processor.unmanagedReplicas
+      - displayName: Profile
+        path: profile
       - displayName: Prometheus
         path: prometheus
       - displayName: Querier
