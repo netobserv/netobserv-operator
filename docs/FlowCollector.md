@@ -23,6 +23,13 @@ Resource Types:
 
 `FlowCollector` is the schema for the network flows collection API, which pilots and configures the underlying deployments.
 
+> [!NOTE]
+> Default values are not shown in this reference. Unlike OpenAPI defaults, they are not
+> part of the CRD schema: the operator applies them in memory during reconciliation and
+> does not write them back, so a minimal `FlowCollector` stays minimal once applied.
+> Anything you set explicitly always takes precedence.
+> See [FlowCollector default values](FlowCollectorDefaults.md) for the complete list.
+
 <table>
     <thead>
         <tr>
@@ -95,8 +102,6 @@ Defines the desired state of the FlowCollector resource.
         <td>object</td>
         <td>
           `consolePlugin` defines the settings related to the Web Console.<br/>
-          <br/>
-            <i>Default</i>: map[]<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -262,9 +267,7 @@ override the default Linux capabilities from there.<br/>
         <td>
           `cacheActiveTimeout` is the period during which the agent aggregates flows before sending.
 Increasing `cacheMaxFlows` and `cacheActiveTimeout` can decrease the network traffic overhead and the CPU load,
-however you can expect higher memory consumption and an increased latency in the flow collection.<br/>
-          <br/>
-            <i>Default</i>: 15s<br/>
+however you can expect higher memory consumption and an increased latency in the flow collection. The default is 15s.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -294,9 +297,7 @@ Maximum 8 ports allowed.<br/>
         <td>
           `excludeInterfaces` contains the interface names that are excluded from flow tracing.
 An entry enclosed by slashes, such as `/br-/`, is matched as a regular expression.
-Otherwise it is matched as a case-sensitive string.<br/>
-          <br/>
-            <i>Default</i>: [lo]<br/>
+Otherwise it is matched as a case-sensitive string. `lo` is excluded by default.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -338,7 +339,6 @@ It requires using the OVN-Kubernetes network plugin.<br><br/>
           `imagePullPolicy` is the Kubernetes pull policy for the image defined above<br/>
           <br/>
             <i>Enum</i>: IfNotPresent, Always, Never<br/>
-            <i>Default</i>: IfNotPresent<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -356,8 +356,6 @@ Otherwise it is matched as a case-sensitive string.<br/>
         <td>integer</td>
         <td>
           `kafkaBatchSize` limits the maximum size of a request in bytes before being sent to a partition. Ignored when not using Kafka. Default: 1MB.<br/>
-          <br/>
-            <i>Default</i>: 1048576<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -367,7 +365,6 @@ Otherwise it is matched as a case-sensitive string.<br/>
           `logLevel` defines the log level for the NetObserv eBPF Agent<br/>
           <br/>
             <i>Enum</i>: trace, debug, info, warn, error, fatal, panic<br/>
-            <i>Default</i>: info<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -394,8 +391,6 @@ When privileged mode is on, the `SecondaryNetworks` feature is also implicitly e
         <td>
           `resources` are the compute resources required by this container.
 For more information, see https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/<br/>
-          <br/>
-            <i>Default</i>: map[limits:map[memory:800Mi] requests:map[cpu:100m memory:50Mi]]<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -918,20 +913,6 @@ TLS configuration.
         </tr>
     </thead>
     <tbody><tr>
-        <td><b>type</b></td>
-        <td>enum</td>
-        <td>
-          Select the type of TLS configuration:<br>
-- `Disabled` (default) to not configure TLS for the endpoint.
-- `Provided` to manually provide cert file and a key file.
-- `Auto` to use a default certificate, which may vary depending on the Kubernetes vendor.
-Refer to https://github.com/netobserv/netobserv-operator/blob/main/docs/TLS.md for more information.<br/>
-          <br/>
-            <i>Enum</i>: Disabled, Provided, Auto<br/>
-            <i>Default</i>: Disabled<br/>
-        </td>
-        <td>true</td>
-      </tr><tr>
         <td><b>insecureSkipVerify</b></td>
         <td>boolean</td>
         <td>
@@ -953,6 +934,19 @@ If set to `true`, the `providedCaFile` field is ignored. For security, this shou
         <td>object</td>
         <td>
           Reference to the CA file when `type` is set to `Provided`.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>type</b></td>
+        <td>enum</td>
+        <td>
+          Select the type of TLS configuration:<br>
+- `Disabled` (default) to not configure TLS for the endpoint.
+- `Provided` to manually provide cert file and a key file.
+- `Auto` to use a default certificate, which may vary depending on the Kubernetes vendor.
+Refer to https://github.com/netobserv/netobserv-operator/blob/main/docs/TLS.md for more information.<br/>
+          <br/>
+            <i>Enum</i>: Disabled, Provided, Auto<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -1150,8 +1144,6 @@ Deprecated: managed autoscaler will be removed in a future version. You may conf
         <td>boolean</td>
         <td>
           Enables the console plugin deployment.<br/>
-          <br/>
-            <i>Default</i>: true<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -1161,7 +1153,6 @@ Deprecated: managed autoscaler will be removed in a future version. You may conf
           `imagePullPolicy` is the Kubernetes pull policy for the image defined above.<br/>
           <br/>
             <i>Enum</i>: IfNotPresent, Always, Never<br/>
-            <i>Default</i>: IfNotPresent<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -1171,7 +1162,6 @@ Deprecated: managed autoscaler will be removed in a future version. You may conf
           `logLevel` for the web console backend.<br/>
           <br/>
             <i>Enum</i>: trace, debug, info, warn, error, fatal, panic<br/>
-            <i>Default</i>: info<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -1179,8 +1169,6 @@ Deprecated: managed autoscaler will be removed in a future version. You may conf
         <td>object</td>
         <td>
           `portNaming` defines the configuration of the port-to-service name translation.<br/>
-          <br/>
-            <i>Default</i>: map[enable:true]<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -1189,8 +1177,6 @@ Deprecated: managed autoscaler will be removed in a future version. You may conf
         <td>
           `quickFilters` configures quick filter presets for the web console.
 Filters for external traffic assume the subnet labels are configured to distinguish internal and external traffic (see `spec.processor.subnetLabels`).<br/>
-          <br/>
-            <i>Default</i>: [map[default:true filter:map[flow_layer:"app"] name:Applications] map[filter:map[flow_layer:"infra"] name:Infrastructure] map[default:true filter:map[dst_kind:"Pod" src_kind:"Pod"] name:Pods network] map[filter:map[dst_kind:"Service"] name:Services network] map[filter:map[src_subnet_label:"",EXT:] name:External ingress] map[filter:map[dst_subnet_label:"",EXT:] name:External egress]]<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -1200,7 +1186,6 @@ Filters for external traffic assume the subnet labels are configured to distingu
           `replicas` defines the number of replicas (pods) to start.<br/>
           <br/>
             <i>Format</i>: int32<br/>
-            <i>Default</i>: 1<br/>
             <i>Minimum</i>: 0<br/>
         </td>
         <td>false</td>
@@ -1210,8 +1195,6 @@ Filters for external traffic assume the subnet labels are configured to distingu
         <td>
           `resources`, in terms of compute resources, required by this container.
 For more information, see https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/.<br/>
-          <br/>
-            <i>Default</i>: map[limits:map[memory:100Mi] requests:map[cpu:100m memory:50Mi]]<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -1375,8 +1358,6 @@ For documentation, refer to https://kubernetes.io/docs/reference/kubernetes-api/
         <td>boolean</td>
         <td>
           Enable the console plugin port-to-service name translation<br/>
-          <br/>
-            <i>Default</i>: true<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -1634,8 +1615,6 @@ Kafka configuration, such as the address and topic, to send enriched flows to.
         <td>string</td>
         <td>
           Address of the Kafka server<br/>
-          <br/>
-            <i>Default</i>: <br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -1643,8 +1622,6 @@ Kafka configuration, such as the address and topic, to send enriched flows to.
         <td>string</td>
         <td>
           Kafka topic to use. It must exist. NetObserv does not create it.<br/>
-          <br/>
-            <i>Default</i>: <br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -1655,7 +1632,6 @@ Kafka configuration, such as the address and topic, to send enriched flows to.
 Accepted values are: `none` (default), `gzip`, `snappy`, `lz4`, `zstd`.<br/>
           <br/>
             <i>Enum</i>: none, gzip, snappy, lz4, zstd<br/>
-            <i>Default</i>: none<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -2393,8 +2369,6 @@ Kafka configuration, allowing to use Kafka as a broker as part of the flow colle
         <td>string</td>
         <td>
           Address of the Kafka server<br/>
-          <br/>
-            <i>Default</i>: <br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -2402,8 +2376,6 @@ Kafka configuration, allowing to use Kafka as a broker as part of the flow colle
         <td>string</td>
         <td>
           Kafka topic to use. It must exist. NetObserv does not create it.<br/>
-          <br/>
-            <i>Default</i>: <br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -2414,7 +2386,6 @@ Kafka configuration, allowing to use Kafka as a broker as part of the flow colle
 Accepted values are: `none` (default), `gzip`, `snappy`, `lz4`, `zstd`.<br/>
           <br/>
             <i>Enum</i>: none, gzip, snappy, lz4, zstd<br/>
-            <i>Default</i>: none<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -2783,20 +2754,6 @@ If the namespace is different, the config map or the secret is copied so that it
         </tr>
     </thead>
     <tbody><tr>
-        <td><b>mode</b></td>
-        <td>enum</td>
-        <td>
-          `mode` must be set according to the installation mode of Loki:<br>
-- Use `LokiStack` when Loki is managed using the Loki Operator<br>
-- Use `Monolithic` when Loki is installed as a monolithic workload<br>
-- Use `Microservices` when Loki is installed as microservices, but without Loki Operator<br>
-- Use `Manual` if none of the options above match your setup<br><br/>
-          <br/>
-            <i>Enum</i>: Manual, LokiStack, Monolithic, Microservices<br/>
-            <i>Default</i>: Monolithic<br/>
-        </td>
-        <td>true</td>
-      </tr><tr>
         <td><b><a href="#flowcollectorspeclokiadvanced">advanced</a></b></td>
         <td>object</td>
         <td>
@@ -2808,14 +2765,12 @@ This section is aimed mostly for debugging and fine-grained performance optimiza
         <td><b>enable</b></td>
         <td>boolean</td>
         <td>
-          Set `enable` to `true` to store flows in Loki.
-The Console plugin can use either Loki or Prometheus as a data source for metrics (see also `spec.prometheus.querier`), or both.
+          Set `enable` to `true` to store flows in Loki, or `false` to not use Loki.
+The web console can use either Loki or Prometheus as a data source for metrics (see also `spec.prometheus.querier`), or both.
 Not all queries are transposable from Loki to Prometheus. Hence, if Loki is disabled, some features of the plugin are disabled as well,
 such as getting per-pod information or viewing raw flows.
 If both Prometheus and Loki are enabled, Prometheus takes precedence and Loki is used as a fallback for queries that Prometheus cannot handle.
-If they are both disabled, the Console plugin is not deployed.<br/>
-          <br/>
-            <i>Default</i>: true<br/>
+If they are both disabled, the web console is not deployed.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -2844,6 +2799,19 @@ It is ignored for other modes.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>mode</b></td>
+        <td>enum</td>
+        <td>
+          `mode` must be set according to the installation mode of Loki:<br>
+- Use `LokiStack` when Loki is managed using the Loki Operator.<br>
+- Use `Monolithic` when Loki is installed as a monolithic workload.<br>
+- Use `Microservices` when Loki is installed as microservices, but without Loki Operator.<br>
+- Use `Manual` if none of the options above match your setup.<br><br/>
+          <br/>
+            <i>Enum</i>: Manual, LokiStack, Monolithic, Microservices<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#flowcollectorspeclokimonolithic">monolithic</a></b></td>
         <td>object</td>
         <td>
@@ -2858,18 +2826,15 @@ It is ignored for other modes.<br/>
         <td>
           `readTimeout` is the maximum console plugin loki query total time limit.
 A timeout of zero means no timeout.<br/>
-          <br/>
-            <i>Default</i>: 30s<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>writeBatchSize</b></td>
         <td>integer</td>
         <td>
-          `writeBatchSize` is the maximum batch size (in bytes) of Loki logs to accumulate before sending.<br/>
+          `writeBatchSize` is the maximum batch size (in bytes) of Loki logs to accumulate before sending. Default: 10MB.<br/>
           <br/>
             <i>Format</i>: int64<br/>
-            <i>Default</i>: 10485760<br/>
             <i>Minimum</i>: 1<br/>
         </td>
         <td>false</td>
@@ -2878,8 +2843,6 @@ A timeout of zero means no timeout.<br/>
         <td>string</td>
         <td>
           `writeBatchWait` is the maximum time to wait before sending a Loki batch.<br/>
-          <br/>
-            <i>Default</i>: 1s<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -2888,8 +2851,6 @@ A timeout of zero means no timeout.<br/>
         <td>
           `writeTimeout` is the maximum Loki time connection / request limit.
 A timeout of zero means no timeout.<br/>
-          <br/>
-            <i>Default</i>: 10s<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -2984,10 +2945,8 @@ It is ignored for other modes.
         <td>string</td>
         <td>
           Name of an existing LokiStack resource to use.<br/>
-          <br/>
-            <i>Default</i>: loki<br/>
         </td>
-        <td>true</td>
+        <td>false</td>
       </tr><tr>
         <td><b>namespace</b></td>
         <td>string</td>
@@ -3030,7 +2989,6 @@ It is ignored for other modes.
 When using the Loki Operator, this must be set to `Forward`.<br/>
           <br/>
             <i>Enum</i>: Disabled, Host, Forward<br/>
-            <i>Default</i>: Disabled<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -3040,8 +2998,6 @@ When using the Loki Operator, this must be set to `Forward`.<br/>
           `ingesterUrl` is the address of an existing Loki ingester service to push the flows to. When using the Loki Operator,
 set it to the Loki gateway service with the `network` tenant set in path, for example
 https://loki-gateway-http.netobserv.svc:8080/api/logs/v1/network.<br/>
-          <br/>
-            <i>Default</i>: http://loki:3100/<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -3051,8 +3007,6 @@ https://loki-gateway-http.netobserv.svc:8080/api/logs/v1/network.<br/>
           `querierUrl` specifies the address of the Loki querier service.
 When using the Loki Operator, set it to the Loki gateway service with the `network` tenant set in path, for example
 https://loki-gateway-http.netobserv.svc:8080/api/logs/v1/network.<br/>
-          <br/>
-            <i>Default</i>: http://loki:3100/<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -3080,8 +3034,6 @@ https://loki-query-frontend-http.netobserv.svc:3100/.
         <td>
           `tenantID` is the Loki `X-Scope-OrgID` that identifies the tenant for each request.
 When using the Loki Operator, set it to `network`, which corresponds to a special tenant mode.<br/>
-          <br/>
-            <i>Default</i>: netobserv<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -3464,8 +3416,6 @@ It is ignored for other modes.
         <td>string</td>
         <td>
           `ingesterUrl` is the address of an existing Loki ingester service to push the flows to.<br/>
-          <br/>
-            <i>Default</i>: http://loki-distributor:3100/<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -3473,8 +3423,6 @@ It is ignored for other modes.
         <td>string</td>
         <td>
           `querierURL` specifies the address of the Loki querier service.<br/>
-          <br/>
-            <i>Default</i>: http://loki-query-frontend:3100/<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -3482,8 +3430,6 @@ It is ignored for other modes.
         <td>string</td>
         <td>
           `tenantID` is the Loki `X-Scope-OrgID` header that identifies the tenant for each request.<br/>
-          <br/>
-            <i>Default</i>: netobserv<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -3694,8 +3640,6 @@ It is ignored for other modes.
         <td>
           Set `installDemoLoki` to `true` to automatically create Loki deployment, service and storage.
 This is meant for development and demo use only, and not recommended in production.<br/>
-          <br/>
-            <i>Default</i>: false<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -3703,8 +3647,6 @@ This is meant for development and demo use only, and not recommended in producti
         <td>string</td>
         <td>
           `tenantID` is the Loki `X-Scope-OrgID` header that identifies the tenant for each request.<br/>
-          <br/>
-            <i>Default</i>: netobserv<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -3719,8 +3661,6 @@ This is meant for development and demo use only, and not recommended in producti
         <td>string</td>
         <td>
           `url` is the unique address of an existing Loki service that points to both the ingester and the querier.<br/>
-          <br/>
-            <i>Default</i>: http://loki:3100/<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -3993,8 +3933,6 @@ advertised prefixes from FRRConfiguration resources. Requires frr-k8s to be inst
         <td>string</td>
         <td>
           `clusterName` is the name of the cluster to appear in the flows data. In a multi-cluster context, it makes it possible to identify the flows provenance.<br/>
-          <br/>
-            <i>Default</i>: <br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4031,7 +3969,6 @@ but with a lesser improvement in performance.<br/>
           `imagePullPolicy` is the Kubernetes pull policy for the image defined above<br/>
           <br/>
             <i>Enum</i>: IfNotPresent, Always, Never<br/>
-            <i>Default</i>: IfNotPresent<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4059,17 +3996,13 @@ Deprecated: managed autoscaler will be removed in a future version. You may conf
         <td>integer</td>
         <td>
           `kafkaConsumerBatchSize` indicates to the broker the maximum batch size, in bytes, that the consumer accepts. Ignored when not using Kafka. Default: 10MB.<br/>
-          <br/>
-            <i>Default</i>: 10485760<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>kafkaConsumerQueueCapacity</b></td>
         <td>integer</td>
         <td>
-          `kafkaConsumerQueueCapacity` defines the capacity of the internal message queue used in the Kafka consumer client. Ignored when not using Kafka.<br/>
-          <br/>
-            <i>Default</i>: 1000<br/>
+          `kafkaConsumerQueueCapacity` defines the capacity of the internal message queue used in the Kafka consumer client. Ignored when not using Kafka. Default: 1000.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4082,7 +4015,6 @@ This setting is ignored when Kafka is disabled.
 Deprecated: use `spec.processor.consumerReplicas` instead.<br/>
           <br/>
             <i>Format</i>: int32<br/>
-            <i>Default</i>: 3<br/>
             <i>Minimum</i>: 0<br/>
         </td>
         <td>false</td>
@@ -4093,7 +4025,6 @@ Deprecated: use `spec.processor.consumerReplicas` instead.<br/>
           `logLevel` of the processor runtime<br/>
           <br/>
             <i>Enum</i>: trace, debug, info, warn, error, fatal, panic<br/>
-            <i>Default</i>: info<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4107,7 +4038,6 @@ Deprecated: use `spec.processor.consumerReplicas` instead.<br/>
 - `All` to generate both network flows and all conversations events. It is not recommended due to the impact on resources footprint.<br><br/>
           <br/>
             <i>Enum</i>: Flows, Conversations, EndedConversations, All<br/>
-            <i>Default</i>: Flows<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4122,8 +4052,6 @@ Deprecated: use `spec.processor.consumerReplicas` instead.<br/>
         <td>boolean</td>
         <td>
           Set `multiClusterDeployment` to `true` to enable multi clusters feature. This adds `clusterName` label to flows data<br/>
-          <br/>
-            <i>Default</i>: false<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4132,8 +4060,6 @@ Deprecated: use `spec.processor.consumerReplicas` instead.<br/>
         <td>
           `resources` are the compute resources required by this container.
 For more information, see https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/<br/>
-          <br/>
-            <i>Default</i>: map[limits:map[memory:800Mi] requests:map[cpu:100m memory:100Mi]]<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4734,6 +4660,14 @@ only the result of this request.<br/>
         </tr>
     </thead>
     <tbody><tr>
+        <td><b><a href="#flowcollectorspecprocessorinformercacheproxytlsprovidedcertificates">providedCertificates</a></b></td>
+        <td>object</td>
+        <td>
+          mTLS configuration when `type` is set to `Provided`.
+`serverCert` is required. `clientCert` is optional; if provided, mTLS is enabled.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>type</b></td>
         <td>enum</td>
         <td>
@@ -4745,15 +4679,6 @@ only the result of this request.<br/>
 See also: https://github.com/netobserv/netobserv-operator/blob/main/docs/TLS.md.<br/>
           <br/>
             <i>Enum</i>: Disabled, Provided, Auto, Auto-mTLS<br/>
-            <i>Default</i>: Auto<br/>
-        </td>
-        <td>true</td>
-      </tr><tr>
-        <td><b><a href="#flowcollectorspecprocessorinformercacheproxytlsprovidedcertificates">providedCertificates</a></b></td>
-        <td>object</td>
-        <td>
-          mTLS configuration when `type` is set to `Provided`.
-`serverCert` is required. `clientCert` is optional; if provided, mTLS is enabled.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -5287,20 +5212,6 @@ TLS configuration.
         </tr>
     </thead>
     <tbody><tr>
-        <td><b>type</b></td>
-        <td>enum</td>
-        <td>
-          Select the type of TLS configuration:<br>
-- `Disabled` (default) to not configure TLS for the endpoint.
-- `Provided` to manually provide cert file and a key file.
-- `Auto` to use a default certificate, which may vary depending on the Kubernetes vendor.
-Refer to https://github.com/netobserv/netobserv-operator/blob/main/docs/TLS.md for more information.<br/>
-          <br/>
-            <i>Enum</i>: Disabled, Provided, Auto<br/>
-            <i>Default</i>: Disabled<br/>
-        </td>
-        <td>true</td>
-      </tr><tr>
         <td><b>insecureSkipVerify</b></td>
         <td>boolean</td>
         <td>
@@ -5322,6 +5233,19 @@ If set to `true`, the `providedCaFile` field is ignored. For security, this shou
         <td>object</td>
         <td>
           Reference to the CA file when `type` is set to `Provided`.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>type</b></td>
+        <td>enum</td>
+        <td>
+          Select the type of TLS configuration:<br>
+- `Disabled` (default) to not configure TLS for the endpoint.
+- `Provided` to manually provide cert file and a key file.
+- `Auto` to use a default certificate, which may vary depending on the Kubernetes vendor.
+Refer to https://github.com/netobserv/netobserv-operator/blob/main/docs/TLS.md for more information.<br/>
+          <br/>
+            <i>Enum</i>: Disabled, Provided, Auto<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -5497,6 +5421,13 @@ Service configuration, only used when `spec.deploymentModel` is `Service`.
         </tr>
     </thead>
     <tbody><tr>
+        <td><b><a href="#flowcollectorspecprocessorserviceprovidedcertificates">providedCertificates</a></b></td>
+        <td>object</td>
+        <td>
+          TLS or mTLS configuration when `type` is set to `Provided`.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>tlsType</b></td>
         <td>enum</td>
         <td>
@@ -5508,14 +5439,6 @@ Service configuration, only used when `spec.deploymentModel` is `Service`.
 See also: https://github.com/netobserv/netobserv-operator/blob/main/docs/TLS.md.<br/>
           <br/>
             <i>Enum</i>: Disabled, Provided, Auto, Auto-mTLS<br/>
-            <i>Default</i>: Auto<br/>
-        </td>
-        <td>true</td>
-      </tr><tr>
-        <td><b><a href="#flowcollectorspecprocessorserviceprovidedcertificates">providedCertificates</a></b></td>
-        <td>object</td>
-        <td>
-          TLS or mTLS configuration when `type` is set to `Provided`.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -5753,15 +5676,6 @@ Global configuration managing FlowCollectorSlices custom resources.
         </tr>
     </thead>
     <tbody><tr>
-        <td><b>enable</b></td>
-        <td>boolean</td>
-        <td>
-          `enable` determines if the FlowCollectorSlice feature is enabled. If not, all resources of kind FlowCollectorSlice are simply ignored.<br/>
-          <br/>
-            <i>Default</i>: false<br/>
-        </td>
-        <td>true</td>
-      </tr><tr>
         <td><b>collectionMode</b></td>
         <td>enum</td>
         <td>
@@ -5771,6 +5685,13 @@ Global configuration managing FlowCollectorSlices custom resources.
           <br/>
             <i>Enum</i>: AlwaysCollect, AllowList<br/>
             <i>Default</i>: AlwaysCollect<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>enable</b></td>
+        <td>boolean</td>
+        <td>
+          `enable` determines if the FlowCollectorSlice feature is enabled. If not, all resources of kind FlowCollectorSlice are simply ignored.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -5916,30 +5837,16 @@ Prometheus querying configuration, such as client settings, used in the Console 
         </tr>
     </thead>
     <tbody><tr>
-        <td><b>mode</b></td>
-        <td>enum</td>
-        <td>
-          `mode` must be set according to the type of Prometheus installation that stores NetObserv metrics:<br>
-- Use `Auto` to try configuring automatically for known vendors.<br>
-- Use `Manual` for a manual setup.<br><br/>
-          <br/>
-            <i>Enum</i>: Manual, Auto<br/>
-            <i>Default</i>: Auto<br/>
-        </td>
-        <td>true</td>
-      </tr><tr>
         <td><b>enable</b></td>
         <td>boolean</td>
         <td>
-          When `enable` is `true`, the Console plugin queries flow metrics from Prometheus instead of Loki whenever possible.
+          When `enable` is `true`, the web console queries flow metrics from Prometheus instead of Loki whenever possible.
 It is enabled by default: set it to `false` to disable this feature.
-The Console plugin can use either Loki or Prometheus as a data source for metrics (see also `spec.loki`), or both.
+The web console can use either Loki or Prometheus as a data source for metrics (see also `spec.loki`), or both.
 Not all queries are transposable from Loki to Prometheus. Hence, if Loki is disabled, some features of the plugin are disabled as well,
 such as getting per-pod information or viewing raw flows.
 If both Prometheus and Loki are enabled, Prometheus takes precedence and Loki is used as a fallback for queries that Prometheus cannot handle.
-If they are both disabled, the Console plugin is not deployed.<br/>
-          <br/>
-            <i>Default</i>: true<br/>
+If they are both disabled, the web console is not deployed.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -5950,13 +5857,22 @@ If they are both disabled, the Console plugin is not deployed.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>mode</b></td>
+        <td>enum</td>
+        <td>
+          `mode` must be set according to the type of Prometheus installation that stores NetObserv metrics:<br>
+- Use `Auto` to try configuring automatically for known vendors.<br>
+- Use `Manual` for a manual setup.<br><br/>
+          <br/>
+            <i>Enum</i>: Manual, Auto<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>timeout</b></td>
         <td>string</td>
         <td>
           `timeout` is the read timeout for console plugin queries to Prometheus.
 A timeout of zero means no timeout.<br/>
-          <br/>
-            <i>Default</i>: 30s<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -6005,8 +5921,6 @@ Prometheus configuration for `Manual` mode.
         <td>string</td>
         <td>
           `url` is the address of an existing Prometheus service to use for querying metrics.<br/>
-          <br/>
-            <i>Default</i>: http://prometheus:9090<br/>
         </td>
         <td>false</td>
       </tr></tbody>

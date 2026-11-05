@@ -121,6 +121,8 @@ func TestGetEnvConfig_Default(t *testing.T) {
 			},
 		},
 	}
+	err := helper.EnsureDefaults(&fc)
+	require.NoError(t, err)
 	info := reconcilers.Common{Namespace: "netobserv", ClusterInfo: &cluster.Info{}}
 	agent := NewAgentController(info.NewInstance(nil, status.Instance{}))
 
@@ -128,11 +130,15 @@ func TestGetEnvConfig_Default(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, []corev1.EnvVar{
+		{Name: "CACHE_ACTIVE_TIMEOUT", Value: "15s"},
 		{Name: "CACHE_MAX_FLOWS", Value: "120000"},
+		{Name: "LOG_LEVEL", Value: "info"},
+		{Name: "EXCLUDE_INTERFACES", Value: "lo"},
 		{Name: "SAMPLING", Value: "50"},
 		{Name: "METRICS_ENABLE", Value: "true"},
 		{Name: "METRICS_SERVER_PORT", Value: "9400"},
 		{Name: "METRICS_PREFIX", Value: "netobserv_agent_"},
+		{Name: "GOMEMLIMIT", Value: "754974720"},
 		{Name: "AGENT_IP", Value: "",
 			ValueFrom: &corev1.EnvVarSource{
 				FieldRef: &corev1.ObjectFieldSelector{
@@ -213,6 +219,8 @@ func TestGetEnvConfig_WithOverrides(t *testing.T) {
 			},
 		},
 	}
+	err := helper.EnsureDefaults(&fc)
+	require.NoError(t, err)
 
 	info := reconcilers.Common{Namespace: "netobserv", ClusterInfo: &cluster.Info{}}
 	agent := NewAgentController(info.NewInstance(nil, status.Instance{}))
@@ -225,7 +233,10 @@ func TestGetEnvConfig_WithOverrides(t *testing.T) {
 		{Name: "PREFERRED_INTERFACE_FOR_MAC_PREFIX", Value: "0a:58=ens5"},
 		{Name: "TARGET_HOST", Value: "test"},
 		{Name: "TC_ATTACH_MODE", Value: "any"},
+		{Name: "CACHE_ACTIVE_TIMEOUT", Value: "15s"},
 		{Name: "CACHE_MAX_FLOWS", Value: "120000"},
+		{Name: "LOG_LEVEL", Value: "info"},
+		{Name: "EXCLUDE_INTERFACES", Value: "lo"},
 		{Name: "SAMPLING", Value: "50"},
 		{Name: "GOMEMLIMIT", Value: "754974720"},
 		{Name: "FLOW_FILTER_RULES", Value: `[{"ip_cidr":"0.0.0.0/0","action":"Accept"}]`},
@@ -252,6 +263,8 @@ func TestGetEnvConfig_OCP4_14(t *testing.T) {
 			},
 		},
 	}
+	err := helper.EnsureDefaults(&fc)
+	require.NoError(t, err)
 
 	cmn := reconcilers.Common{
 		Namespace:   "netobserv",
@@ -263,11 +276,15 @@ func TestGetEnvConfig_OCP4_14(t *testing.T) {
 	env, err := agent.envConfig(context.Background(), &fc, map[string]string{})
 	require.NoError(t, err)
 	assert.Equal(t, []corev1.EnvVar{
+		{Name: "CACHE_ACTIVE_TIMEOUT", Value: "15s"},
 		{Name: "CACHE_MAX_FLOWS", Value: "120000"},
+		{Name: "LOG_LEVEL", Value: "info"},
+		{Name: "EXCLUDE_INTERFACES", Value: "lo"},
 		{Name: "SAMPLING", Value: "50"},
 		{Name: "METRICS_ENABLE", Value: "true"},
 		{Name: "METRICS_SERVER_PORT", Value: "9400"},
 		{Name: "METRICS_PREFIX", Value: "netobserv_agent_"},
+		{Name: "GOMEMLIMIT", Value: "754974720"},
 		{Name: "AGENT_IP", Value: "",
 			ValueFrom: &corev1.EnvVarSource{
 				FieldRef: &corev1.ObjectFieldSelector{

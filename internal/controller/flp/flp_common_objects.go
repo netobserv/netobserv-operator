@@ -280,7 +280,7 @@ func metricsSettings(desired *flowslatest.FlowCollectorSpec, vol *volumes.Builde
 		Prefix:  "netobserv_",
 		NoPanic: true,
 	}
-	if desired.Processor.Metrics.Server.TLS.Type != flowslatest.TLSDisabled {
+	if desired.Processor.Metrics.Server.TLS.IsEnabled() {
 		cert, key := vol.AddCertificate(promTLS, "prom-certs")
 		if cert != "" && key != "" {
 			metricsSettings.TLS = &api.PromTLSConf{

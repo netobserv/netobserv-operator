@@ -248,7 +248,9 @@ func ControllerSpecs(env test.Environment, ctxGetter test.ContextGetter) {
 				g.Expect(err).NotTo(HaveOccurred())
 				err = checkDigestUpdate(&digest, ds.Spec.Template.Annotations)
 				g.Expect(err).NotTo(HaveOccurred())
+			}, timeout, interval).Should(Succeed())
 
+			Eventually(func(g Gomega) {
 				By("Creating the required HostPort to access flowlogs-pipeline through the NodeIP")
 				var cnt *v1.Container
 				for i := range ds.Spec.Template.Spec.Containers {
@@ -291,6 +293,7 @@ func ControllerSpecs(env test.Environment, ctxGetter test.ContextGetter) {
 						{Name: "GOGC", Value: "400"},
 						{Name: "GOMAXPROCS", Value: "33"},
 						{Name: "GODEBUG", Value: "http2server=0"},
+						{Name: "GOMEMLIMIT", Value: "754974720"},
 					}))
 				}
 
