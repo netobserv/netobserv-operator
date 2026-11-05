@@ -195,6 +195,7 @@ func (b *builder) podTemplate(name, cmDigest string) *corev1.PodTemplateSpec {
 
 	if b.info.ClusterInfo.IsOpenShift() {
 		annotations[constants.OpenShiftReqSCCAnnotation] = constants.OpenShiftReqSCCAnnotationDefaultValue
+		annotations["target.workload.openshift.io/management"] = `{"effect": "PreferredDuringScheduling"}`
 	}
 
 	if cmDigest != "" {

@@ -96,6 +96,7 @@ metadata:
     operatorframework.io/initialization-resource: '{"apiVersion":"flows.netobserv.io/v1beta2",
       "kind":"FlowCollector","metadata":{"name":"cluster"},"spec": {}}'
     operatorframework.io/suggested-namespace: openshift-netobserv-operator
+    operatorframework.io/suggested-namespace-template: '{"apiVersion":"v1","kind":"Namespace","metadata":{"name":"openshift-netobserv-operator","annotations":{"workload.openshift.io/allowed":"management"}}}'
     operators.operatorframework.io/builder: operator-sdk-v1.42.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
     repository: https://github.com/netobserv/netobserv-operator
