@@ -170,6 +170,29 @@ func TestDesiredCollectorRemainsCopyableAfterCompletion(t *testing.T) {
 	}
 }
 
+func TestDesiredCollectorEnablesTLSPlaintextOutput(t *testing.T) {
+	r := &Reconciler{config: &manager.Config{Namespace: "netobserv"}}
+	fc := &flowcapturev1alpha1.FlowCapture{
+		ObjectMeta: metav1.ObjectMeta{Name: "capture", Namespace: "team-a"},
+		Spec: flowcapturev1alpha1.FlowCaptureSpec{
+			OutputType:   flowcapturev1alpha1.Packets,
+			TLSPlaintext: &flowcapturev1alpha1.TLSPlaintextSpec{PreviewBytes: 256},
+		},
+	}
+	names := r.captureNames(fc)
+	pod := desiredCollector(fc, "cli:latest", &names)
+
+	for i, arg := range pod.Spec.Containers[0].Command {
+		if arg == "--options" {
+			if i+1 >= len(pod.Spec.Containers[0].Command) || pod.Spec.Containers[0].Command[i+1] != "background|managed|enable_openssl" {
+				t.Fatalf("collector options = %v, want enable_openssl", pod.Spec.Containers[0].Command)
+			}
+			return
+		}
+	}
+	t.Fatalf("collector command has no --options: %v", pod.Spec.Containers[0].Command)
+}
+
 func TestDesiredFlowCaptureSCC(t *testing.T) {
 	scc := desiredFlowCaptureSCC()
 	if scc.Name != "flowcapture" || !scc.AllowHostNetwork || !scc.AllowHostPorts {
