@@ -304,18 +304,25 @@ func (spec *FlowCollectorFLP) GetK8sCachePort() int32 {
 	return DefaultK8sCachePort
 }
 
-func (spec *FlowCollectorInformerCacheProxy) GetTLSType() TLSConfigType {
-	if spec == nil || spec.TLS == nil {
+func (spec *ProcessorServiceConfig) GetTLSType() TLSConfigType {
+	if spec == nil || spec.TLSType == "" {
 		return TLSAuto
 	}
-	return spec.TLS.Type
+	return spec.TLSType
+}
+
+func (spec *FlowCollectorInformerCacheProxy) GetTLSInfo() (TLSConfigType, *ClientServerTLS) {
+	if spec == nil || spec.TLS == nil || spec.TLS.Type == "" {
+		return TLSAuto, nil
+	}
+	return spec.TLS.Type, spec.TLS.ProvidedCertificates
 }
 
 func (spec *FlowCollectorInformerCacheProxy) UsesOpenShiftServiceCA(isOpenShift bool) bool {
 	if !isOpenShift {
 		return false
 	}
-	tlsType := spec.GetTLSType()
+	tlsType, _ := spec.GetTLSInfo()
 	return tlsType == TLSAuto
 }
 
@@ -335,4 +342,8 @@ func IsEnvEnabled(vars map[string]string, key string) bool {
 	// Use ParseBool to allow common variants ("true", "True", "1"...) and ignore non-bools
 	b, err := strconv.ParseBool(env)
 	return err == nil && b
+}
+
+func (spec *ServerTLS) IsEnabled() bool {
+	return spec != nil && spec.Type != TLSDisabled && spec.Type != ""
 }

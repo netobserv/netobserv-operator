@@ -255,7 +255,7 @@ func (c *AgentController) desired(ctx context.Context, coll *flowslatest.FlowCol
 	}
 	advancedConfig := helper.GetAdvancedAgentConfig(coll.Spec.Agent.EBPF.Advanced)
 
-	if coll.Spec.Agent.EBPF.Metrics.Server.TLS.Type != flowslatest.TLSDisabled {
+	if coll.Spec.Agent.EBPF.Metrics.Server.TLS.IsEnabled() {
 		var promTLS *flowslatest.CertificateReference
 		switch coll.Spec.Agent.EBPF.Metrics.Server.TLS.Type {
 		case flowslatest.TLSProvided:
@@ -470,10 +470,7 @@ func (c *AgentController) envConfig(ctx context.Context, coll *flowslatest.FlowC
 		return config[i].Name < config[j].Name
 	})
 
-	if coll.Spec.Agent.EBPF.CacheActiveTimeout != "" {
-		config = addEnv(config, envCacheActiveTimeout, coll.Spec.Agent.EBPF.CacheActiveTimeout, advancedConfig.Env)
-	}
-
+	config = addEnv(config, envCacheActiveTimeout, coll.Spec.Agent.EBPF.CacheActiveTimeout, advancedConfig.Env)
 	config = addEnv(config, envCacheMaxFlows, strconv.Itoa(coll.Spec.GetCacheMaxFlows()), advancedConfig.Env)
 
 	if coll.Spec.Agent.EBPF.LogLevel != "" {

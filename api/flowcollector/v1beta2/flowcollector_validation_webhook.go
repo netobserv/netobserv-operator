@@ -67,6 +67,7 @@ func (r *FlowCollector) Validate(_ context.Context, fc *FlowCollector) (admissio
 	v.validateNetPol()
 	v.validateAgent()
 	v.validateFLP()
+	v.validateKafka()
 	v.warnLogLevels()
 	v.warnProfiling()
 	v.warnLokiDemo()
@@ -104,7 +105,7 @@ func (v *validator) warnProfiling() {
 }
 
 func (v *validator) warnLokiDemo() {
-	if v.fc.Loki.Mode == LokiModeMonolithic && v.fc.Loki.Monolithic.InstallDemoLoki != nil && *v.fc.Loki.Monolithic.InstallDemoLoki {
+	if (v.fc.Loki.Mode == LokiModeMonolithic || v.fc.Loki.Mode == "") && v.fc.Loki.Monolithic.InstallDemoLoki != nil && *v.fc.Loki.Monolithic.InstallDemoLoki {
 		v.warnings = append(v.warnings, "InstallDemoLoki option is enabled. This is useful for development and demo purposes but should not be used in production.")
 	}
 }
@@ -148,7 +149,7 @@ func (v *validator) validateNetPol() {
 
 func (v *validator) validateAgent() {
 	for feat, minVersion := range neededOpenShiftVersion {
-		if slices.Contains(v.fc.Agent.EBPF.Features, feat) {
+		if v.fc.IsAgentFeatureEnabled(feat) {
 			if CurrentClusterInfo != nil && CurrentClusterInfo.IsOpenShift() {
 				// Make sure required version of ocp is installed
 				ok, actual, err := CurrentClusterInfo.IsOpenShiftVersionAtLeast(minVersion)
@@ -607,5 +608,24 @@ func GetElligibleMetricsForAlert(template HealthRuleTemplate, alertDef *HealthRu
 	return metrics, totalMetrics
 }
 
-// Alias for backward compatibility
-var GetElligibleMetricsForHealthRule = GetElligibleMetricsForAlert
+func (v *validator) validateKafka() {
+	// Make sure address and topic are defined when relevant
+	if v.fc.DeploymentModel == DeploymentModelKafka {
+		if v.fc.Kafka.Address == "" {
+			v.errors = append(v.errors, errors.New("spec.kafka.address must be set with Kafka deployment model"))
+		}
+		if v.fc.Kafka.Topic == "" {
+			v.errors = append(v.errors, errors.New("spec.kafka.topic must be set with Kafka deployment model"))
+		}
+	}
+	for i, exp := range v.fc.Exporters {
+		if exp.Type == KafkaExporter {
+			if exp.Kafka.Address == "" {
+				v.errors = append(v.errors, fmt.Errorf("spec.exporters[%d].kafka.address must be set in Kafka exporter", i))
+			}
+			if exp.Kafka.Topic == "" {
+				v.errors = append(v.errors, fmt.Errorf("spec.exporters[%d].kafka.topic must be set in Kafka exporter", i))
+			}
+		}
+	}
+}

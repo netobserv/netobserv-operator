@@ -316,14 +316,12 @@ func FlowCollectorEBPFSpecs(env test.Environment, ctxGetter test.ContextGetter) 
 					v1.EnvVar{Name: "CACHE_MAX_FLOWS", Value: "50000"},
 					v1.EnvVar{Name: "SAMPLING", Value: "400"},
 				),
-				Not(ContainElements(
-					v1.EnvVar{Name: "ENABLE_RTT", Value: "true"},
-					v1.EnvVar{Name: "ENABLE_UDN_MAPPING", Value: "true"},
-					v1.EnvVar{Name: "ENABLE_PKT_DROPS", Value: "true"},
-					v1.EnvVar{Name: "ENABLE_DNS_TRACKING", Value: "true"},
-					v1.EnvVar{Name: "ENABLE_TLS_TRACKING", Value: "true"},
-					v1.EnvVar{Name: "ENABLE_SECONDARY_NETWORKS", Value: "true"},
-				)),
+				Not(ContainElements(v1.EnvVar{Name: "ENABLE_RTT", Value: "true"})),
+				Not(ContainElements(v1.EnvVar{Name: "ENABLE_UDN_MAPPING", Value: "true"})),
+				Not(ContainElements(v1.EnvVar{Name: "ENABLE_PKT_DROPS", Value: "true"})),
+				Not(ContainElements(v1.EnvVar{Name: "ENABLE_DNS_TRACKING", Value: "true"})),
+				Not(ContainElements(v1.EnvVar{Name: "ENABLE_TLS_TRACKING", Value: "true"})),
+				Not(ContainElements(v1.EnvVar{Name: "ENABLE_SECONDARY_NETWORKS", Value: "true"})),
 			))
 		})
 
@@ -373,14 +371,12 @@ func FlowCollectorEBPFSpecs(env test.Environment, ctxGetter test.ContextGetter) 
 					v1.EnvVar{Name: "CACHE_MAX_FLOWS", Value: "120000"},
 					v1.EnvVar{Name: "SAMPLING", Value: "50"},
 				),
-				Not(ContainElements(
-					v1.EnvVar{Name: "ENABLE_RTT", Value: "true"},
-					v1.EnvVar{Name: "ENABLE_UDN_MAPPING", Value: "true"},
-					v1.EnvVar{Name: "ENABLE_PKT_DROPS", Value: "true"},
-					v1.EnvVar{Name: "ENABLE_DNS_TRACKING", Value: "true"},
-					v1.EnvVar{Name: "ENABLE_TLS_TRACKING", Value: "true"},
-					v1.EnvVar{Name: "ENABLE_SECONDARY_NETWORKS", Value: "true"},
-				)),
+				Not(ContainElements(v1.EnvVar{Name: "ENABLE_RTT", Value: "true"})),
+				Not(ContainElements(v1.EnvVar{Name: "ENABLE_UDN_MAPPING", Value: "true"})),
+				Not(ContainElements(v1.EnvVar{Name: "ENABLE_PKT_DROPS", Value: "true"})),
+				Not(ContainElements(v1.EnvVar{Name: "ENABLE_DNS_TRACKING", Value: "true"})),
+				Not(ContainElements(v1.EnvVar{Name: "ENABLE_TLS_TRACKING", Value: "true"})),
+				Not(ContainElements(v1.EnvVar{Name: "ENABLE_SECONDARY_NETWORKS", Value: "true"})),
 			))
 
 			Expect(ds.Spec.Template.Spec.Containers[0].SecurityContext.Privileged).To(BeNil())

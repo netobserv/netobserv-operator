@@ -1037,7 +1037,7 @@ func TestLokiPresencePerProfile(t *testing.T) {
 	}, decoded.Pipeline)
 
 	// HIGH PROFILE => HAS LOKI
-	cfg.Profile = flowslatest.ProfileDefault
+	cfg.Profile = flowslatest.ProfileHighResources
 	b = monoBuilder("any-ns", &cfg)
 	cm, _, _, err = b.configMaps()
 	require.NoError(t, err)

@@ -52,7 +52,6 @@ type FlowCollectorSpec struct {
 	Prometheus FlowCollectorPrometheus `json:"prometheus,omitempty"`
 
 	// `consolePlugin` defines the settings related to the Web Console.
-	//+kubebuilder:default:={}
 	ConsolePlugin FlowCollectorConsolePlugin `json:"consolePlugin,omitempty"`
 
 	// `deploymentModel` defines the desired type of deployment for flow processing. Possible values are:<br>
@@ -137,7 +136,7 @@ type FlowCollectorAgent struct {
 	// Deprecated: only `eBPF` remains supported.
 	//
 	// +optional
-	IPFIX FlowCollectorIPFIX `json:"ipfix,omitempty"`
+	IPFIX *FlowCollectorIPFIX `json:"ipfix,omitempty"`
 
 	// `ebpf` describes the settings related to the eBPF-based flow reporter when `spec.agent.type` is set to `eBPF`.
 	// +optional
@@ -149,24 +148,20 @@ type FlowCollectorAgent struct {
 // Deprecated: only `eBPF` agent type remains supported.
 type FlowCollectorIPFIX struct {
 	//+kubebuilder:validation:Pattern:=^\d+(ns|ms|s|m)?$
-	//+kubebuilder:default:="20s"
 	// `cacheActiveTimeout` is the max period during which the reporter aggregates flows before sending.
 	CacheActiveTimeout string `json:"cacheActiveTimeout,omitempty" mapstructure:"cacheActiveTimeout,omitempty"`
 
 	//+kubebuilder:validation:Minimum=0
-	//+kubebuilder:default:=400
 	// `cacheMaxFlows` is the max number of flows in an aggregate; when reached, the reporter sends the flows.
 	CacheMaxFlows int32 `json:"cacheMaxFlows,omitempty" mapstructure:"cacheMaxFlows,omitempty"`
 
 	//+kubebuilder:validation:Minimum=2
-	//+kubebuilder:default:=400
 	// `sampling` is the sampling interval on the reporter. 100 means one flow on 100 is sent.
 	// To ensure cluster stability, it is not possible to set a value below 2.
 	// If you really want to sample every packet, which might impact the cluster stability,
 	// refer to `forceSampleAll`. Alternatively, you can use the eBPF Agent instead of IPFIX.
 	Sampling int32 `json:"sampling,omitempty" mapstructure:"sampling,omitempty"`
 
-	//+kubebuilder:default:=false
 	// `forceSampleAll` allows disabling sampling in the IPFIX-based flow reporter.
 	// It is not recommended to sample all the traffic with IPFIX, as it might generate cluster instability.
 	// If you REALLY want to do that, set this flag to `true`. Use at your own risk.
@@ -325,12 +320,11 @@ type EBPFFlowFilter struct {
 
 // `FlowCollectorEBPF` defines a FlowCollector that uses eBPF to collect the flows information
 type FlowCollectorEBPF struct {
-	//+kubebuilder:validation:Enum=IfNotPresent;Always;Never
-	//+kubebuilder:default:=IfNotPresent
 	// `imagePullPolicy` is the Kubernetes pull policy for the image defined above
+	//+kubebuilder:validation:Enum=IfNotPresent;Always;Never
+	// +optional
 	ImagePullPolicy string `json:"imagePullPolicy,omitempty"`
 
-	//+kubebuilder:default:={requests:{memory:"50Mi",cpu:"100m"},limits:{memory:"800Mi"}}
 	// `resources` are the compute resources required by this container.
 	// For more information, see https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
 	// +optional
@@ -343,9 +337,8 @@ type FlowCollectorEBPF struct {
 
 	// `cacheActiveTimeout` is the period during which the agent aggregates flows before sending.
 	// Increasing `cacheMaxFlows` and `cacheActiveTimeout` can decrease the network traffic overhead and the CPU load,
-	// however you can expect higher memory consumption and an increased latency in the flow collection.
+	// however you can expect higher memory consumption and an increased latency in the flow collection. The default is 15s.
 	//+kubebuilder:validation:Pattern:=^\d+(ns|ms|s|m)?$
-	//+kubebuilder:default:="15s"
 	CacheActiveTimeout string `json:"cacheActiveTimeout,omitempty"`
 
 	// `cacheMaxFlows` is the maximum number of flows in an aggregate; when reached, the reporter sends the flows.
@@ -359,18 +352,17 @@ type FlowCollectorEBPF struct {
 	// An entry enclosed by slashes, such as `/br-/`, is matched as a regular expression.
 	// Otherwise it is matched as a case-sensitive string.
 	//+optional
-	Interfaces []string `json:"interfaces"`
+	Interfaces []string `json:"interfaces,omitzero"`
 
 	// `excludeInterfaces` contains the interface names that are excluded from flow tracing.
 	// An entry enclosed by slashes, such as `/br-/`, is matched as a regular expression.
-	// Otherwise it is matched as a case-sensitive string.
-	//+kubebuilder:default:=lo;
+	// Otherwise it is matched as a case-sensitive string. `lo` is excluded by default.
 	//+optional
-	ExcludeInterfaces []string `json:"excludeInterfaces"`
+	ExcludeInterfaces []string `json:"excludeInterfaces,omitzero"`
 
-	//+kubebuilder:validation:Enum=trace;debug;info;warn;error;fatal;panic
-	//+kubebuilder:default:=info
 	// `logLevel` defines the log level for the NetObserv eBPF Agent
+	//+kubebuilder:validation:Enum=trace;debug;info;warn;error;fatal;panic
+	//+optional
 	LogLevel string `json:"logLevel,omitempty"`
 
 	// `privileged` grants full privileges to the eBPF Agent container. As it weakens the security model,
@@ -381,10 +373,9 @@ type FlowCollectorEBPF struct {
 	// +optional
 	Privileged bool `json:"privileged,omitempty"`
 
-	//+kubebuilder:default:=1048576
-	// +optional
 	// `kafkaBatchSize` limits the maximum size of a request in bytes before being sent to a partition. Ignored when not using Kafka. Default: 1MB.
-	KafkaBatchSize int `json:"kafkaBatchSize"`
+	// +optional
+	KafkaBatchSize int `json:"kafkaBatchSize,omitempty"`
 
 	// `advanced` allows setting some aspects of the internal configuration of the eBPF agent.
 	// This section is aimed mostly for debugging and fine-grained performance optimizations,
@@ -411,7 +402,7 @@ type FlowCollectorEBPF struct {
 	// the OVS/OVN host filesystems.<br>
 	// It requires using the OVN-Kubernetes network plugin.<br>
 	// +optional
-	Features []AgentFeature `json:"features,omitempty"`
+	Features []AgentFeature `json:"features,omitzero"`
 
 	// `metrics` defines the eBPF agent configuration regarding metrics.
 	// +optional
@@ -433,18 +424,15 @@ type FlowCollectorEBPF struct {
 
 // `FlowCollectorKafka` defines the desired Kafka config of FlowCollector
 type FlowCollectorKafka struct {
-	// +kubebuilder:default:=""
 	// Address of the Kafka server
 	Address string `json:"address"`
 
-	// +kubebuilder:default:=""
 	// Kafka topic to use. It must exist. NetObserv does not create it.
 	Topic string `json:"topic"`
 
-	// +kubebuilder:validation:Enum:="none";"gzip";"snappy";"lz4";"zstd"
-	// +kubebuilder:default:="none"
 	// Compression codec to use when producing messages to Kafka.
 	// Accepted values are: `none` (default), `gzip`, `snappy`, `lz4`, `zstd`.
+	// +kubebuilder:validation:Enum:="none";"gzip";"snappy";"lz4";"zstd"
 	// +optional
 	Compression string `json:"compression,omitempty"`
 
@@ -563,8 +551,6 @@ type ServerTLS struct {
 	// Refer to https://github.com/netobserv/netobserv-operator/blob/main/docs/TLS.md for more information.
 	// +unionDiscriminator
 	// +kubebuilder:validation:Enum:="Disabled";"Provided";"Auto"
-	// +kubebuilder:validation:Required
-	//+kubebuilder:default:="Disabled"
 	Type TLSConfigType `json:"type,omitempty"`
 
 	// TLS configuration when `type` is set to `Provided`.
@@ -671,29 +657,27 @@ const (
 
 // `FlowCollectorFLP` defines the desired flowlogs-pipeline state of FlowCollector
 type FlowCollectorFLP struct {
-	//+kubebuilder:validation:Enum=IfNotPresent;Always;Never
-	//+kubebuilder:default:=IfNotPresent
 	// `imagePullPolicy` is the Kubernetes pull policy for the image defined above
+	//+kubebuilder:validation:Enum=IfNotPresent;Always;Never
 	ImagePullPolicy string `json:"imagePullPolicy,omitempty"`
 
 	// `Metrics` define the processor configuration regarding metrics
+	// +optional
 	Metrics FLPMetrics `json:"metrics,omitempty"`
 
-	//+kubebuilder:validation:Enum=trace;debug;info;warn;error;fatal;panic
-	//+kubebuilder:default:=info
 	// `logLevel` of the processor runtime
+	//+kubebuilder:validation:Enum=trace;debug;info;warn;error;fatal;panic
 	LogLevel string `json:"logLevel,omitempty"`
 
-	//+kubebuilder:default:={requests:{memory:"100Mi",cpu:"100m"},limits:{memory:"800Mi"}}
 	// `resources` are the compute resources required by this container.
 	// For more information, see https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
 	// +optional
 	Resources corev1.ResourceRequirements `json:"resources,omitempty" protobuf:"bytes,8,opt,name=resources"`
 
-	//+kubebuilder:validation:Minimum=0
-	//+kubebuilder:default:=3
 	// `kafkaConsumerReplicas` defines the number of replicas (pods) to start for `flowlogs-pipeline-transformer`, which consumes Kafka messages.
 	// This setting is ignored when Kafka is disabled.
+	//+kubebuilder:validation:Minimum=0
+	// +optional
 	//
 	// Deprecated: use `spec.processor.consumerReplicas` instead.
 	KafkaConsumerReplicas *int32 `json:"kafkaConsumerReplicas,omitempty"`
@@ -706,24 +690,22 @@ type FlowCollectorFLP struct {
 	// +optional
 	KafkaConsumerAutoscaler FlowCollectorHPA `json:"kafkaConsumerAutoscaler,omitempty"`
 
-	//+kubebuilder:validation:Minimum=0
 	// `consumerReplicas` defines the number of replicas (pods) to start for `flowlogs-pipeline`, default is 3.
 	// This setting is ignored when `spec.deploymentModel` is `Direct` or when `spec.processor.unmanagedReplicas` is `true`.
+	//+kubebuilder:validation:Minimum=0
 	ConsumerReplicas *int32 `json:"consumerReplicas,omitempty"`
 
 	// If `unmanagedReplicas` is `true`, the operator will not reconcile `consumerReplicas`. This is useful when using a pod autoscaler.
 	// +optional
 	UnmanagedReplicas bool `json:"unmanagedReplicas,omitempty"`
 
-	//+kubebuilder:default:=1000
+	// `kafkaConsumerQueueCapacity` defines the capacity of the internal message queue used in the Kafka consumer client. Ignored when not using Kafka. Default: 1000.
 	// +optional
-	// `kafkaConsumerQueueCapacity` defines the capacity of the internal message queue used in the Kafka consumer client. Ignored when not using Kafka.
-	KafkaConsumerQueueCapacity int `json:"kafkaConsumerQueueCapacity"`
+	KafkaConsumerQueueCapacity int `json:"kafkaConsumerQueueCapacity,omitempty"`
 
-	//+kubebuilder:default:=10485760
-	// +optional
 	// `kafkaConsumerBatchSize` indicates to the broker the maximum batch size, in bytes, that the consumer accepts. Ignored when not using Kafka. Default: 10MB.
-	KafkaConsumerBatchSize int `json:"kafkaConsumerBatchSize"`
+	// +optional
+	KafkaConsumerBatchSize int `json:"kafkaConsumerBatchSize,omitempty"`
 
 	// `logTypes` defines the desired record types to generate. Possible values are:<br>
 	// - `Flows` to export regular network flows. This is the default.<br>
@@ -732,42 +714,39 @@ type FlowCollectorFLP struct {
 	// - `All` to generate both network flows and all conversations events. It is not recommended due to the impact on resources footprint.<br>
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:Enum:="Flows";"Conversations";"EndedConversations";"All"
-	// +kubebuilder:default:=Flows
 	LogTypes *FLPLogTypes `json:"logTypes,omitempty"`
 
-	//+kubebuilder:default:=""
-	// +optional
 	// `clusterName` is the name of the cluster to appear in the flows data. In a multi-cluster context, it makes it possible to identify the flows provenance.
+	// +optional
 	ClusterName string `json:"clusterName,omitempty"`
 
-	//+kubebuilder:default:=false
 	// Set `multiClusterDeployment` to `true` to enable multi clusters feature. This adds `clusterName` label to flows data
 	MultiClusterDeployment *bool `json:"multiClusterDeployment,omitempty"`
 
-	//+optional
 	// `addZone` allows availability zone awareness by labeling flows with their source and destination zones.
 	// This feature requires the "topology.kubernetes.io/zone" label to be set on nodes.
+	//+optional
 	AddZone *bool `json:"addZone,omitempty"`
 
-	//+optional
 	// `subnetLabels` allows to define custom labels on subnets and IPs and, for supported vendors, to enable automatic labeling of recognized subnets, which is used to identify cluster external traffic.
 	// When a subnet matches the source or destination IP of a flow, a corresponding field is added: `SrcSubnetLabel` or `DstSubnetLabel`.
+	//+optional
 	SubnetLabels SubnetLabels `json:"subnetLabels,omitempty"`
 
-	//+optional
 	// `bgpEnrichment` enables BGP ASN enrichment by watching FRRConfiguration CRDs (frrk8s.metallb.io/v1beta1).
 	// When enabled, flows are enriched with `SrcASN` and `DstASN` fields based on longest-prefix match against
 	// advertised prefixes from FRRConfiguration resources. Requires frr-k8s to be installed in the cluster.
+	//+optional
 	BgpEnrichment *bool `json:"bgpEnrichment,omitempty"`
 
-	//+optional
 	// `deduper` allows you to sample or drop flows identified as duplicates, in order to save on resource usage.
+	//+optional
 	Deduper *FLPDeduper `json:"deduper,omitempty"`
 
-	// +optional
 	// `filters` lets you define custom filters to limit the amount of generated flows.
 	// These filters provide more flexibility than the eBPF Agent filters (in `spec.agent.ebpf.flowFilter`), such as allowing to filter by Kubernetes namespace,
 	// but with a lesser improvement in performance.
+	// +optional
 	Filters []FLPFilterSet `json:"filters"`
 
 	// Global configuration managing FlowCollectorSlices custom resources.
@@ -948,8 +927,6 @@ const (
 
 type SlicesConfig struct {
 	// `enable` determines if the FlowCollectorSlice feature is enabled. If not, all resources of kind FlowCollectorSlice are simply ignored.
-	//+kubebuilder:default:=false
-	//+kubebuilder:validation:Required
 	Enable bool `json:"enable,omitempty"`
 
 	// `collectionMode` determines how the FlowCollectorSlice custom resources impacts the flow collection process:<br>
@@ -976,39 +953,35 @@ const (
 
 // `LokiManualParams` defines the full connection parameters to Loki.
 type LokiManualParams struct {
-	//+kubebuilder:default:="http://loki:3100/"
 	// `ingesterUrl` is the address of an existing Loki ingester service to push the flows to. When using the Loki Operator,
 	// set it to the Loki gateway service with the `network` tenant set in path, for example
 	// https://loki-gateway-http.netobserv.svc:8080/api/logs/v1/network.
 	IngesterURL string `json:"ingesterUrl,omitempty"`
 
-	//+kubebuilder:default:="http://loki:3100/"
 	// `querierUrl` specifies the address of the Loki querier service.
 	// When using the Loki Operator, set it to the Loki gateway service with the `network` tenant set in path, for example
 	// https://loki-gateway-http.netobserv.svc:8080/api/logs/v1/network.
 	QuerierURL string `json:"querierUrl,omitempty"`
 
-	//+kubebuilder:validation:optional
 	// `statusUrl` specifies the address of the Loki `/ready`, `/metrics` and `/config` endpoints, in case it is different from the
 	// Loki querier URL. If empty, the `querierUrl` value is used.
 	// This is useful to show error messages and some context in the frontend.
 	// When using the Loki Operator, set it to the Loki HTTP query frontend service, for example
 	// https://loki-query-frontend-http.netobserv.svc:3100/.
 	// `statusTLS` configuration is used when `statusUrl` is set.
+	//+kubebuilder:validation:optional
 	StatusURL string `json:"statusUrl,omitempty"`
 
-	//+kubebuilder:default:="netobserv"
 	// `tenantID` is the Loki `X-Scope-OrgID` that identifies the tenant for each request.
 	// When using the Loki Operator, set it to `network`, which corresponds to a special tenant mode.
 	TenantID string `json:"tenantID,omitempty"`
 
-	//+kubebuilder:validation:Enum:="Disabled";"Host";"Forward"
-	//+kubebuilder:default:="Disabled"
 	// `authToken` describes the way to get a token to authenticate to Loki.<br>
 	// - `Disabled` does not send any token with the request.<br>
 	// - `Forward` forwards the user token for authorization.<br>
 	// - `Host` (deprecated) - uses the local pod service account to authenticate to Loki.<br>
 	// When using the Loki Operator, this must be set to `Forward`.
+	//+kubebuilder:validation:Enum:="Disabled";"Host";"Forward"
 	AuthToken LokiAuthToken `json:"authToken,omitempty"`
 
 	// TLS client configuration for Loki URL.
@@ -1022,15 +995,12 @@ type LokiManualParams struct {
 
 // LokiMicroservicesParams is the configuration for microservices Loki (https://grafana.com/docs/loki/latest/fundamentals/architecture/deployment-modes/#microservices-mode)
 type LokiMicroservicesParams struct {
-	//+kubebuilder:default:="http://loki-distributor:3100/"
 	// `ingesterUrl` is the address of an existing Loki ingester service to push the flows to.
 	IngesterURL string `json:"ingesterUrl,omitempty"`
 
-	//+kubebuilder:default:="http://loki-query-frontend:3100/"
 	// `querierURL` specifies the address of the Loki querier service.
 	QuerierURL string `json:"querierUrl,omitempty"`
 
-	//+kubebuilder:default:="netobserv"
 	// `tenantID` is the Loki `X-Scope-OrgID` header that identifies the tenant for each request.
 	TenantID string `json:"tenantID,omitempty"`
 
@@ -1043,14 +1013,11 @@ type LokiMicroservicesParams struct {
 type LokiMonolithParams struct {
 	// Set `installDemoLoki` to `true` to automatically create Loki deployment, service and storage.
 	// This is meant for development and demo use only, and not recommended in production.
-	//+kubebuilder:default:=false
 	InstallDemoLoki *bool `json:"installDemoLoki,omitempty"`
 
-	//+kubebuilder:default:="http://loki:3100/"
 	// `url` is the unique address of an existing Loki service that points to both the ingester and the querier.
 	URL string `json:"url,omitempty"`
 
-	//+kubebuilder:default:="netobserv"
 	// `tenantID` is the Loki `X-Scope-OrgID` header that identifies the tenant for each request.
 	TenantID string `json:"tenantID,omitempty"`
 
@@ -1062,8 +1029,6 @@ type LokiMonolithParams struct {
 // LokiStackRef defines the name and namespace of the LokiStack instance
 type LokiStackRef struct {
 	// Name of an existing LokiStack resource to use.
-	//+kubebuilder:default:="loki"
-	//+kubebuilder:validation:Required
 	Name string `json:"name,omitempty"`
 
 	// Namespace where this `LokiStack` resource is located. If omitted, it is assumed to be the same as `spec.namespace`.
@@ -1085,24 +1050,21 @@ const (
 
 // `FlowCollectorLoki` defines the desired state for FlowCollector's Loki client.
 type FlowCollectorLoki struct {
-	// Set `enable` to `true` to store flows in Loki.
-	// The Console plugin can use either Loki or Prometheus as a data source for metrics (see also `spec.prometheus.querier`), or both.
+	// Set `enable` to `true` to store flows in Loki, or `false` to not use Loki.
+	// The web console can use either Loki or Prometheus as a data source for metrics (see also `spec.prometheus.querier`), or both.
 	// Not all queries are transposable from Loki to Prometheus. Hence, if Loki is disabled, some features of the plugin are disabled as well,
 	// such as getting per-pod information or viewing raw flows.
 	// If both Prometheus and Loki are enabled, Prometheus takes precedence and Loki is used as a fallback for queries that Prometheus cannot handle.
-	// If they are both disabled, the Console plugin is not deployed.
-	//+kubebuilder:default:=true
+	// If they are both disabled, the web console is not deployed.
 	Enable *bool `json:"enable,omitempty"`
 
 	// `mode` must be set according to the installation mode of Loki:<br>
-	// - Use `LokiStack` when Loki is managed using the Loki Operator<br>
-	// - Use `Monolithic` when Loki is installed as a monolithic workload<br>
-	// - Use `Microservices` when Loki is installed as microservices, but without Loki Operator<br>
-	// - Use `Manual` if none of the options above match your setup<br>
+	// - Use `LokiStack` when Loki is managed using the Loki Operator.<br>
+	// - Use `Monolithic` when Loki is installed as a monolithic workload.<br>
+	// - Use `Microservices` when Loki is installed as microservices, but without Loki Operator.<br>
+	// - Use `Manual` if none of the options above match your setup.<br>
 	//+unionDiscriminator
 	//+kubebuilder:validation:Enum=Manual;LokiStack;Monolithic;Microservices
-	//+kubebuilder:default:="Monolithic"
-	//+kubebuilder:validation:Required
 	Mode LokiMode `json:"mode,omitempty"`
 
 	// Loki configuration for `Manual` mode. This is the most flexible configuration.
@@ -1127,23 +1089,19 @@ type FlowCollectorLoki struct {
 	// +optional
 	LokiStack LokiStackRef `json:"lokiStack,omitempty"`
 
-	//+kubebuilder:default:="30s"
 	// `readTimeout` is the maximum console plugin loki query total time limit.
 	// A timeout of zero means no timeout.
 	ReadTimeout *metav1.Duration `json:"readTimeout,omitempty"` // Warning: keep as pointer, else default is ignored
 
-	//+kubebuilder:default:="10s"
 	// `writeTimeout` is the maximum Loki time connection / request limit.
 	// A timeout of zero means no timeout.
 	WriteTimeout *metav1.Duration `json:"writeTimeout,omitempty"` // Warning: keep as pointer, else default is ignored
 
-	//+kubebuilder:default:="1s"
 	// `writeBatchWait` is the maximum time to wait before sending a Loki batch.
 	WriteBatchWait *metav1.Duration `json:"writeBatchWait,omitempty"` // Warning: keep as pointer, else default is ignored
 
+	// `writeBatchSize` is the maximum batch size (in bytes) of Loki logs to accumulate before sending. Default: 10MB.
 	//+kubebuilder:validation:Minimum=1
-	//+kubebuilder:default:=10485760
-	// `writeBatchSize` is the maximum batch size (in bytes) of Loki logs to accumulate before sending.
 	WriteBatchSize int64 `json:"writeBatchSize,omitempty"`
 
 	// `advanced` allows setting some aspects of the internal configuration of the Loki clients.
@@ -1154,7 +1112,6 @@ type FlowCollectorLoki struct {
 
 // `PrometheusQuerierManual` defines the full connection parameters to Prometheus.
 type PrometheusQuerierManual struct {
-	//+kubebuilder:default:="http://prometheus:9090"
 	// `url` is the address of an existing Prometheus service to use for querying metrics.
 	URL string `json:"url,omitempty"`
 
@@ -1197,14 +1154,13 @@ type FlowCollectorPrometheus struct {
 
 // `PrometheusQuerier` defines the desired state for querying Prometheus (client...)
 type PrometheusQuerier struct {
-	// When `enable` is `true`, the Console plugin queries flow metrics from Prometheus instead of Loki whenever possible.
+	// When `enable` is `true`, the web console queries flow metrics from Prometheus instead of Loki whenever possible.
 	// It is enabled by default: set it to `false` to disable this feature.
-	// The Console plugin can use either Loki or Prometheus as a data source for metrics (see also `spec.loki`), or both.
+	// The web console can use either Loki or Prometheus as a data source for metrics (see also `spec.loki`), or both.
 	// Not all queries are transposable from Loki to Prometheus. Hence, if Loki is disabled, some features of the plugin are disabled as well,
 	// such as getting per-pod information or viewing raw flows.
 	// If both Prometheus and Loki are enabled, Prometheus takes precedence and Loki is used as a fallback for queries that Prometheus cannot handle.
-	// If they are both disabled, the Console plugin is not deployed.
-	//+kubebuilder:default:=true
+	// If they are both disabled, the web console is not deployed.
 	Enable *bool `json:"enable,omitempty"`
 
 	// `mode` must be set according to the type of Prometheus installation that stores NetObserv metrics:<br>
@@ -1212,15 +1168,12 @@ type PrometheusQuerier struct {
 	// - Use `Manual` for a manual setup.<br>
 	//+unionDiscriminator
 	//+kubebuilder:validation:Enum=Manual;Auto
-	//+kubebuilder:default:="Auto"
-	//+kubebuilder:validation:Required
 	Mode PrometheusMode `json:"mode,omitempty"`
 
 	// Prometheus configuration for `Manual` mode.
 	// +optional
 	Manual PrometheusQuerierManual `json:"manual,omitempty"`
 
-	//+kubebuilder:default:="30s"
 	// `timeout` is the read timeout for console plugin queries to Prometheus.
 	// A timeout of zero means no timeout.
 	Timeout *metav1.Duration `json:"timeout,omitempty"` // Warning: keep as pointer, else default is ignored
@@ -1228,36 +1181,31 @@ type PrometheusQuerier struct {
 
 // FlowCollectorConsolePlugin defines the desired ConsolePlugin state of FlowCollector.
 type FlowCollectorConsolePlugin struct {
-	//+kubebuilder:default:=true
 	// Enables the console plugin deployment.
 	Enable *bool `json:"enable,omitempty"`
 
 	// Deploy as a standalone console. Supported vendors may use a plugin system instead.
 	Standalone *bool `json:"standalone,omitempty"`
 
-	//+kubebuilder:validation:Minimum=0
-	//+kubebuilder:default:=1
 	// `replicas` defines the number of replicas (pods) to start.
+	//+kubebuilder:validation:Minimum=0
 	Replicas *int32 `json:"replicas,omitempty"`
 
 	// If `unmanagedReplicas` is `true`, the operator will not reconcile `replicas`. This is useful when using a pod autoscaler.
 	// +optional
 	UnmanagedReplicas bool `json:"unmanagedReplicas,omitempty"`
 
-	//+kubebuilder:validation:Enum=IfNotPresent;Always;Never
-	//+kubebuilder:default:=IfNotPresent
 	// `imagePullPolicy` is the Kubernetes pull policy for the image defined above.
+	//+kubebuilder:validation:Enum=IfNotPresent;Always;Never
 	ImagePullPolicy string `json:"imagePullPolicy,omitempty"`
 
-	//+kubebuilder:default:={requests:{memory:"50Mi",cpu:"100m"},limits:{memory:"100Mi"}}
 	// `resources`, in terms of compute resources, required by this container.
 	// For more information, see https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/.
 	// +optional
 	Resources corev1.ResourceRequirements `json:"resources,omitempty" protobuf:"bytes,8,opt,name=resources"`
 
-	//+kubebuilder:validation:Enum=trace;debug;info;warn;error;fatal;panic
-	//+kubebuilder:default:=info
 	// `logLevel` for the web console backend.
+	//+kubebuilder:validation:Enum=trace;debug;info;warn;error;fatal;panic
 	LogLevel string `json:"logLevel,omitempty"`
 
 	// `autoscaler`: spec of a horizontal pod autoscaler to set up for the web console Deployment.
@@ -1267,15 +1215,14 @@ type FlowCollectorConsolePlugin struct {
 	// +optional
 	Autoscaler FlowCollectorHPA `json:"autoscaler,omitempty"`
 
-	//+kubebuilder:default:={enable:true}
 	// `portNaming` defines the configuration of the port-to-service name translation.
+	// +optional
 	PortNaming ConsolePluginPortConfig `json:"portNaming,omitempty"`
 
-	//+kubebuilder:default:={{name:"Applications",filter:{"flow_layer":"\"app\""},default:true},{name:"Infrastructure",filter:{"flow_layer":"\"infra\""}},{name:"Pods network",filter:{"src_kind":"\"Pod\"","dst_kind":"\"Pod\""},default:true},{name:"Services network",filter:{"dst_kind":"\"Service\""}},{name:"External ingress",filter:{"src_subnet_label":"\"\",EXT:"}},{name:"External egress",filter:{"dst_subnet_label":"\"\",EXT:"}}}
-	// +optional
 	// `quickFilters` configures quick filter presets for the web console.
 	// Filters for external traffic assume the subnet labels are configured to distinguish internal and external traffic (see `spec.processor.subnetLabels`).
-	QuickFilters []QuickFilter `json:"quickFilters"`
+	// +optional
+	QuickFilters []QuickFilter `json:"quickFilters,omitzero"`
 
 	// `advanced` allows setting some aspects of the internal configuration of the console plugin.
 	// This section is aimed mostly for debugging and fine-grained performance optimizations,
@@ -1286,7 +1233,6 @@ type FlowCollectorConsolePlugin struct {
 
 // Configuration of the port to service name translation feature of the console plugin
 type ConsolePluginPortConfig struct {
-	//+kubebuilder:default:=true
 	// Enable the console plugin port-to-service name translation
 	Enable *bool `json:"enable,omitempty"`
 
@@ -1667,8 +1613,6 @@ type ProcessorServiceConfig struct {
 	// - `Auto-mTLS` to preconfigure mTLS.<br>
 	// See also: https://github.com/netobserv/netobserv-operator/blob/main/docs/TLS.md.
 	// +kubebuilder:validation:Enum:="Disabled";"Provided";"Auto";"Auto-mTLS"
-	// +kubebuilder:validation:Required
-	// +kubebuilder:default:="Auto"
 	TLSType TLSConfigType `json:"tlsType,omitempty"`
 
 	// TLS or mTLS configuration when `type` is set to `Provided`.
@@ -1685,8 +1629,6 @@ type InformerCacheProxyTLSConfig struct {
 	// - `Auto-mTLS` to preconfigure mTLS with cert-manager.<br>
 	// See also: https://github.com/netobserv/netobserv-operator/blob/main/docs/TLS.md.
 	// +kubebuilder:validation:Enum:="Disabled";"Provided";"Auto";"Auto-mTLS"
-	// +kubebuilder:validation:Required
-	// +kubebuilder:default:="Auto"
 	Type TLSConfigType `json:"type,omitempty"`
 
 	// mTLS configuration when `type` is set to `Provided`.
