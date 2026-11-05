@@ -55,7 +55,7 @@ metadata:
               "lo"
             ],
             "maxBytes": 10000000,
-            "maxTime": "30s",
+            "maxTime": "120s",
             "outputType": "flows",
             "sampling": 1
           }
