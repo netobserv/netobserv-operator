@@ -950,7 +950,13 @@ func desiredCollector(fc *flowcapturev1alpha1.FlowCapture, image string, names *
 	if fc.Spec.MaxTime != nil {
 		maxTime = fc.Spec.MaxTime.Duration.String()
 	}
-	args := sharedcapture.CollectorCommand(sharedcapture.Type(fc.Spec.OutputType), fc.Namespace, "info", maxTime, fc.Spec.MaxBytes, "background|managed")
+	collectorOptions := "background|managed"
+	if fc.Spec.TLSPlaintext != nil {
+		// The CLI uses this option to persist plaintext records and correlate them
+		// with the packet capture. The agent is configured separately below.
+		collectorOptions += "|enable_openssl"
+	}
+	args := sharedcapture.CollectorCommand(sharedcapture.Type(fc.Spec.OutputType), fc.Namespace, "info", maxTime, fc.Spec.MaxBytes, collectorOptions)
 	// Managed collectors must remain Running after the capture limit is reached:
 	// their emptyDir output is copied with oc cp before the user cleans them up.
 	podOptions := &sharedcapture.CollectorPodOptions{Name: names.CollectorPod, Namespace: fc.Namespace, ServiceAccount: names.CollectorServiceAccount, Image: image, Command: args}
