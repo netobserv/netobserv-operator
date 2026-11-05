@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	metricslatest "github.com/netobserv/netobserv-operator/api/flowmetrics/v1alpha1"
+	publicdash "github.com/netobserv/netobserv-operator/pkg/dashboards"
 )
 
 type chart struct {
@@ -13,28 +14,28 @@ type chart struct {
 	mptr *metricslatest.FlowMetric
 }
 
-func createSingleStatPanels(c *chart) []Panel {
+func createSingleStatPanels(c *chart, metricPrefix string) []Panel {
 	var panels []Panel
 	for _, q := range c.Queries {
 		title := c.Title
 		if q.Legend != "" {
 			title += ", " + q.Legend
 		}
-		query := strings.ReplaceAll(q.PromQL, "$METRIC", "netobserv_"+c.mptr.Spec.MetricName)
+		query := strings.ReplaceAll(q.PromQL, "$METRIC", metricPrefix+c.mptr.Spec.MetricName)
 		newPanel := NewPanel(title, metricslatest.ChartTypeSingleStat, c.Unit, 3, NewTarget(query, ""))
 		panels = append(panels, newPanel)
 	}
 	return panels
 }
 
-func createGraphPanel(c *chart) Panel {
+func createGraphPanel(c *chart, metricPrefix string) Panel {
 	var targets []Target
 	for _, q := range c.Queries {
 		top := 7
 		if q.Top > 0 {
 			top = q.Top
 		}
-		query := strings.ReplaceAll(q.PromQL, "$METRIC", "netobserv_"+c.mptr.Spec.MetricName)
+		query := strings.ReplaceAll(q.PromQL, "$METRIC", metricPrefix+c.mptr.Spec.MetricName)
 		query = fmt.Sprintf("topk(%d, %s)", top, query)
 		targets = append(targets, NewTarget(query, q.Legend))
 	}
@@ -63,7 +64,7 @@ func rearrangeRows(rows []*Row, mapTopPanels, mapBodyPanels map[string][]Panel) 
 	}
 }
 
-func createFlowMetricsDashboard(dashboardName string, charts []chart) string {
+func createFlowMetricsDashboard(dashboardName string, charts []chart, metricPrefix string) string {
 	mapRows := make(map[string]*Row)
 	mapTopPanels := make(map[string][]Panel)
 	mapBodyPanels := make(map[string][]Panel)
@@ -80,9 +81,9 @@ func createFlowMetricsDashboard(dashboardName string, charts []chart) string {
 		chartsDedupMap[dedupKey] = true
 
 		if chart.Type == metricslatest.ChartTypeSingleStat {
-			mapTopPanels[chart.SectionName] = append(mapTopPanels[chart.SectionName], createSingleStatPanels(&chart)...)
+			mapTopPanels[chart.SectionName] = append(mapTopPanels[chart.SectionName], createSingleStatPanels(&chart, metricPrefix)...)
 		} else {
-			mapBodyPanels[chart.SectionName] = append(mapBodyPanels[chart.SectionName], createGraphPanel(&chart))
+			mapBodyPanels[chart.SectionName] = append(mapBodyPanels[chart.SectionName], createGraphPanel(&chart, metricPrefix))
 		}
 
 		if _, exists := mapRows[chart.SectionName]; !exists {
@@ -94,10 +95,14 @@ func createFlowMetricsDashboard(dashboardName string, charts []chart) string {
 
 	rearrangeRows(orderedRows, mapTopPanels, mapBodyPanels)
 	d := Dashboard{Rows: orderedRows, Title: "NetObserv / " + dashboardName}
-	return d.ToGrafanaJSON()
+	return publicdash.CreateDashboard(d.Title, d.Rows)
 }
 
 func CreateFlowMetricsDashboards(metrics []metricslatest.FlowMetric) map[string]string {
+	return CreateFlowMetricsDashboardsWithPrefix(metrics, "netobserv_")
+}
+
+func CreateFlowMetricsDashboardsWithPrefix(metrics []metricslatest.FlowMetric, metricPrefix string) map[string]string {
 	dashboardsJSON := make(map[string]string)
 	chartsPerDashboard := make(map[string][]chart)
 	// Sort alphabetically to enforce consistent ordering
@@ -113,7 +118,7 @@ func CreateFlowMetricsDashboards(metrics []metricslatest.FlowMetric) map[string]
 		}
 	}
 	for name, charts := range chartsPerDashboard {
-		dashboardsJSON[name] = createFlowMetricsDashboard(name, charts)
+		dashboardsJSON[name] = createFlowMetricsDashboard(name, charts, metricPrefix)
 	}
 	return dashboardsJSON
 }

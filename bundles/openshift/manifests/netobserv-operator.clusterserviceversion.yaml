@@ -6,6 +6,62 @@ metadata:
       [
         {
           "apiVersion": "flows.netobserv.io/v1alpha1",
+          "kind": "FlowCapture",
+          "metadata": {
+            "name": "flowcapture-metrics-sample"
+          },
+          "spec": {
+            "features": [
+              "DNSTracking"
+            ],
+            "maxTime": "30s",
+            "outputType": "metrics"
+          }
+        },
+        {
+          "apiVersion": "flows.netobserv.io/v1alpha1",
+          "kind": "FlowCapture",
+          "metadata": {
+            "name": "flowcapture-packet-sample"
+          },
+          "spec": {
+            "filters": [
+              {
+                "action": "Accept",
+                "destination_port": 443,
+                "protocol": "TCP"
+              }
+            ],
+            "maxBytes": 10000000,
+            "maxTime": "30s",
+            "outputType": "packets",
+            "sampling": 1,
+            "tlsPlaintext": {
+              "previewBytes": 256,
+              "processAllowlist": [
+                "nginx"
+              ]
+            }
+          }
+        },
+        {
+          "apiVersion": "flows.netobserv.io/v1alpha1",
+          "kind": "FlowCapture",
+          "metadata": {
+            "name": "flowcapture-sample"
+          },
+          "spec": {
+            "excludeInterfaces": [
+              "lo"
+            ],
+            "maxBytes": 10000000,
+            "maxTime": "30s",
+            "outputType": "flows",
+            "sampling": 1
+          }
+        },
+        {
+          "apiVersion": "flows.netobserv.io/v1alpha1",
           "kind": "FlowCollectorSlice",
           "metadata": {
             "name": "flowcollectorslice-sample"
@@ -112,6 +168,12 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
+    - description: '`FlowCapture` requests a short-lived capture of flows, packets,
+        or metrics.'
+      displayName: Flow Capture
+      kind: FlowCapture
+      name: flowcaptures.flows.netobserv.io
+      version: v1alpha1
     - description: '`FlowCollector` is the schema for the network flows collection
         API, which pilots and configures the underlying deployments.'
       displayName: Flow Collector
@@ -736,7 +798,6 @@ spec:
           resources:
           - endpoints
           - nodes
-          - pods
           verbs:
           - get
           - list
@@ -748,6 +809,16 @@ spec:
           verbs:
           - create
           - patch
+        - apiGroups:
+          - ""
+          resources:
+          - pods
+          verbs:
+          - create
+          - get
+          - list
+          - patch
+          - watch
         - apiGroups:
           - apiextensions.k8s.io
           resources:
@@ -776,6 +847,7 @@ spec:
           resources:
           - daemonsets
           - deployments
+          - replicasets
           verbs:
           - create
           - delete
@@ -849,6 +921,7 @@ spec:
         - apiGroups:
           - flows.netobserv.io
           resources:
+          - flowcaptures
           - flowcollectors
           - flowcollectorslices
           - flowmetrics
@@ -863,12 +936,14 @@ spec:
         - apiGroups:
           - flows.netobserv.io
           resources:
+          - flowcaptures/finalizers
           - flowcollectors/finalizers
           verbs:
           - update
         - apiGroups:
           - flows.netobserv.io
           resources:
+          - flowcaptures/status
           - flowcollectors/status
           - flowcollectorslices/status
           - flowmetrics/status
@@ -929,6 +1004,9 @@ spec:
         - apiGroups:
           - rbac.authorization.k8s.io
           resourceNames:
+          - netobserv-flowcapture-informers
+          - netobserv-flowcapture-plaintext-scc
+          - netobserv-flowcapture-scc
           - netobserv-flowcollector-viewer-role
           - netobserv-flp-extra-reader
           - netobserv-hostnetwork
@@ -944,6 +1022,8 @@ spec:
         - apiGroups:
           - rbac.authorization.k8s.io
           resourceNames:
+          - netobserv-flowcapture-informers
+          - netobserv-flowcapture-scc
           - netobserv-flowcollector-viewer-role
           - netobserv-flp-extra-reader
           - netobserv-hostnetwork
@@ -966,13 +1046,35 @@ spec:
           - update
           - watch
         - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - roles
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
           - security.openshift.io
           resources:
           - securitycontextconstraints
           verbs:
           - create
+          - get
           - list
+          - update
           - watch
+        - apiGroups:
+          - security.openshift.io
+          resourceNames:
+          - flowcapture-plaintext
+          resources:
+          - securitycontextconstraints
+          verbs:
+          - use
         - apiGroups:
           - security.openshift.io
           resourceNames:
@@ -1035,6 +1137,8 @@ spec:
                 env:
                 - name: RELATED_IMAGE_EBPF_AGENT
                   value: quay.io/netobserv/netobserv-ebpf-agent:v2.0.2-community
+                - name: RELATED_IMAGE_CLI
+                  value: quay.io/netobserv/network-observability-cli:v2.0.0-community
                 - name: RELATED_IMAGE_FLOWLOGS_PIPELINE
                   value: quay.io/netobserv/flowlogs-pipeline:v2.0.2-community
                 - name: RELATED_IMAGE_WEB_CONSOLE
@@ -1196,6 +1300,8 @@ spec:
   relatedImages:
   - image: quay.io/netobserv/netobserv-ebpf-agent:v2.0.2-community
     name: ebpf-agent
+  - image: quay.io/netobserv/network-observability-cli:v2.0.0-community
+    name: cli
   - image: quay.io/netobserv/flowlogs-pipeline:v2.0.2-community
     name: flowlogs-pipeline
   - image: quay.io/netobserv/network-observability-console-plugin:v2.0.2-community
@@ -1208,6 +1314,26 @@ spec:
     name: web-console-pf4
   version: 2.0.2-community
   webhookdefinitions:
+  - admissionReviewVersions:
+    - v1
+    containerPort: 443
+    deploymentName: netobserv-controller-manager
+    failurePolicy: Fail
+    generateName: flowcapturevalidationwebhook.netobserv.io
+    rules:
+    - apiGroups:
+      - flows.netobserv.io
+      apiVersions:
+      - v1alpha1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - flowcaptures
+    sideEffects: None
+    targetPort: 9443
+    type: ValidatingAdmissionWebhook
+    webhookPath: /validate-flows-netobserv-io-v1alpha1-flowcapture
   - admissionReviewVersions:
     - v1
     containerPort: 443

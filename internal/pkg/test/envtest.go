@@ -44,6 +44,7 @@ import (
 	_ "github.com/openshift/api/operator/v1/zz_generated.crd-manifests"
 	_ "github.com/openshift/api/security/v1/zz_generated.crd-manifests"
 
+	flowcapturev1alpha1 "github.com/netobserv/netobserv-operator/api/flowcapture/v1alpha1"
 	flowsv1beta2 "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
 	slicesv1alpha1 "github.com/netobserv/netobserv-operator/api/flowcollectorslice/v1alpha1"
 	metricsv1alpha1 "github.com/netobserv/netobserv-operator/api/flowmetrics/v1alpha1"
@@ -150,6 +151,9 @@ func PrepareEnvTest(env Environment, controllers []manager.Registerer, opNamespa
 	Expect(err).NotTo(HaveOccurred())
 
 	err = corev1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+
+	err = flowcapturev1alpha1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	err = osv1.Install(scheme.Scheme)

@@ -14,6 +14,9 @@ ebpfAgent:
 flowlogsPipeline:
   image: quay.io/netobserv/flowlogs-pipeline
   version: v2.0.2-community
+cli:
+  image: quay.io/netobserv/network-observability-cli
+  version: v2.0.0-community
 consolePlugin:
   image: quay.io/netobserv/network-observability-console-plugin
   version: v2.0.2-community
