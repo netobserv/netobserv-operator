@@ -1042,11 +1042,10 @@ spec:
                           pattern: ^\d+(ns|ms|s|m)?$
                           type: string
                         cacheMaxFlows:
-                          default: 120000
                           description: |-
                             `cacheMaxFlows` is the maximum number of flows in an aggregate; when reached, the reporter sends the flows.
                             Increasing `cacheMaxFlows` and `cacheActiveTimeout` can decrease the network traffic overhead and the CPU load,
-                            however you can expect higher memory consumption and an increased latency in the flow collection.
+                            however you can expect higher memory consumption and an increased latency in the flow collection. The default is 120K.
                           format: int32
                           minimum: 1
                           type: integer
@@ -1542,7 +1541,6 @@ spec:
                               type: object
                           type: object
                         sampling:
-                          default: 50
                           description: Sampling interval of the eBPF probe. 100 means one packet on 100 is sent. 0 or 1 means all packets are sampled.
                           format: int32
                           minimum: 0
@@ -6283,6 +6281,18 @@ spec:
                       description: If `unmanagedReplicas` is `true`, the operator will not reconcile `consumerReplicas`. This is useful when using a pod autoscaler.
                       type: boolean
                   type: object
+                profile:
+                  description: |-
+                    `profile` defines a preset configuration for a few FlowCollector default settings. Any value explicitly set in the FlowCollector resource
+                    overrides the profile values. Possible profiles are:<br>
+                    - `Low`: Low precision, with low resource usage and minimal impact on the cluster. In this mode, Loki is disabled, sampling is set to 400, there is no special eBPF feature enabled and eBPF `cacheMaxFlows` is decreased to 50K.<br>
+                    - `High`: High precision profile, with more features enabled, but potentially a more significant impact on the cluster resources. This mode assumes Loki is installed, sampling is set to 1 (all packets are sampled), and these eBPF features are enabled: `DNSTracking`, `FlowRTT`, `PacketDrop`, `SecondaryNetworks`, `TLSTracking` and `UDNMapping`.<br>
+                    - `Default`: Medium precision, suitable for most installations, equivalent to no profile.<br>
+                  enum:
+                    - Low
+                    - High
+                    - Default
+                  type: string
                 prometheus:
                   description: '`prometheus` defines Prometheus settings, such as querier configuration used to fetch metrics from the Console plugin.'
                   properties:

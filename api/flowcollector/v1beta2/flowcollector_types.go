@@ -17,6 +17,14 @@ const (
 	DeploymentModelService FlowCollectorDeploymentModel = "Service"
 )
 
+type FlowCollectorProfile string
+
+const (
+	ProfileLowResources  FlowCollectorProfile = "Low"
+	ProfileHighResources FlowCollectorProfile = "High"
+	ProfileDefault       FlowCollectorProfile = "Default"
+)
+
 // Please notice that the FlowCollectorSpec's properties MUST redefine one of the default
 // values to force the definition of the section when it is not provided by the manifest.
 // This will cause that the remaining default fields will be set according to their definition.
@@ -72,6 +80,15 @@ type FlowCollectorSpec struct {
 
 	// `execution` defines configuration related to the execution of the flow collection process.
 	Execution FlowCollectorExecution `json:"execution,omitempty"`
+
+	// `profile` defines a preset configuration for a few FlowCollector default settings. Any value explicitly set in the FlowCollector resource
+	// overrides the profile values. Possible profiles are:<br>
+	// - `Low`: Low precision, with low resource usage and minimal impact on the cluster. In this mode, Loki is disabled, sampling is set to 400, there is no special eBPF feature enabled and eBPF `cacheMaxFlows` is decreased to 50K.<br>
+	// - `High`: High precision profile, with more features enabled, but potentially a more significant impact on the cluster resources. This mode assumes Loki is installed, sampling is set to 1 (all packets are sampled), and these eBPF features are enabled: `DNSTracking`, `FlowRTT`, `PacketDrop`, `SecondaryNetworks`, `TLSTracking` and `UDNMapping`.<br>
+	// - `Default`: Medium precision, suitable for most installations, equivalent to no profile.<br>
+	// +kubebuilder:validation:Enum:="Low";"High";"Default"
+	// +optional
+	Profile FlowCollectorProfile `json:"profile,omitempty"`
 }
 
 type NetworkPolicy struct {
@@ -321,7 +338,6 @@ type FlowCollectorEBPF struct {
 
 	// Sampling interval of the eBPF probe. 100 means one packet on 100 is sent. 0 or 1 means all packets are sampled.
 	//+kubebuilder:validation:Minimum=0
-	//+kubebuilder:default:=50
 	//+optional
 	Sampling *int32 `json:"sampling,omitempty"`
 
@@ -334,10 +350,9 @@ type FlowCollectorEBPF struct {
 
 	// `cacheMaxFlows` is the maximum number of flows in an aggregate; when reached, the reporter sends the flows.
 	// Increasing `cacheMaxFlows` and `cacheActiveTimeout` can decrease the network traffic overhead and the CPU load,
-	// however you can expect higher memory consumption and an increased latency in the flow collection.
+	// however you can expect higher memory consumption and an increased latency in the flow collection. The default is 120K.
 	//+kubebuilder:validation:Minimum=1
-	//+kubebuilder:default:=120000
-	CacheMaxFlows int32 `json:"cacheMaxFlows,omitempty"`
+	CacheMaxFlows *int32 `json:"cacheMaxFlows,omitempty"`
 
 	// `interfaces` contains the interface names from where flows are collected. If empty, the agent
 	// fetches all the interfaces in the system, excepting the ones listed in `excludeInterfaces`.

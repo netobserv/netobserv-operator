@@ -167,6 +167,19 @@ enriches them, generates metrics, and forwards them to the Loki persistence laye
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>profile</b></td>
+        <td>enum</td>
+        <td>
+          `profile` defines a preset configuration for a few FlowCollector default settings. Any value explicitly set in the FlowCollector resource
+overrides the profile values. Possible profiles are:<br>
+- `Low`: Low precision, with low resource usage and minimal impact on the cluster. In this mode, Loki is disabled, sampling is set to 400, there is no special eBPF feature enabled and eBPF `cacheMaxFlows` is decreased to 50K.<br>
+- `High`: High precision profile, with more features enabled, but potentially a more significant impact on the cluster resources. This mode assumes Loki is installed, sampling is set to 1 (all packets are sampled), and these eBPF features are enabled: `DNSTracking`, `FlowRTT`, `PacketDrop`, `SecondaryNetworks`, `TLSTracking` and `UDNMapping`.<br>
+- `Default`: Medium precision, suitable for most installations, equivalent to no profile.<br><br/>
+          <br/>
+            <i>Enum</i>: Low, High, Default<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#flowcollectorspecprometheus">prometheus</a></b></td>
         <td>object</td>
         <td>
@@ -260,10 +273,9 @@ however you can expect higher memory consumption and an increased latency in the
         <td>
           `cacheMaxFlows` is the maximum number of flows in an aggregate; when reached, the reporter sends the flows.
 Increasing `cacheMaxFlows` and `cacheActiveTimeout` can decrease the network traffic overhead and the CPU load,
-however you can expect higher memory consumption and an increased latency in the flow collection.<br/>
+however you can expect higher memory consumption and an increased latency in the flow collection. The default is 120K.<br/>
           <br/>
             <i>Format</i>: int32<br/>
-            <i>Default</i>: 120000<br/>
             <i>Minimum</i>: 1<br/>
         </td>
         <td>false</td>
@@ -393,7 +405,6 @@ For more information, see https://kubernetes.io/docs/concepts/configuration/mana
           Sampling interval of the eBPF probe. 100 means one packet on 100 is sent. 0 or 1 means all packets are sampled.<br/>
           <br/>
             <i>Format</i>: int32<br/>
-            <i>Default</i>: 50<br/>
             <i>Minimum</i>: 0<br/>
         </td>
         <td>false</td>

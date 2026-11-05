@@ -739,6 +739,11 @@ func (in *FlowCollectorEBPF) DeepCopyInto(out *FlowCollectorEBPF) {
 		*out = new(int32)
 		**out = **in
 	}
+	if in.CacheMaxFlows != nil {
+		in, out := &in.CacheMaxFlows, &out.CacheMaxFlows
+		*out = new(int32)
+		**out = **in
+	}
 	if in.Interfaces != nil {
 		in, out := &in.Interfaces, &out.Interfaces
 		*out = make([]string, len(*in))
