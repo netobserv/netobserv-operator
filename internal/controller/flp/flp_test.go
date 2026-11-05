@@ -2,7 +2,9 @@ package flp
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
+	"strconv"
 	"testing"
 	"time"
 
@@ -15,9 +17,11 @@ import (
 	"github.com/netobserv/netobserv-operator/internal/pkg/helper"
 	"github.com/netobserv/netobserv-operator/internal/pkg/manager/status"
 	"github.com/netobserv/netobserv-operator/internal/pkg/metrics/alerts"
+	"github.com/netobserv/netobserv-operator/internal/pkg/tlsconfig"
 	v1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
 	ascv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
@@ -996,4 +1000,116 @@ func TestK8sCacheInformerTLSServerName(t *testing.T) {
 		}
 	}
 	assert.True(foundCA, "k8scache-server-ca volume should exist")
+}
+
+func TestInformerMetricsTLS(t *testing.T) {
+	cfg := getConfig()
+	cfg.Processor.InformerCacheProxy = &flowslatest.FlowCollectorInformerCacheProxy{Enabled: ptr.To(true)}
+	cfg.Processor.Metrics.Server.TLS.Type = flowslatest.TLSAuto
+
+	info := reconcilers.Common{
+		Namespace: testNamespace, ClusterInfo: cluster.Mock(cluster.WithOpenShiftVersion("4.20.0")),
+		TLSConfig: &tls.Config{MinVersion: tls.VersionTLS13},
+	}
+	b := newInformerBuilder(info.NewInstance(image, status.Instance{}), &cfg)
+	service := b.metricsService()
+	assert.Equal(t, informerMetricsServiceName, service.Name)
+	assert.Equal(t, informerMetricsServiceName, service.Annotations[constants.OpenShiftCertificateAnnotation])
+	assert.Equal(t, map[string]string{"app": informerName}, service.Spec.Selector)
+	assert.Equal(t, informerMetricsPort, service.Spec.Ports[0].Port)
+
+	deployment, err := b.deployment()
+	require.NoError(t, err)
+	container := deployment.Spec.Template.Spec.Containers[0]
+	assert.Contains(t, container.Args, "--metrics-tls-cert-path=/var/informer-metrics-certs/tls.crt")
+	assert.Contains(t, container.Args, "--metrics-tls-key-path=/var/informer-metrics-certs/tls.key")
+	assert.Contains(t, container.Env, corev1.EnvVar{
+		Name: tlsconfig.EnvTLSMinVersion, Value: strconv.Itoa(int(tls.VersionTLS13)),
+	})
+	assert.Contains(t, deployment.Spec.Template.Spec.Volumes, corev1.Volume{
+		Name: "informer-metrics-certs",
+		VolumeSource: corev1.VolumeSource{Secret: &corev1.SecretVolumeSource{
+			SecretName: informerMetricsServiceName,
+		}},
+	})
+
+	monitor := b.metricsServiceMonitor()
+	assert.Equal(t, informerMetricsServiceName, monitor.Name)
+	assert.Equal(t, v1.Scheme("https"), *monitor.Spec.Endpoints[0].Scheme)
+	assert.Equal(t, informerMetricsServiceName+"."+testNamespace+".svc", *monitor.Spec.Endpoints[0].TLSConfig.ServerName)
+}
+
+func TestInformerMetricsProvidedTLS(t *testing.T) {
+	cfg := getConfig()
+	cfg.Processor.Metrics.Server.TLS = flowslatest.ServerTLS{
+		Type: flowslatest.TLSProvided,
+		Provided: &flowslatest.CertificateReference{
+			Type: flowslatest.RefTypeSecret, Name: "custom-metrics-cert",
+			CertFile: "server.crt", CertKey: "server.key",
+		},
+		ProvidedCAFile: &flowslatest.FileReference{
+			Type: flowslatest.RefTypeConfigMap, Name: "custom-ca", File: "ca.crt",
+		},
+	}
+	info := reconcilers.Common{Namespace: testNamespace, ClusterInfo: &cluster.Info{}}
+	b := newInformerBuilder(info.NewInstance(image, status.Instance{}), &cfg)
+	deployment, err := b.deployment()
+	require.NoError(t, err)
+	container := deployment.Spec.Template.Spec.Containers[0]
+	assert.Contains(t, container.Args, "--metrics-tls-cert-path=/var/informer-metrics-certs/server.crt")
+	assert.Contains(t, container.Args, "--metrics-tls-key-path=/var/informer-metrics-certs/server.key")
+	assert.Contains(t, container.VolumeMounts, corev1.VolumeMount{
+		Name: "informer-metrics-certs", MountPath: "/var/informer-metrics-certs", ReadOnly: true,
+	})
+	assert.Contains(t, deployment.Spec.Template.Spec.Volumes, corev1.Volume{
+		Name:         "informer-metrics-certs",
+		VolumeSource: corev1.VolumeSource{Secret: &corev1.SecretVolumeSource{SecretName: "custom-metrics-cert"}},
+	})
+	assert.Empty(t, b.metricsService().Annotations)
+	endpoint := b.metricsServiceMonitor().Spec.Endpoints[0]
+	assert.Equal(t, v1.Scheme("https"), *endpoint.Scheme)
+	require.NotNil(t, endpoint.TLSConfig)
+	assert.Equal(t, informerMetricsServiceName+"."+testNamespace+".svc", *endpoint.TLSConfig.ServerName)
+	assert.Equal(t, "custom-ca", endpoint.TLSConfig.CA.ConfigMap.Name)
+	assert.Equal(t, "ca.crt", endpoint.TLSConfig.CA.ConfigMap.Key)
+	assert.False(t, *endpoint.TLSConfig.InsecureSkipVerify)
+
+	cfg.Processor.Metrics.Server.TLS.InsecureSkipVerify = true
+	endpoint = b.metricsServiceMonitor().Spec.Endpoints[0]
+	assert.True(t, *endpoint.TLSConfig.InsecureSkipVerify)
+	assert.Nil(t, endpoint.TLSConfig.CA.ConfigMap)
+
+	cfg.Processor.Metrics.Server.TLS.Provided = nil
+	_, err = b.deployment()
+	require.Error(t, err)
+}
+
+func TestInformerMetricsDisabledTLS(t *testing.T) {
+	cfg := getConfig()
+	cfg.Processor.Metrics.Server.TLS.Type = flowslatest.TLSDisabled
+	info := reconcilers.Common{Namespace: testNamespace, ClusterInfo: &cluster.Info{}}
+	b := newInformerBuilder(info.NewInstance(image, status.Instance{}), &cfg)
+	deployment, err := b.deployment()
+	require.NoError(t, err)
+	for _, arg := range deployment.Spec.Template.Spec.Containers[0].Args {
+		assert.NotContains(t, arg, "--metrics-tls-")
+	}
+	for _, volume := range deployment.Spec.Template.Spec.Volumes {
+		assert.NotEqual(t, "informer-metrics-certs", volume.Name)
+	}
+	assert.Empty(t, b.metricsService().Annotations)
+	endpoint := b.metricsServiceMonitor().Spec.Endpoints[0]
+	assert.Equal(t, v1.Scheme("http"), *endpoint.Scheme)
+	assert.Nil(t, endpoint.TLSConfig)
+}
+
+func TestInformerMetricsAutoTLSOnKubernetes(t *testing.T) {
+	cfg := getConfig()
+	cfg.Processor.Metrics.Server.TLS.Type = flowslatest.TLSAuto
+	info := reconcilers.Common{Namespace: testNamespace, ClusterInfo: &cluster.Info{}}
+	b := newInformerBuilder(info.NewInstance(image, status.Instance{}), &cfg)
+	assert.Empty(t, b.metricsService().Annotations)
+	deployment, err := b.deployment()
+	require.NoError(t, err)
+	assert.Contains(t, deployment.Spec.Template.Spec.Containers[0].Args, "--metrics-tls-cert-path=/var/informer-metrics-certs/tls.crt")
 }

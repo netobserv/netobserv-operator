@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -18,8 +19,11 @@ import (
 )
 
 const (
-	k8sCacheServiceName    = "flowlogs-pipeline-k8scache"
-	k8sCacheCertSecretName = k8sCacheServiceName + "-cert"
+	k8sCacheServiceName              = "flowlogs-pipeline-k8scache"
+	k8sCacheCertSecretName           = k8sCacheServiceName + "-cert"
+	informerMetricsServiceName       = "flowlogs-pipeline-informers-metrics"
+	informerMetricsMonitorName       = informerMetricsServiceName
+	informerMetricsPort        int32 = constants.FLPInformerMetricsPort
 )
 
 type informerBuilder struct {
@@ -135,6 +139,17 @@ func (b *informerBuilder) deployment() (*appsv1.Deployment, error) {
 
 	// Add TLS configuration if enabled
 	b.addTLSArgs(&args, &vols, config)
+	metricsCert, err := getPromTLS(b.desired, informerMetricsServiceName)
+	if err != nil {
+		return nil, err
+	}
+	if metricsCert != nil {
+		certPath, keyPath := vols.AddCertificate(metricsCert, "informer-metrics-certs")
+		args = append(args,
+			fmt.Sprintf("--metrics-tls-cert-path=%s", certPath),
+			fmt.Sprintf("--metrics-tls-key-path=%s", keyPath),
+		)
+	}
 
 	// Define container ports
 	ports := []corev1.ContainerPort{
@@ -150,7 +165,7 @@ func (b *informerBuilder) deployment() (*appsv1.Deployment, error) {
 		},
 		{
 			Name:          "metrics",
-			ContainerPort: 9091,
+			ContainerPort: informerMetricsPort,
 			Protocol:      corev1.ProtocolTCP,
 		},
 	}
@@ -188,7 +203,7 @@ func (b *informerBuilder) deployment() (*appsv1.Deployment, error) {
 		ImagePullPolicy: corev1.PullPolicy(b.desired.Processor.ImagePullPolicy),
 		Command:         []string{"/app/flp-informers"},
 		Args:            args,
-		Env: []corev1.EnvVar{
+		Env: helper.AppendTLSEnvVars([]corev1.EnvVar{
 			{
 				Name: "POD_NAMESPACE",
 				ValueFrom: &corev1.EnvVarSource{
@@ -207,7 +222,7 @@ func (b *informerBuilder) deployment() (*appsv1.Deployment, error) {
 					},
 				},
 			},
-		},
+		}, b.TLSConfig),
 		Ports:                    ports,
 		VolumeMounts:             (&vols).GetMounts(),
 		Resources:                resources,
@@ -272,6 +287,47 @@ func (b *informerBuilder) serviceAccount() *corev1.ServiceAccount {
 			},
 		},
 	}
+}
+
+func (b *informerBuilder) metricsService() *corev1.Service {
+	svc := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      informerMetricsServiceName,
+			Namespace: b.Namespace,
+			Labels: map[string]string{
+				"part-of": constants.OperatorName,
+				"app":     informerName,
+			},
+		},
+		Spec: corev1.ServiceSpec{
+			Selector: map[string]string{"app": informerName},
+			Ports: []corev1.ServicePort{{
+				Name:       prometheusPortName,
+				Port:       informerMetricsPort,
+				Protocol:   corev1.ProtocolTCP,
+				TargetPort: intstr.FromInt32(informerMetricsPort),
+			}},
+		},
+	}
+	if b.ClusterInfo.IsOpenShift() && b.desired.Processor.Metrics.Server.TLS.Type == flowslatest.TLSAuto {
+		svc.Annotations = map[string]string{
+			constants.OpenShiftCertificateAnnotation: informerMetricsServiceName,
+		}
+	}
+	return svc
+}
+
+func (b *informerBuilder) metricsServiceMonitor() *monitoringv1.ServiceMonitor {
+	version := helper.MaxLabelLength(helper.ExtractVersion(b.Images[reconcilers.MainImage]))
+	return serviceMonitor(
+		b.desired,
+		informerMetricsMonitorName,
+		informerMetricsServiceName,
+		b.Namespace,
+		informerName,
+		version,
+		b.ClusterInfo.HasPromServiceDiscoveryRole(),
+	)
 }
 
 // service creates a dedicated k8scache Service that targets processor (FLP) pods.

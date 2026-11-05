@@ -56,7 +56,11 @@ func buildMainNetworkPolicy(desired *flowslatest.FlowCollector, mgr *manager.Man
 	}
 
 	if mgr.ClusterInfo.IsOpenShift() {
-		ingress = append(ingress, netpol.AllowVendorPrometheusScrape(mgr.Config.Vendor, desired.Spec.Processor.GetMetricsPort(), constants.CPMetricsPort))
+		metricsPorts := []int32{desired.Spec.Processor.GetMetricsPort(), constants.CPMetricsPort}
+		if desired.Spec.Processor.IsInformerCacheProxyEnabled() {
+			metricsPorts = append(metricsPorts, constants.FLPInformerMetricsPort)
+		}
+		ingress = append(ingress, netpol.AllowVendorPrometheusScrape(mgr.Config.Vendor, metricsPorts...))
 		egress = append(egress, netpol.AllowPrometheusQuery(mgr.Config.Vendor))
 
 		if desired.Spec.UseWebConsole() {
