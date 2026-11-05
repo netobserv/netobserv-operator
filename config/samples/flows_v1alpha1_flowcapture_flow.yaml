@@ -6,7 +6,7 @@ spec:
   # Captures flows for 30 seconds. Copy the result from the collector pod with:
   # oc cp -n <namespace> flowcapture-sample-collector:output ./output
   outputType: flows
-  maxTime: 30s
+  maxTime: 120s
   maxBytes: 10000000
   sampling: 1
   excludeInterfaces:
