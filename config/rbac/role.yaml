@@ -25,7 +25,6 @@ rules:
   resources:
   - endpoints
   - nodes
-  - pods
   verbs:
   - get
   - list
@@ -37,6 +36,16 @@ rules:
   verbs:
   - create
   - patch
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - watch
 - apiGroups:
   - apiextensions.k8s.io
   resources:
@@ -65,6 +74,7 @@ rules:
   resources:
   - daemonsets
   - deployments
+  - replicasets
   verbs:
   - create
   - delete
@@ -138,6 +148,7 @@ rules:
 - apiGroups:
   - flows.netobserv.io
   resources:
+  - flowcaptures
   - flowcollectors
   - flowcollectorslices
   - flowmetrics
@@ -152,12 +163,14 @@ rules:
 - apiGroups:
   - flows.netobserv.io
   resources:
+  - flowcaptures/finalizers
   - flowcollectors/finalizers
   verbs:
   - update
 - apiGroups:
   - flows.netobserv.io
   resources:
+  - flowcaptures/status
   - flowcollectors/status
   - flowcollectorslices/status
   - flowmetrics/status
@@ -218,6 +231,9 @@ rules:
 - apiGroups:
   - rbac.authorization.k8s.io
   resourceNames:
+  - netobserv-flowcapture-informers
+  - netobserv-flowcapture-plaintext-scc
+  - netobserv-flowcapture-scc
   - netobserv-flowcollector-viewer-role
   - netobserv-flp-extra-reader
   - netobserv-hostnetwork
@@ -233,6 +249,8 @@ rules:
 - apiGroups:
   - rbac.authorization.k8s.io
   resourceNames:
+  - netobserv-flowcapture-informers
+  - netobserv-flowcapture-scc
   - netobserv-flowcollector-viewer-role
   - netobserv-flp-extra-reader
   - netobserv-hostnetwork
@@ -255,13 +273,35 @@ rules:
   - update
   - watch
 - apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - roles
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - security.openshift.io
   resources:
   - securitycontextconstraints
   verbs:
   - create
+  - get
   - list
+  - update
   - watch
+- apiGroups:
+  - security.openshift.io
+  resourceNames:
+  - flowcapture-plaintext
+  resources:
+  - securitycontextconstraints
+  verbs:
+  - use
 - apiGroups:
   - security.openshift.io
   resourceNames:
