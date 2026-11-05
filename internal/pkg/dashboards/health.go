@@ -156,13 +156,13 @@ func CreateHealthDashboard(netobsNs, nsFlowsMetric string) (string, error) {
 			NewTarget(`topk(10, container_file_descriptors{container="netobserv-ebpf-agent"})`, "{{pod}}"),
 		),
 		NewPanel("Flowlogs-pipeline CPU - top 10 pods", metricslatest.ChartTypeStackArea, "", 6,
-			NewTarget(`topk(10, node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{container="flowlogs-pipeline"})`, "{{pod}}"),
+			NewTarget(`topk(10, node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{container=~"flowlogs-pipeline.*"})`, "{{pod}}"),
 		),
 		NewPanel("Flowlogs-pipeline memory - top 10 pods", metricslatest.ChartTypeStackArea, "", 6,
 			NewTarget(`topk(10, container_memory_working_set_bytes{container=~"flowlogs-pipeline.*"})`, "{{pod}}"),
 		),
 		NewPanel("Flowlogs-pipeline file descriptors - top 10 pods", metricslatest.ChartTypeStackArea, "", 6,
-			NewTarget(`topk(10, container_file_descriptors{container="flowlogs-pipeline"})`, "{{pod}}")),
+			NewTarget(`topk(10, container_file_descriptors{container=~"flowlogs-pipeline.*"})`, "{{pod}}")),
 	}))
 
 	return d.ToGrafanaJSON(), nil
