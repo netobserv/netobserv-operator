@@ -6029,6 +6029,57 @@ spec:
                       default: false
                       description: Set `multiClusterDeployment` to `true` to enable multi clusters feature. This adds `clusterName` label to flows data
                       type: boolean
+                    proxyCorrelation:
+                      description: |-
+                        ProxyCorrelation configures optional proxy request correlation.
+                        Records are stored separately from flows and do not contribute to flow metrics.
+                        In Kafka mode, records are received directly by processors, bypassing Kafka.
+                      properties:
+                        enable:
+                          description: Enable receives proxy records for on-demand correlation. Requires Loki.
+                          type: boolean
+                        sources:
+                          description: Sources configures the proxy receivers. Source names and receiver ports must be unique.
+                          items:
+                            description: FlowCollectorProxySource selects a proxy contract and its receiver settings.
+                            properties:
+                              haproxy:
+                                description: |-
+                                  HAProxy receives versioned OpenShift router HTTP access logs over UDP.
+                                  Requires administrator configuration of the IngressController. TLS passthrough is unsupported.
+                                properties:
+                                  port:
+                                    description: Port is the UDP receiver port. Defaults to 10514.
+                                    format: int32
+                                    maximum: 65535
+                                    minimum: 1024
+                                    type: integer
+                                type: object
+                              name:
+                                description: Name uniquely identifies this source.
+                                maxLength: 63
+                                pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                type: string
+                              type:
+                                description: Type selects the source contract. Currently only HAProxy is supported.
+                                enum:
+                                  - HAProxy
+                                type: string
+                            required:
+                              - name
+                              - type
+                            type: object
+                            x-kubernetes-validations:
+                              - message: HAProxy sources require haproxy settings
+                                rule: self.type != 'HAProxy' || has(self.haproxy)
+                          type: array
+                          x-kubernetes-list-map-keys:
+                            - name
+                          x-kubernetes-list-type: map
+                      type: object
+                      x-kubernetes-validations:
+                        - message: enabled proxy correlation requires at least one source
+                          rule: '!has(self.enable) || !self.enable || (has(self.sources) && size(self.sources) > 0)'
                     resources:
                       default:
                         limits:

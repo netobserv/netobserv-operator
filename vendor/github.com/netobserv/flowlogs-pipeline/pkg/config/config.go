@@ -100,6 +100,7 @@ type StageParam struct {
 }
 
 type Ingest struct {
+	HAProxy   *api.IngestHAProxy   `yaml:"haproxy,omitempty" json:"haproxy,omitempty"`
 	Type      string               `yaml:"type" json:"type"`
 	File      *File                `yaml:"file,omitempty" json:"file,omitempty"`
 	Collector *api.IngestIpfix     `yaml:"collector,omitempty" json:"collector,omitempty"` // deprecated: use 'ipfix' instead

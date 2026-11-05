@@ -654,8 +654,57 @@ const (
 	LogTypeAll                FLPLogTypes = "All"
 )
 
+// ProxySourceType identifies the contract used to ingest proxy correlation records.
+// +kubebuilder:validation:Enum=HAProxy
+type ProxySourceType string
+
+const ProxySourceHAProxy ProxySourceType = "HAProxy"
+
+// FlowCollectorProxyCorrelation configures independent proxy evidence for flow lookups.
+// +kubebuilder:validation:XValidation:rule="!has(self.enable) || !self.enable || (has(self.sources) && size(self.sources) > 0)",message="enabled proxy correlation requires at least one source"
+type FlowCollectorProxyCorrelation struct {
+	// Enable receives proxy records for on-demand correlation. Requires Loki.
+	// +optional
+	Enable bool `json:"enable,omitempty"`
+	// Sources configures the proxy receivers. Source names and receiver ports must be unique.
+	// +listType=map
+	// +listMapKey=name
+	// +optional
+	Sources []FlowCollectorProxySource `json:"sources,omitempty"`
+}
+
+// FlowCollectorProxySource selects a proxy contract and its receiver settings.
+// +kubebuilder:validation:XValidation:rule="self.type != 'HAProxy' || has(self.haproxy)",message="HAProxy sources require haproxy settings"
+type FlowCollectorProxySource struct {
+	// Name uniquely identifies this source.
+	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`
+	Name string `json:"name"`
+	// Type selects the source contract. Currently only HAProxy is supported.
+	Type ProxySourceType `json:"type"`
+	// HAProxy receives versioned OpenShift router HTTP access logs over UDP.
+	// Requires administrator configuration of the IngressController. TLS passthrough is unsupported.
+	// +optional
+	HAProxy *FlowCollectorHAProxySource `json:"haproxy,omitempty"`
+}
+
+// FlowCollectorHAProxySource configures the HAProxy UDP receiver.
+type FlowCollectorHAProxySource struct {
+	// Port is the UDP receiver port. Defaults to 10514.
+	// +kubebuilder:validation:Minimum=1024
+	// +kubebuilder:validation:Maximum=65535
+	// +optional
+	Port int32 `json:"port,omitempty"`
+}
+
 // `FlowCollectorFLP` defines the desired flowlogs-pipeline state of FlowCollector
 type FlowCollectorFLP struct {
+	// ProxyCorrelation configures optional proxy request correlation.
+	// Records are stored separately from flows and do not contribute to flow metrics.
+	// In Kafka mode, records are received directly by processors, bypassing Kafka.
+	// +optional
+	ProxyCorrelation *FlowCollectorProxyCorrelation `json:"proxyCorrelation,omitempty"`
+
 	//+kubebuilder:validation:Enum=IfNotPresent;Always;Never
 	//+kubebuilder:default:=IfNotPresent
 	// `imagePullPolicy` is the Kubernetes pull policy for the image defined above

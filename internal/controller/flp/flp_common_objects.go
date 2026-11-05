@@ -123,6 +123,9 @@ func podTemplate(
 	case pull:
 		// does not listen for flows => no port
 	}
+	for i, source := range desired.Processor.GetProxySources() {
+		ports = append(ports, corev1.ContainerPort{Name: flowslatest.ProxySourcePortName(i), ContainerPort: source.GetPort(), Protocol: corev1.ProtocolUDP})
+	}
 	if advancedConfig.HealthPort != nil && *advancedConfig.HealthPort > 0 {
 		ports = append(ports, corev1.ContainerPort{
 			Name:          healthPortName,
@@ -323,9 +326,16 @@ func getConfigs(desired *flowslatest.FlowCollectorSpec, ns string, vol *volumes.
 	metricsSettings := metricsSettings(desired, vol, promTLS)
 	advancedConfig := helper.GetAdvancedProcessorConfig(desired)
 	static, dynamic := pipeline.GetSplitStageParams()
+	stages := pipeline.GetStages()
+	for _, proxyPipeline := range pipeline.proxyPipelines {
+		extraStatic, extraDynamic := proxyPipeline.GetSplitStageParams()
+		static = append(static, extraStatic...)
+		dynamic = append(dynamic, extraDynamic...)
+		stages = append(stages, proxyPipeline.GetStages()...)
+	}
 	config := map[string]interface{}{
 		"log-level":       desired.Processor.LogLevel,
-		"pipeline":        pipeline.GetStages(),
+		"pipeline":        stages,
 		"parameters":      static,
 		"metricsSettings": metricsSettings,
 		"dynamicParameters": config.DynamicParameters{
