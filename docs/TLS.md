@@ -222,3 +222,5 @@ The `flowlogs-pipeline-informers` metrics endpoint listens on port 9091 and foll
 - `Disabled`: the endpoint serves HTTP.
 
 When ServiceMonitor support is available, the operator creates a dedicated monitor using the corresponding HTTP or HTTPS scheme and the configured CA and verification settings.
+
+For `Auto` on Kubernetes, the informer ServiceMonitor references the `netobserv-ca` ConfigMap's `service-ca.crt` key, allowing Prometheus Operator to load the CA for scraping. The Helm trust-manager Bundle distributes this ConfigMap into the Helm release namespace. If the operands run in a different namespace, distribute the CA bundle into that namespace as well: the ConfigMap reference is local to the ServiceMonitor namespace. On OpenShift, the monitor retains the platform Prometheus service CA bundle path.

@@ -1037,6 +1037,9 @@ func TestInformerMetricsTLS(t *testing.T) {
 	assert.Equal(t, informerMetricsServiceName, monitor.Name)
 	assert.Equal(t, v1.Scheme("https"), *monitor.Spec.Endpoints[0].Scheme)
 	assert.Equal(t, informerMetricsServiceName+"."+testNamespace+".svc", *monitor.Spec.Endpoints[0].TLSConfig.ServerName)
+	assert.Equal(t, "/etc/prometheus/configmaps/serving-certs-ca-bundle/service-ca.crt", monitor.Spec.Endpoints[0].TLSConfig.CAFile)
+	assert.Empty(t, monitor.Spec.Endpoints[0].TLSConfig.CA)
+	require.NoError(t, monitor.Spec.Endpoints[0].TLSConfig.Validate())
 }
 
 func TestInformerMetricsProvidedTLS(t *testing.T) {
@@ -1112,4 +1115,16 @@ func TestInformerMetricsAutoTLSOnKubernetes(t *testing.T) {
 	deployment, err := b.deployment()
 	require.NoError(t, err)
 	assert.Contains(t, deployment.Spec.Template.Spec.Containers[0].Args, "--metrics-tls-cert-path=/var/informer-metrics-certs/tls.crt")
+	monitor := b.metricsServiceMonitor()
+	assert.Equal(t, testNamespace, monitor.Namespace)
+	endpoint := monitor.Spec.Endpoints[0]
+	assert.Equal(t, v1.Scheme("https"), *endpoint.Scheme)
+	require.NotNil(t, endpoint.TLSConfig)
+	assert.Empty(t, endpoint.TLSConfig.CAFile)
+	assert.Equal(t, v1.SecretOrConfigMap{ConfigMap: &corev1.ConfigMapKeySelector{
+		LocalObjectReference: corev1.LocalObjectReference{Name: "netobserv-ca"},
+		Key:                  "service-ca.crt",
+	}}, endpoint.TLSConfig.CA)
+	assert.Equal(t, informerMetricsServiceName+"."+testNamespace+".svc", *endpoint.TLSConfig.ServerName)
+	require.NoError(t, endpoint.TLSConfig.Validate())
 }

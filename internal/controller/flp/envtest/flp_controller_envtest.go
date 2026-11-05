@@ -162,6 +162,15 @@ func ControllerSpecs(env test.Environment, ctxGetter test.ContextGetter) {
 				}, timeout, interval).Should(Succeed())
 				Expect(*monitor.Spec.Endpoints[0].Scheme).To(Equal(monitoringv1.Scheme("https")))
 				Expect(*monitor.Spec.Endpoints[0].TLSConfig.ServerName).To(Equal(metricsKey.Name + "." + operatorNamespace + ".svc"))
+				if env == test.EnvOpenShift {
+					Expect(monitor.Spec.Endpoints[0].TLSConfig.CAFile).To(Equal("/etc/prometheus/configmaps/serving-certs-ca-bundle/service-ca.crt"))
+				} else {
+					Expect(monitor.Spec.Endpoints[0].TLSConfig.CAFile).To(BeEmpty())
+					Expect(monitor.Spec.Endpoints[0].TLSConfig.CA.ConfigMap).To(Equal(&v1.ConfigMapKeySelector{
+						LocalObjectReference: v1.LocalObjectReference{Name: "netobserv-ca"},
+						Key:                  "service-ca.crt",
+					}))
+				}
 			}
 
 			By("Expecting to create the flowlogs-pipeline ServiceAccount")

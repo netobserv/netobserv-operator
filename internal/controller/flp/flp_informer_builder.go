@@ -319,7 +319,7 @@ func (b *informerBuilder) metricsService() *corev1.Service {
 
 func (b *informerBuilder) metricsServiceMonitor() *monitoringv1.ServiceMonitor {
 	version := helper.MaxLabelLength(helper.ExtractVersion(b.Images[reconcilers.MainImage]))
-	return serviceMonitor(
+	monitor := serviceMonitor(
 		b.desired,
 		informerMetricsMonitorName,
 		informerMetricsServiceName,
@@ -328,6 +328,14 @@ func (b *informerBuilder) metricsServiceMonitor() *monitoringv1.ServiceMonitor {
 		version,
 		b.ClusterInfo.HasPromServiceDiscoveryRole(),
 	)
+	if b.desired.Processor.Metrics.Server.TLS.Type == flowslatest.TLSAuto && !b.ClusterInfo.IsOpenShift() {
+		// Let Prometheus Operator load the Helm trust-manager bundle from the
+		// ServiceMonitor namespace instead of requiring an OpenShift-specific mount.
+		tls := monitor.Spec.Endpoints[0].TLSConfig
+		tls.CAFile = ""
+		tls.CA = helper.GetSecretOrConfigMap(helper.DefaultCAReference("netobserv-ca", ""))
+	}
+	return monitor
 }
 
 // service creates a dedicated k8scache Service that targets processor (FLP) pods.
