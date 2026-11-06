@@ -205,7 +205,7 @@ func (c *AgentController) reconcile(ctx context.Context, target *flowslatest.Flo
 		return err
 	}
 
-	if target.Spec.Agent.EBPF.IsAgentFeatureEnabled(flowslatest.EbpfManager) {
+	if target.Spec.IsAgentFeatureEnabled(flowslatest.EbpfManager) {
 		if err := c.bpfmanAttachNetobserv(ctx, target); err != nil {
 			return fmt.Errorf("failed to attach netobserv: %w", err)
 		}
@@ -255,7 +255,7 @@ func (c *AgentController) desired(ctx context.Context, coll *flowslatest.FlowCol
 	}
 	advancedConfig := helper.GetAdvancedAgentConfig(coll.Spec.Agent.EBPF.Advanced)
 
-	if coll.Spec.Agent.EBPF.Metrics.Server.TLS.Type != flowslatest.TLSDisabled {
+	if coll.Spec.Agent.EBPF.Metrics.Server.TLS.IsEnabled() {
 		var promTLS *flowslatest.CertificateReference
 		switch coll.Spec.Agent.EBPF.Metrics.Server.TLS.Type {
 		case flowslatest.TLSProvided:
@@ -280,7 +280,7 @@ func (c *AgentController) desired(ctx context.Context, coll *flowslatest.FlowCol
 		}
 	}
 
-	volumeMounts, volumes := buildVolumes(&coll.Spec.Agent.EBPF, c.Vendor, c.volumes, advancedConfig.Env)
+	volumeMounts, volumes := buildVolumes(&coll.Spec, c.Vendor, c.volumes, advancedConfig.Env)
 
 	return &v1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -454,7 +454,7 @@ func (c *AgentController) securityContext(coll *flowslatest.FlowCollector) *core
 
 	sc := helper.ContainerDefaultSecurityContext()
 	sc.RunAsUser = ptr.To(int64(0))
-	sc.Capabilities.Add = getAllowedCapabilities(&coll.Spec.Agent.EBPF)
+	sc.Capabilities.Add = getAllowedCapabilities(&coll.Spec)
 	return sc
 }
 
@@ -470,13 +470,8 @@ func (c *AgentController) envConfig(ctx context.Context, coll *flowslatest.FlowC
 		return config[i].Name < config[j].Name
 	})
 
-	if coll.Spec.Agent.EBPF.CacheActiveTimeout != "" {
-		config = addEnv(config, envCacheActiveTimeout, coll.Spec.Agent.EBPF.CacheActiveTimeout, advancedConfig.Env)
-	}
-
-	if coll.Spec.Agent.EBPF.CacheMaxFlows != 0 {
-		config = addEnv(config, envCacheMaxFlows, strconv.Itoa(int(coll.Spec.Agent.EBPF.CacheMaxFlows)), advancedConfig.Env)
-	}
+	config = addEnv(config, envCacheActiveTimeout, coll.Spec.Agent.EBPF.CacheActiveTimeout, advancedConfig.Env)
+	config = addEnv(config, envCacheMaxFlows, strconv.Itoa(coll.Spec.GetCacheMaxFlows()), advancedConfig.Env)
 
 	if coll.Spec.Agent.EBPF.LogLevel != "" {
 		config = addEnv(config, envLogLevel, coll.Spec.Agent.EBPF.LogLevel, advancedConfig.Env)
@@ -490,48 +485,45 @@ func (c *AgentController) envConfig(ctx context.Context, coll *flowslatest.FlowC
 		config = addEnv(config, envExcludeInterfaces, strings.Join(coll.Spec.Agent.EBPF.ExcludeInterfaces, envListSeparator), advancedConfig.Env)
 	}
 
-	sampling := coll.Spec.Agent.EBPF.Sampling
-	if sampling != nil && *sampling > 0 {
-		config = addEnv(config, envSampling, strconv.Itoa(int(*sampling)), advancedConfig.Env)
-	}
+	config = addEnv(config, envSampling, strconv.Itoa(coll.Spec.GetSampling()), advancedConfig.Env)
 
-	if coll.Spec.Agent.EBPF.IsFlowRTTEnabled() {
+	if coll.Spec.IsFlowRTTEnabled() {
 		config = addEnv(config, envEnableFlowRTT, "true", advancedConfig.Env)
 	}
 
-	if coll.Spec.Agent.EBPF.IsNetworkEventsEnabled() {
+	if coll.Spec.IsNetworkEventsEnabled() {
 		config = addEnv(config, envEnableNetworkEvents, "true", advancedConfig.Env)
 	}
 
-	if coll.Spec.Agent.EBPF.IsUDNMappingEnabled() {
+	if coll.Spec.IsUDNMappingEnabled() {
 		config = addEnv(config, envEnableUDNMapping, "true", advancedConfig.Env)
 	}
 
-	if coll.Spec.Agent.EBPF.IsPacketTranslationEnabled() {
+	if coll.Spec.IsPacketTranslationEnabled() {
 		config = addEnv(config, envEnablePacketTranslation, "true", advancedConfig.Env)
 	}
 
-	if coll.Spec.Agent.EBPF.IsEbpfManagerEnabled() {
+	if coll.Spec.IsEbpfManagerEnabled() {
 		config = addEnv(config, envEnableEbpfMgr, "true", advancedConfig.Env)
 	}
 
-	if coll.Spec.Agent.EBPF.IsPktDropEnabled() {
+	if coll.Spec.IsPktDropEnabled() {
 		config = addEnv(config, envEnablePktDrop, "true", advancedConfig.Env)
 	}
 
-	if coll.Spec.Agent.EBPF.IsDNSTrackingEnabled() {
+	if coll.Spec.IsDNSTrackingEnabled() {
 		config = addEnv(config, envEnableDNSTracking, "true", advancedConfig.Env)
 	}
 
-	if coll.Spec.Agent.EBPF.IsIPSecEnabled() {
+	if coll.Spec.IsIPSecEnabled() {
 		config = addEnv(config, envEnableIPsec, "true", advancedConfig.Env)
 	}
 
-	if coll.Spec.Agent.EBPF.IsTLSTrackingEnabled() {
+	if coll.Spec.IsTLSTrackingEnabled() {
 		config = addEnv(config, envEnableTLSTracking, "true", advancedConfig.Env)
 	}
 
-	if coll.Spec.Agent.EBPF.IsSecondaryNetworksEnabled() {
+	if coll.Spec.IsSecondaryNetworksEnabled() {
 		config = addEnv(config, envEnableSecondaryNetworks, "true", advancedConfig.Env)
 	}
 

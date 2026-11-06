@@ -1,6 +1,7 @@
 package helper
 
 import (
+	"encoding/json"
 	"strings"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
@@ -270,4 +271,21 @@ func GetOperandsNamespace(fc *flowslatest.FlowCollectorSpec, mgrConfig *manager.
 		return mgrConfig.DefaultOperandsNamespace
 	}
 	return "netobserv"
+}
+
+// EnsureDefaults mutates the provided FlowCollector, injecting all defaults from flowslatest.DefaultFlowCollector.
+// It does it by json unmarshaling over the default values.
+// Default fields in DefaultFlowCollector *must* have the omitempty tag.
+func EnsureDefaults(fc *flowslatest.FlowCollector) error {
+	cpy := flowslatest.DefaultFlowCollector.DeepCopy()
+	specB, err := json.Marshal(fc.Spec)
+	if err != nil {
+		return err
+	}
+	err = json.Unmarshal(specB, cpy)
+	if err != nil {
+		return err
+	}
+	fc.Spec = *cpy
+	return nil
 }

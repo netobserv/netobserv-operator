@@ -5,7 +5,7 @@ prereqs-helm: ## Check if prerequisites are met for running helm, and install mi
 
 .PHONY: helm-install-prereqs
 helm-install-prereqs: prereqs-helm ## Install pre-requisites to a running cluster, using Helm
-	cd helm && helm dependency update --skip-refresh ; cd ..
+	cd helm && helm dependency update --skip-refresh && cd ..
 	helm repo add cert-manager https://charts.jetstack.io
 	helm upgrade --install cert-manager -n cert-manager --create-namespace cert-manager/cert-manager --set crds.enabled=true
 	helm upgrade --install trust-manager -n cert-manager oci://quay.io/jetstack/charts/trust-manager --wait

@@ -40,7 +40,7 @@ func (c *permissionsReconciler) reconcile(ctx context.Context, desired *flowslat
 	if err := c.reconcileServiceAccount(ctx, desired); err != nil {
 		return fmt.Errorf("reconciling service account: %w", err)
 	}
-	if err := c.reconcileVendorPermissions(ctx, &desired.Spec.Agent.EBPF); err != nil {
+	if err := c.reconcileVendorPermissions(ctx, &desired.Spec); err != nil {
 		return fmt.Errorf("reconciling vendor permissions: %w", err)
 	}
 	return nil
@@ -138,18 +138,14 @@ func (c *permissionsReconciler) reconcileServiceAccount(ctx context.Context, des
 	return nil
 }
 
-func (c *permissionsReconciler) reconcileVendorPermissions(
-	ctx context.Context, desired *flowslatest.FlowCollectorEBPF,
-) error {
+func (c *permissionsReconciler) reconcileVendorPermissions(ctx context.Context, desired *flowslatest.FlowCollectorSpec) error {
 	if c.ClusterInfo.IsOpenShift() {
 		return c.reconcileOpenshiftPermissions(ctx, desired)
 	}
 	return nil
 }
 
-func (c *permissionsReconciler) reconcileOpenshiftPermissions(
-	ctx context.Context, desired *flowslatest.FlowCollectorEBPF,
-) error {
+func (c *permissionsReconciler) reconcileOpenshiftPermissions(ctx context.Context, desired *flowslatest.FlowCollectorSpec) error {
 	rlog := log.FromContext(ctx, "securityContextConstraints", constants.EBPFSecurityContext)
 	scc := &osv1.SecurityContextConstraints{
 		ObjectMeta: metav1.ObjectMeta{
@@ -166,7 +162,7 @@ func (c *permissionsReconciler) reconcileOpenshiftPermissions(
 			"system:serviceaccount:" + c.PrivilegedNamespace() + ":" + constants.EBPFServiceAccount,
 		},
 	}
-	if desired.Privileged {
+	if desired.Agent.EBPF.Privileged {
 		scc.AllowPrivilegedContainer = true
 		scc.AllowHostDirVolumePlugin = true
 	} else {
@@ -208,12 +204,12 @@ func (c *permissionsReconciler) reconcileOpenshiftPermissions(
 }
 
 // getAllowedCapabilities description of what capabilities netobserv requires when running w/o ebpf manager and w/o full privileges
-func getAllowedCapabilities(spec *flowslatest.FlowCollectorEBPF) []v1.Capability {
-	if spec.Privileged {
+func getAllowedCapabilities(spec *flowslatest.FlowCollectorSpec) []v1.Capability {
+	if spec.Agent.EBPF.Privileged {
 		return nil
-	} else if spec.Advanced != nil && len(spec.Advanced.CapOverride) > 0 {
+	} else if spec.Agent.EBPF.Advanced != nil && len(spec.Agent.EBPF.Advanced.CapOverride) > 0 {
 		var caps []v1.Capability
-		for _, cap := range spec.Advanced.CapOverride {
+		for _, cap := range spec.Agent.EBPF.Advanced.CapOverride {
 			caps = append(caps, v1.Capability(cap))
 		}
 		return caps

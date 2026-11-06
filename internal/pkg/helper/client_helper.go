@@ -54,6 +54,9 @@ func NewFlowCollectorClientHelper(ctx context.Context, c client.Client) (*Client
 	if err != nil || fc == nil {
 		return nil, fc, err
 	}
+	if err = EnsureDefaults(fc); err != nil {
+		return nil, nil, fmt.Errorf("could not ensure FlowCollector defaults: %w", err)
+	}
 	return &Client{
 		Client: c,
 		SetOwnerReference: func(obj client.Object) error {

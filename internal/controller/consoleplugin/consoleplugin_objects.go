@@ -460,39 +460,39 @@ func (b *builder) getPromConfig(ctx context.Context) cfg.PrometheusConfig {
 
 // nolint:cyclop	// no real complexity here, just long boilerplate
 func (b *builder) setFrontendConfig(fconf *cfg.FrontendConfig, metrics []cfg.MetricInfo) (string, error) {
-	if b.desired.Agent.EBPF.IsPktDropEnabled() || b.desired.Agent.EBPF.IsNetworkEventsEnabled() {
+	if b.desired.IsPktDropEnabled() || b.desired.IsNetworkEventsEnabled() {
 		fconf.Features = append(fconf.Features, "pktDrop")
 	}
 
-	if b.desired.Agent.EBPF.IsDNSTrackingEnabled() {
+	if b.desired.IsDNSTrackingEnabled() {
 		fconf.Features = append(fconf.Features, "dnsTracking")
 	}
 
-	if b.desired.Agent.EBPF.IsFlowRTTEnabled() {
+	if b.desired.IsFlowRTTEnabled() {
 		fconf.Features = append(fconf.Features, "flowRTT")
 	}
 
-	if b.desired.Agent.EBPF.IsNetworkEventsEnabled() {
+	if b.desired.IsNetworkEventsEnabled() {
 		fconf.Features = append(fconf.Features, "networkEvents")
 	}
 
-	if b.desired.Agent.EBPF.IsPacketTranslationEnabled() {
+	if b.desired.IsPacketTranslationEnabled() {
 		fconf.Features = append(fconf.Features, "packetTranslation")
 	}
 
-	if b.desired.Agent.EBPF.IsUDNMappingEnabled() {
+	if b.desired.IsUDNMappingEnabled() {
 		fconf.Features = append(fconf.Features, "udnMapping")
 	}
 
-	if b.desired.Agent.EBPF.IsUDNMappingEnabled() || len(b.desired.GetSecondaryIndexes()) > 0 {
+	if b.desired.IsUDNMappingEnabled() || len(b.desired.GetSecondaryIndexes()) > 0 {
 		fconf.Features = append(fconf.Features, "multiNetworks")
 	}
 
-	if b.desired.Agent.EBPF.IsIPSecEnabled() {
+	if b.desired.IsIPSecEnabled() {
 		fconf.Features = append(fconf.Features, "ipsec")
 	}
 
-	if b.desired.Agent.EBPF.IsTLSTrackingEnabled() {
+	if b.desired.IsTLSTrackingEnabled() {
 		fconf.Features = append(fconf.Features, "tlsTracking")
 	}
 

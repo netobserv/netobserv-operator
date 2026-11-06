@@ -1,0 +1,31 @@
+name: pull request - Kind e2e tests
+
+on:
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  e2e-tests:
+    name: e2e-tests
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: install make
+      run: sudo apt-get install make
+    - name: set up go 1.x
+      uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      with:
+        go-version: '1.26'
+    - name: set up Helm
+      uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+      with:
+        version: v3.17.0
+    - name: checkout
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+    - name: run end-to-end tests
+      run: make test-e2e
