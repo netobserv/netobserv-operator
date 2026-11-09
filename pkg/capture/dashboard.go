@@ -39,7 +39,7 @@ func BuildFlowCaptureDashboard() *corev1.ConfigMap {
 			AllValue:   ".*",
 		}},
 		Rows: append([]*dashboards.Row{
-			dashboards.NewRow("Capture health", false, "250px", []dashboards.Panel{
+			dashboards.NewRow("Capture health & activity", false, "250px", []dashboards.Panel{
 				dashboards.NewPanel("Agent targets up", dashboards.ChartTypeSingleStat, dashboards.Unit(""), 4,
 					dashboards.NewTarget(`sum(up{flowcapture=~"$flowcapture"})`, "agents")),
 				dashboards.NewPanel("Agent errors", dashboards.ChartTypeLine, dashboards.Unit(""), 4,
@@ -48,8 +48,28 @@ func BuildFlowCaptureDashboard() *corev1.ConfigMap {
 					dashboards.NewTarget(`sum(rate(flowcapture_agent_evicted_flows_total{flowcapture=~"$flowcapture"}[1m])) by (flowcapture,source,reason)`, "{{flowcapture}} {{source}} {{reason}}")),
 				dashboards.NewPanel("Agent buffer size", dashboards.ChartTypeLine, dashboards.Unit(""), 4,
 					dashboards.NewTarget(`sum(flowcapture_agent_buffer_size{flowcapture=~"$flowcapture"}) by (flowcapture,name)`, "{{flowcapture}} {{name}}")),
+				dashboards.NewPanel("Exported batches", dashboards.ChartTypeLine, dashboards.Unit(""), 4,
+					dashboards.NewTarget(`sum(rate(flowcapture_agent_exported_batch_total{flowcapture=~"$flowcapture"}[1m])) by (flowcapture,exporter)`, "{{flowcapture}} {{exporter}}")),
+				dashboards.NewPanel("Filtered flows", dashboards.ChartTypeLine, dashboards.Unit(""), 4,
+					dashboards.NewTarget(`sum(rate(flowcapture_agent_filtered_flows_total{flowcapture=~"$flowcapture"}[1m])) by (flowcapture,source,reason)`, "{{flowcapture}} {{source}} {{reason}}")),
+				dashboards.NewPanel("Dropped flows", dashboards.ChartTypeLine, dashboards.Unit(""), 4,
+					dashboards.NewTarget(`sum(rate(flowcapture_agent_dropped_flows_total{flowcapture=~"$flowcapture"}[1m])) by (flowcapture,source,reason)`, "{{flowcapture}} {{source}} {{reason}}")),
+				dashboards.NewPanel("Evicted packets", dashboards.ChartTypeLine, dashboards.Unit(""), 4,
+					dashboards.NewTarget(`sum(rate(flowcapture_agent_evicted_packets_total{flowcapture=~"$flowcapture"}[1m])) by (flowcapture,source,reason)`, "{{flowcapture}} {{source}} {{reason}}")),
+				dashboards.NewPanel("TLS plaintext events", dashboards.ChartTypeLine, dashboards.Unit(""), 4,
+					dashboards.NewTarget(`sum(rate(flowcapture_agent_openssl_data_events_total{flowcapture=~"$flowcapture"}[1m])) by (flowcapture,openssl_type)`, "{{flowcapture}} {{openssl_type}}")),
 			}),
-			dashboards.NewRow("Metrics capture activity", false, "250px", []dashboards.Panel{
+			dashboards.NewRow("Capture output", false, "250px", []dashboards.Panel{
+				dashboards.NewPanel("Output records", dashboards.ChartTypeLine, dashboards.Unit(""), 4,
+					dashboards.NewTarget(`sum(rate(flowcapture_collector_records_total{flowcapture=~"$flowcapture"}[1m])) by (flowcapture,output)`, "{{flowcapture}} {{output}}")),
+				dashboards.NewPanel("Output bytes", dashboards.ChartTypeLine, dashboards.UnitBytes, 4,
+					dashboards.NewTarget(`sum(rate(flowcapture_collector_output_bytes_total{flowcapture=~"$flowcapture"}[1m])) by (flowcapture,output)`, "{{flowcapture}} {{output}}")),
+				dashboards.NewPanel("Plaintext records", dashboards.ChartTypeLine, dashboards.Unit(""), 4,
+					dashboards.NewTarget(`sum(rate(flowcapture_collector_plaintext_records_total{flowcapture=~"$flowcapture"}[1m])) by (flowcapture)`, "{{flowcapture}}")),
+				dashboards.NewPanel("Plaintext bytes", dashboards.ChartTypeLine, dashboards.UnitBytes, 4,
+					dashboards.NewTarget(`sum(rate(flowcapture_collector_plaintext_bytes_total{flowcapture=~"$flowcapture"}[1m])) by (flowcapture)`, "{{flowcapture}}")),
+				dashboards.NewPanel("Collector errors", dashboards.ChartTypeLine, dashboards.Unit(""), 4,
+					dashboards.NewTarget(`sum(rate(flowcapture_collector_errors_total{flowcapture=~"$flowcapture"}[1m])) by (flowcapture,component)`, "{{flowcapture}} {{component}}")),
 				dashboards.NewPanel("Processed flows", dashboards.ChartTypeLine, dashboards.Unit(""), 4,
 					dashboards.NewTarget(`sum(rate(on_demand_netobserv_metrics_processed{flowcapture=~"$flowcapture"}[1m])) by (flowcapture)`, "{{flowcapture}}")),
 				dashboards.NewPanel("Reported metrics", dashboards.ChartTypeLine, dashboards.Unit(""), 4,

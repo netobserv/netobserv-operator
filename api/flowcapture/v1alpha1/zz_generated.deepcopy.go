@@ -112,6 +112,11 @@ func (in *FlowCaptureSpec) DeepCopyInto(out *FlowCaptureSpec) {
 		*out = make([]FlowFilter, len(*in))
 		copy(*out, *in)
 	}
+	if in.Queries != nil {
+		in, out := &in.Queries, &out.Queries
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	if in.TLSPlaintext != nil {
 		in, out := &in.TLSPlaintext, &out.TLSPlaintext
 		*out = new(TLSPlaintextSpec)

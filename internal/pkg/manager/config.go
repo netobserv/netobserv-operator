@@ -2,9 +2,17 @@ package manager
 
 import (
 	"errors"
+	"fmt"
+	"time"
 
 	"github.com/netobserv/netobserv-operator/internal/controller/constants"
 	"github.com/netobserv/netobserv-operator/internal/pkg/cluster"
+)
+
+const (
+	DefaultMaxConcurrentCaptures       = 3
+	DefaultMaxCaptureDuration          = time.Hour
+	DefaultMaxCaptureBytes       int64 = 0 // zero means no byte limit
 )
 
 // Config of the operator.
@@ -34,6 +42,9 @@ type Config struct {
 	// Static plugin configuration
 	StaticPluginConfig          StaticPluginConfig
 	DeployOperatorNetworkPolicy *bool
+	MaxConcurrentCaptures       int
+	MaxCaptureDuration          time.Duration
+	MaxCaptureBytes             int64
 }
 
 // Config of the static plugin.
@@ -99,6 +110,15 @@ func (c *Config) Validate() error {
 	}
 	if c.Namespace == "" {
 		return errors.New("namespace env can't be empty")
+	}
+	if c.MaxConcurrentCaptures < 0 {
+		return fmt.Errorf("max concurrent captures must not be negative")
+	}
+	if c.MaxCaptureDuration < 0 {
+		return fmt.Errorf("max capture duration must not be negative")
+	}
+	if c.MaxCaptureBytes < 0 {
+		return fmt.Errorf("max capture bytes must not be negative")
 	}
 	return nil
 }

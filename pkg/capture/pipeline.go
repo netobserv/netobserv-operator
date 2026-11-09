@@ -2,10 +2,88 @@ package capture
 
 import (
 	"encoding/json"
+	"regexp"
+	"sort"
 
 	flpapi "github.com/netobserv/flowlogs-pipeline/pkg/api"
 	flpconfig "github.com/netobserv/flowlogs-pipeline/pkg/config"
 )
+
+var bareQueryValue = regexp.MustCompile(`((?:[A-Za-z_][A-Za-z0-9_>]*\s*)(?:!=|=~|!~|=)\s*)([A-Za-z_][A-Za-z0-9_.-]*)`)
+
+// AddSubnetLabels adds the same subnet enrichment used by the CLI --get-subnets option.
+func AddSubnetLabels(config *flpconfig.Root, subnets map[string][]string) {
+	if config == nil || len(subnets) == 0 {
+		return
+	}
+	for i := range config.Parameters {
+		parameter := &config.Parameters[i]
+		if parameter.Name != "enrich" || parameter.Transform == nil || parameter.Transform.Network == nil {
+			continue
+		}
+		network := parameter.Transform.Network
+		network.Rules = append(network.Rules,
+			flpapi.NetworkTransformRule{Type: flpapi.NetworkAddSubnetLabel, AddSubnetLabel: &flpapi.NetworkAddSubnetLabelRule{Input: "SrcAddr", Output: "SrcSubnetLabel"}},
+			flpapi.NetworkTransformRule{Type: flpapi.NetworkAddSubnetLabel, AddSubnetLabel: &flpapi.NetworkAddSubnetLabelRule{Input: "DstAddr", Output: "DstSubnetLabel"}},
+		)
+		categories := make([]string, 0, len(subnets))
+		for category := range subnets {
+			categories = append(categories, category)
+		}
+		sort.Strings(categories)
+		network.SubnetLabels = make([]flpapi.NetworkTransformSubnetLabel, 0, len(categories))
+		for _, category := range categories {
+			network.SubnetLabels = append(network.SubnetLabels, flpapi.NetworkTransformSubnetLabel{Name: category, CIDRs: subnets[category]})
+		}
+		return
+	}
+}
+
+// AddFilterQueries adds Flowlogs-Pipeline keep-entry queries after enrichment.
+// It works for both collector and metrics pipelines by routing the first stage
+// after enrichment through the shared filter stage.
+func AddFilterQueries(config *flpconfig.Root, queries []string) {
+	if config == nil || len(queries) == 0 {
+		return
+	}
+	rules := make([]flpapi.TransformFilterRule, 0, len(queries))
+	for _, query := range queries {
+		rules = append(rules, flpapi.TransformFilterRule{Type: flpapi.KeepEntryQuery, KeepEntryQuery: normalizeQuery(query)})
+	}
+	for i := range config.Parameters {
+		if config.Parameters[i].Name == "filter" && config.Parameters[i].Transform != nil && config.Parameters[i].Transform.Filter != nil {
+			config.Parameters[i].Transform.Filter.Rules = append(config.Parameters[i].Transform.Filter.Rules, rules...)
+			return
+		}
+	}
+	config.Parameters = append(config.Parameters, flpconfig.StageParam{
+		Name:      "filter",
+		Transform: &flpconfig.Transform{Type: "filter", Filter: &flpapi.TransformFilter{Rules: rules}},
+	})
+	for i := range config.Pipeline {
+		if config.Pipeline[i].Follows == "enrich" {
+			config.Pipeline[i].Follows = "filter"
+		}
+	}
+	filter := flpconfig.Stage{Name: "filter", Follows: "enrich"}
+	insertAt := len(config.Pipeline)
+	for i := range config.Pipeline {
+		if config.Pipeline[i].Name != "enrich" {
+			insertAt = i
+			break
+		}
+	}
+	config.Pipeline = append(config.Pipeline, flpconfig.Stage{})
+	copy(config.Pipeline[insertAt+1:], config.Pipeline[insertAt:])
+	config.Pipeline[insertAt] = filter
+}
+
+// normalizeQuery quotes simple string values so queries assembled by clients as
+// K8S_FlowLayer=app remain valid Flowlogs-Pipeline expressions. Numeric values
+// and already quoted values are left untouched.
+func normalizeQuery(query string) string {
+	return bareQueryValue.ReplaceAllString(query, `${1}"${2}"`)
+}
 
 // CollectorPipelineConfig returns the typed FLP configuration used by flow and
 // packet captures. Keeping this here makes the CLI and FlowCapture use exactly

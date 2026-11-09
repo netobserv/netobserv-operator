@@ -13,14 +13,17 @@ const (
 func (f Feature) Valid() bool {
 	switch f {
 	case PacketDrop, DNSTracking, FlowRTT, NetworkEvents, PacketTranslation,
-		EbpfManager, UDNMapping, IPSec, TLSTracking, SecondaryNetworks:
+		UDNMapping, IPSec, TLSTracking, SecondaryNetworks:
 		return true
+	case EbpfManager:
+		// EbpfManager is supported by FlowCollector, not FlowCapture.
+		return false
 	default:
 		return false
 	}
 }
 
-// +kubebuilder:validation:Enum=PacketDrop;DNSTracking;FlowRTT;NetworkEvents;PacketTranslation;EbpfManager;UDNMapping;IPSec;TLSTracking;SecondaryNetworks
+// +kubebuilder:validation:Enum=PacketDrop;DNSTracking;FlowRTT;NetworkEvents;PacketTranslation;UDNMapping;IPSec;TLSTracking;SecondaryNetworks
 type Feature string
 
 const (
@@ -104,6 +107,14 @@ type FlowCaptureSpec struct {
 	// Filters are applied by the eBPF agent.
 	// +optional
 	Filters []FlowFilter `json:"filters,omitempty"`
+	// Queries are Flowlogs-Pipeline keep-entry expressions applied after enrichment.
+	// They use the same syntax as the CLI --query option and are evaluated in order.
+	// +optional
+	Queries []string `json:"queries,omitempty"`
+	// GetSubnets labels flows with the detected machine, pod, and service CIDRs.
+	// This is currently supported on OpenShift clusters.
+	// +optional
+	GetSubnets bool `json:"getSubnets,omitempty"`
 	// TLSPlaintext enables TLS plaintext capture for packet captures.
 	// +optional
 	TLSPlaintext *TLSPlaintextSpec `json:"tlsPlaintext,omitempty"`

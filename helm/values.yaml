@@ -29,6 +29,9 @@ operator:
   version: 2.0.2-community
   # Install network policy: true/false or leave unset for default behaviour that depends on the CNI
   installNetworkPolicy: ""
+  flowCaptureMaxConcurrent: 3
+  flowCaptureMaxDuration: 1h
+  flowCaptureMaxBytes: 0
   # Node affinity configuration for the operator deployment
   nodeAffinity: {}
   # Example:

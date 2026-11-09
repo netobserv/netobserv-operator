@@ -3,6 +3,7 @@ package v1alpha1
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -50,6 +51,11 @@ func flowCaptureWarnings(fc *FlowCapture) admission.Warnings {
 func validateFlowCapture(fc *FlowCapture) error {
 	if fc.Spec.TLSPlaintext != nil && fc.Spec.OutputType != Packets {
 		return fmt.Errorf("spec.tlsPlaintext is only supported for packet captures")
+	}
+	for i, query := range fc.Spec.Queries {
+		if strings.TrimSpace(query) == "" {
+			return fmt.Errorf("spec.queries[%d] must not be empty", i)
+		}
 	}
 	return nil
 }

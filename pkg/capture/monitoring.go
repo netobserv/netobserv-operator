@@ -97,8 +97,18 @@ func BuildAgentHealthServiceMonitorFor(name, namespace string, serviceSelector m
 	return buildCaptureServiceMonitor(name+"-health", namespace, serviceSelector, nil)
 }
 
+// BuildCollectorMetricsServiceMonitorFor exposes collector output metrics and
+// associates them with the same FlowCapture identity as the agent metrics.
+func BuildCollectorMetricsServiceMonitorFor(name, namespace string, serviceSelector map[string]string, flowCapture string) *monitoringv1.ServiceMonitor {
+	return buildCaptureServiceMonitorWithLabel(name+"-metrics", namespace, serviceSelector, nil, flowCapture)
+}
+
 func buildCaptureServiceMonitor(name, namespace string, serviceSelector map[string]string, metricRelabelings []monitoringv1.RelabelConfig) *monitoringv1.ServiceMonitor {
 	captureLabel := strings.TrimSuffix(strings.TrimSuffix(name, "-health"), "-agent")
+	return buildCaptureServiceMonitorWithLabel(name, namespace, serviceSelector, metricRelabelings, captureLabel)
+}
+
+func buildCaptureServiceMonitorWithLabel(name, namespace string, serviceSelector map[string]string, metricRelabelings []monitoringv1.RelabelConfig, captureLabel string) *monitoringv1.ServiceMonitor {
 	relabelings := []monitoringv1.RelabelConfig{{Action: "replace", Replacement: stringPtr(captureLabel), TargetLabel: "flowcapture"}}
 	return &monitoringv1.ServiceMonitor{
 		TypeMeta: metav1.TypeMeta{APIVersion: "monitoring.coreos.com/v1", Kind: "ServiceMonitor"},

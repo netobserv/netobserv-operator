@@ -56,7 +56,6 @@ spec:
                       - FlowRTT
                       - NetworkEvents
                       - PacketTranslation
-                      - EbpfManager
                       - UDNMapping
                       - IPSec
                       - TLSTracking
@@ -114,6 +113,11 @@ spec:
                         type: string
                     type: object
                   type: array
+                getSubnets:
+                  description: |-
+                    GetSubnets labels flows with the detected machine, pod, and service CIDRs.
+                    This is currently supported on OpenShift clusters.
+                  type: boolean
                 interfaces:
                   items:
                     type: string
@@ -137,6 +141,13 @@ spec:
                     - packets
                     - metrics
                   type: string
+                queries:
+                  description: |-
+                    Queries are Flowlogs-Pipeline keep-entry expressions applied after enrichment.
+                    They use the same syntax as the CLI --query option and are evaluated in order.
+                  items:
+                    type: string
+                  type: array
                 sampling:
                   description: Sampling is the eBPF sampling interval. 1 captures every packet. The default is 1.
                   format: int32
