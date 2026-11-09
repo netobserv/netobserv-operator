@@ -422,8 +422,8 @@ processes on each selected node.<br/>
         <td>string</td>
         <td>
           CompletionTime is set when the capture is marked complete; it does not guarantee that the collector Pod has exited.
-For managed captures, the collector Pod and its output remain available until the FlowCapture is deleted.<br/>
-Flow captures write records to a timestamped `.json` file as a JSON array and retain the existing `.db` SQLite output. The JSON file is streamed while the capture runs and finalized when the collector closes it.
+For managed captures, the collector Pod and its output remain available until the FlowCapture is deleted.
+Flow captures write records to a timestamped `.json` file as a JSON array and retain the existing `.db` SQLite output. The JSON file is streamed while the capture runs and finalized when the collector closes it.<br/>
           <br/>
             <i>Format</i>: date-time<br/>
         </td>

@@ -295,8 +295,8 @@ func agentVolumes(features []Feature) ([]corev1.Volume, []corev1.VolumeMount) {
 }
 
 func appendHostPath(volumes *[]corev1.Volume, mounts *[]corev1.VolumeMount, name, path string, pathType corev1.HostPathType) {
-	for _, volume := range *volumes {
-		if volume.Name == name {
+	for i := range *volumes {
+		if (*volumes)[i].Name == name {
 			return
 		}
 	}
