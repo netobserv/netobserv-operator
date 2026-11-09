@@ -1157,6 +1157,12 @@ spec:
                       fieldPath: metadata.namespace
                 - name: OPERATOR_NETWORK_POLICY
                   value: "true"
+                - name: FLOWCAPTURE_MAX_CONCURRENT
+                  value: "3"
+                - name: FLOWCAPTURE_MAX_DURATION
+                  value: 1h
+                - name: FLOWCAPTURE_MAX_BYTES
+                  value: "0"
                 - name: VENDOR
                   value: OpenShift_Downstream
                 - name: RELATED_IMAGE_WEB_CONSOLE_PF5

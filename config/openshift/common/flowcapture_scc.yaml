@@ -16,6 +16,7 @@ allowedCapabilities:
 - BPF
 - PERFMON
 - NET_ADMIN
+- SYS_ADMIN
 fsGroup:
   type: RunAsAny
 runAsUser:

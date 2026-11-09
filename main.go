@@ -266,6 +266,33 @@ func maybeBoolEnv(env string) (*bool, error) {
 	return nil, nil
 }
 
+func nonNegativeIntEnv(env string, defaultValue int) (int, error) {
+	value := defaultStringEnv(env, strconv.Itoa(defaultValue))
+	parsed, err := strconv.Atoi(value)
+	if err != nil || parsed < 0 {
+		return 0, fmt.Errorf("%s must be a non-negative integer, got %q", env, value)
+	}
+	return parsed, nil
+}
+
+func nonNegativeInt64Env(env string, defaultValue int64) (int64, error) {
+	value := defaultStringEnv(env, strconv.FormatInt(defaultValue, 10))
+	parsed, err := strconv.ParseInt(value, 10, 64)
+	if err != nil || parsed < 0 {
+		return 0, fmt.Errorf("%s must be a non-negative integer, got %q", env, value)
+	}
+	return parsed, nil
+}
+
+func positiveDurationEnv(env string, defaultValue time.Duration) (time.Duration, error) {
+	value := defaultStringEnv(env, defaultValue.String())
+	parsed, err := time.ParseDuration(value)
+	if err != nil || parsed <= 0 {
+		return 0, fmt.Errorf("%s must be a positive duration, got %q", env, value)
+	}
+	return parsed, nil
+}
+
 // setupTLSProfileWatcher configures the SecurityProfileWatcher on OpenShift clusters.
 // On OpenShift with no explicit TLS profile, OCP uses the Intermediate default; we still
 // set up the watcher so that a future explicit profile change is detected and triggers a restart.
@@ -302,6 +329,21 @@ func readConfigFromEnv() (*manager.Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	maxConcurrent, err := nonNegativeIntEnv("FLOWCAPTURE_MAX_CONCURRENT", manager.DefaultMaxConcurrentCaptures)
+	if err != nil {
+		return nil, err
+	}
+	if maxConcurrent == 0 {
+		return nil, fmt.Errorf("FLOWCAPTURE_MAX_CONCURRENT must be greater than zero")
+	}
+	maxDuration, err := positiveDurationEnv("FLOWCAPTURE_MAX_DURATION", manager.DefaultMaxCaptureDuration)
+	if err != nil {
+		return nil, err
+	}
+	maxBytes, err := nonNegativeInt64Env("FLOWCAPTURE_MAX_BYTES", manager.DefaultMaxCaptureBytes)
+	if err != nil {
+		return nil, err
+	}
 	return &manager.Config{
 		Vendor:                   constants.Vendor(os.Getenv("VENDOR")),
 		EBPFAgentImage:           defaultStringEnv("RELATED_IMAGE_EBPF_AGENT", "quay.io/netobserv/netobserv-ebpf-agent:main"),
@@ -322,5 +364,8 @@ func readConfigFromEnv() (*manager.Config, error) {
 			MemoryLimit:                       defaultStringEnv("STATIC_PLUGIN_MEMORY_LIMIT", ""),
 		},
 		DeployOperatorNetworkPolicy: deployNetpol,
+		MaxConcurrentCaptures:       maxConcurrent,
+		MaxCaptureDuration:          maxDuration,
+		MaxCaptureBytes:             maxBytes,
 	}, nil
 }

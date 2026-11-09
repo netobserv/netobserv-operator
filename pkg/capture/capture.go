@@ -65,19 +65,10 @@ func ValidateFeatures(kind Type, features []Feature) error {
 	}(), ", "))
 }
 
-// FeaturesRequirePrivilege reports whether the feature set needs the agent
-// container to run privileged.
-func FeaturesRequirePrivilege(features []Feature) bool {
-	for _, feature := range features {
-		switch feature {
-		case PacketDrop, NetworkEvents, UDNMapping:
-			return true
-		case DNSTracking, FlowRTT, PacketTranslation, EbpfManager, IPSec, TLSTracking:
-			// These features do not require privileged mode.
-		case SecondaryNetworks:
-			// Secondary network mapping does not require privileged mode here.
-		}
-	}
+// FeaturesRequirePrivilege is kept for compatibility with callers of the shared
+// package. Features use granular capabilities and never require a privileged
+// container; TLS plaintext capture is handled separately by TLSPlaintextOptions.
+func FeaturesRequirePrivilege(_ []Feature) bool {
 	return false
 }
 
@@ -135,8 +126,11 @@ type CollectorPodOptions struct {
 func BuildCollectorService(name, namespace string, selector map[string]string) *corev1.Service {
 	return &corev1.Service{
 		TypeMeta:   metav1.TypeMeta{APIVersion: "v1", Kind: "Service"},
-		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
-		Spec:       corev1.ServiceSpec{Selector: selector, Ports: []corev1.ServicePort{{Name: "collector", Protocol: corev1.ProtocolTCP, Port: 9999, TargetPort: intstr.FromInt32(9999)}}},
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace, Labels: selector},
+		Spec: corev1.ServiceSpec{Selector: selector, Ports: []corev1.ServicePort{
+			{Name: "collector", Protocol: corev1.ProtocolTCP, Port: 9999, TargetPort: intstr.FromInt32(9999)},
+			{Name: "prometheus", Protocol: corev1.ProtocolTCP, Port: 9401, TargetPort: intstr.FromInt32(9401)},
+		}},
 	}
 }
 
@@ -212,14 +206,13 @@ func BuildAgentDaemonSet(options *AgentOptions) *appsv1.DaemonSet {
 	}
 	filters, _ := json.Marshal(NormalizeFilters(options.Filters))
 	envs = append(envs, corev1.EnvVar{Name: "FLOW_FILTER_RULES", Value: string(filters)})
-	volumes, mounts := agentVolumes(options.Type)
+	volumes, mounts := agentVolumes(options.Features)
 	plaintext := options.Type == Packets && options.TLSPlaintext != nil
 	if plaintext {
 		addTLSPlaintextVolumes(&volumes, &mounts)
 	}
-	privileged := plaintext
 	container := corev1.Container{Name: containerName, Image: options.Image, ImagePullPolicy: corev1.PullAlways, Env: envs, VolumeMounts: mounts,
-		SecurityContext: &corev1.SecurityContext{AllowPrivilegeEscalation: ptr.To(privileged), Privileged: ptr.To(privileged), ReadOnlyRootFilesystem: ptr.To(!plaintext), RunAsUser: int64Ptr(0), Capabilities: &corev1.Capabilities{Add: plaintextCapabilities(plaintext), Drop: []corev1.Capability{"ALL"}}}}
+		SecurityContext: &corev1.SecurityContext{AllowPrivilegeEscalation: ptr.To(false), Privileged: ptr.To(false), ReadOnlyRootFilesystem: ptr.To(!plaintext), RunAsUser: int64Ptr(0), Capabilities: &corev1.Capabilities{Add: agentCapabilities(options.Features, plaintext), Drop: []corev1.Capability{"ALL"}}}}
 	if options.Type == Metrics {
 		port := options.MetricsPort
 		if port == 0 {
@@ -263,9 +256,12 @@ func agentEnvironment(options *AgentOptions) []corev1.EnvVar {
 	return envs
 }
 
-func plaintextCapabilities(enabled bool) []corev1.Capability {
+func agentCapabilities(features []Feature, plaintext bool) []corev1.Capability {
 	caps := []corev1.Capability{"BPF", "PERFMON", "NET_ADMIN"}
-	if enabled {
+	if featureEnabled(features, SecondaryNetworks) || plaintext {
+		caps = append(caps, "SYS_ADMIN")
+	}
+	if plaintext {
 		caps = append(caps, "SYS_PTRACE")
 	}
 	return caps
@@ -278,25 +274,43 @@ func addTLSPlaintextVolumes(volumes *[]corev1.Volume, mounts *[]corev1.VolumeMou
 	}
 }
 
-func agentVolumes(kind Type) ([]corev1.Volume, []corev1.VolumeMount) {
-	volumes := []corev1.Volume{{Name: "bpf-kernel-debug", VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: "/sys/kernel/debug", Type: hostPathType(corev1.HostPathDirectory)}}}}
-	mounts := []corev1.VolumeMount{{Name: "bpf-kernel-debug", MountPath: "/sys/kernel/debug", MountPropagation: mountPropagation(corev1.MountPropagationHostToContainer)}}
-	if kind == Flows {
+func agentVolumes(features []Feature) ([]corev1.Volume, []corev1.VolumeMount) {
+	var volumes []corev1.Volume
+	var mounts []corev1.VolumeMount
+	if featureEnabled(features, PacketDrop) {
+		appendHostPath(&volumes, &mounts, "bpf-kernel-debug", "/sys/kernel/debug", corev1.HostPathDirectory)
+	}
+	if featureEnabled(features, NetworkEvents) || featureEnabled(features, UDNMapping) {
 		for _, volume := range []struct {
 			name, path string
 			typeValue  corev1.HostPathType
 		}{{"var-run-ovn", "/var/run/ovn-ic", corev1.HostPathDirectoryOrCreate}, {"var-run-ovs", "/var/run/openvswitch", corev1.HostPathDirectoryOrCreate}, {"var-run-netns", "/var/run/netns", corev1.HostPathDirectory}} {
-			volumes = append(volumes, corev1.Volume{Name: volume.name, VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: volume.path, Type: hostPathType(volume.typeValue)}}})
-			mounts = append(mounts, corev1.VolumeMount{Name: volume.name, MountPath: volume.path, MountPropagation: mountPropagation(corev1.MountPropagationHostToContainer)})
+			appendHostPath(&volumes, &mounts, volume.name, volume.path, volume.typeValue)
 		}
 	}
-	if kind == Metrics {
-		for _, volume := range []struct{ name, path string }{{"var-run-ovn", "/var/run/ovn-ic"}, {"var-run-ovs", "/var/run/openvswitch"}} {
-			volumes = append(volumes, corev1.Volume{Name: volume.name, VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: volume.path, Type: hostPathType(corev1.HostPathDirectoryOrCreate)}}})
-			mounts = append(mounts, corev1.VolumeMount{Name: volume.name, MountPath: volume.path, MountPropagation: mountPropagation(corev1.MountPropagationHostToContainer)})
-		}
+	if featureEnabled(features, SecondaryNetworks) {
+		appendHostPath(&volumes, &mounts, "var-run-netns", "/var/run/netns", corev1.HostPathDirectory)
 	}
 	return volumes, mounts
+}
+
+func appendHostPath(volumes *[]corev1.Volume, mounts *[]corev1.VolumeMount, name, path string, pathType corev1.HostPathType) {
+	for _, volume := range *volumes {
+		if volume.Name == name {
+			return
+		}
+	}
+	*volumes = append(*volumes, corev1.Volume{Name: name, VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: path, Type: hostPathType(pathType)}}})
+	*mounts = append(*mounts, corev1.VolumeMount{Name: name, MountPath: path, MountPropagation: mountPropagation(corev1.MountPropagationHostToContainer)})
+}
+
+func featureEnabled(features []Feature, wanted Feature) bool {
+	for _, feature := range features {
+		if feature == wanted {
+			return true
+		}
+	}
+	return false
 }
 
 // FeatureEnvName returns the eBPF agent environment variable for a feature.
@@ -321,7 +335,7 @@ func FeatureEnvName(feature Feature) (string, bool) {
 	case TLSTracking:
 		return "ENABLE_TLS_TRACKING", true
 	case SecondaryNetworks:
-		return "", false
+		return "ENABLE_SECONDARY_NETWORKS", true
 	default:
 		return "", false
 	}

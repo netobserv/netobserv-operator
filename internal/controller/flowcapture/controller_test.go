@@ -14,6 +14,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -127,7 +128,7 @@ func TestDesiredAgentUsesPrivilegedNamespaceAndNamespacedCollectorService(t *tes
 	r := &Reconciler{config: &manager.Config{Namespace: "netobserv"}}
 	fc := &flowcapturev1alpha1.FlowCapture{ObjectMeta: metav1.ObjectMeta{Name: "capture", Namespace: "team-a"}, Spec: flowcapturev1alpha1.FlowCaptureSpec{OutputType: flowcapturev1alpha1.Flows}}
 	names := r.captureNames(fc)
-	agent := desiredAgent(fc, "agent:latest", &names)
+	agent := desiredAgent(fc, "agent:latest", &names, nil)
 	if agent.Namespace != "netobserv-privileged" {
 		t.Fatalf("agent namespace = %q, want netobserv-privileged", agent.Namespace)
 	}
@@ -208,11 +209,11 @@ func TestDesiredFlowCaptureSCC(t *testing.T) {
 
 func TestDesiredFlowCapturePlaintextSCC(t *testing.T) {
 	scc := desiredFlowCapturePlaintextSCC()
-	if scc.Name != "flowcapture-plaintext" || !scc.AllowHostPID || !scc.AllowPrivilegedContainer || scc.AllowPrivilegeEscalation == nil || !*scc.AllowPrivilegeEscalation {
+	if scc.Name != "flowcapture-plaintext" || !scc.AllowHostPID || scc.AllowPrivilegedContainer || scc.AllowPrivilegeEscalation == nil || *scc.AllowPrivilegeEscalation {
 		t.Fatalf("unexpected plaintext SCC: %#v", scc)
 	}
-	if len(scc.AllowedCapabilities) != 4 || scc.AllowedCapabilities[3] != "SYS_PTRACE" {
-		t.Fatalf("plaintext SCC must allow SYS_PTRACE: %#v", scc.AllowedCapabilities)
+	if len(scc.AllowedCapabilities) != 5 || scc.AllowedCapabilities[3] != "SYS_ADMIN" || scc.AllowedCapabilities[4] != "SYS_PTRACE" {
+		t.Fatalf("plaintext SCC must allow granular capabilities: %#v", scc.AllowedCapabilities)
 	}
 }
 
@@ -261,6 +262,44 @@ func TestActiveMetricsCapture(t *testing.T) {
 				t.Fatalf("activeMetricsCapture() = %t, want %t", got, tt.blocked)
 			}
 		})
+	}
+}
+
+func TestIsActiveCapture(t *testing.T) {
+	for name, capture := range map[string]*flowcapturev1alpha1.FlowCapture{
+		"new":              {},
+		"pending":          {Status: flowcapturev1alpha1.FlowCaptureStatus{Phase: phasePending}},
+		"concurrency wait": {Status: flowcapturev1alpha1.FlowCaptureStatus{Phase: phasePending, Reason: "CaptureConcurrencyLimit"}},
+		"running":          {Status: flowcapturev1alpha1.FlowCaptureStatus{Phase: phaseRunning}},
+		"completed":        {Status: flowcapturev1alpha1.FlowCaptureStatus{Phase: phaseCompleted}},
+		"failed":           {Status: flowcapturev1alpha1.FlowCaptureStatus{Phase: phaseFailed}},
+		"completion time":  {Status: flowcapturev1alpha1.FlowCaptureStatus{CompletionTime: ptr.To(metav1.Now())}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			want := name == "pending" || name == "running"
+			if got := isActiveCapture(capture); got != want {
+				t.Fatalf("isActiveCapture() = %v, want %v", got, want)
+			}
+		})
+	}
+}
+
+func TestCaptureConcurrencyLimitIsClusterWide(t *testing.T) {
+	created := metav1.NewTime(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
+	captures := []flowcapturev1alpha1.FlowCapture{
+		{ObjectMeta: metav1.ObjectMeta{Name: "one", Namespace: "team-a", CreationTimestamp: created}},
+		{ObjectMeta: metav1.ObjectMeta{Name: "two", Namespace: "team-b", CreationTimestamp: metav1.NewTime(created.Add(time.Second))}},
+		{ObjectMeta: metav1.ObjectMeta{Name: "three", Namespace: "team-c", CreationTimestamp: metav1.NewTime(created.Add(2 * time.Second))}},
+	}
+	if !captureAdmitted(captures, &captures[0], 2) || !captureAdmitted(captures, &captures[1], 2) {
+		t.Fatal("the first two captures should be admitted")
+	}
+	if captureAdmitted(captures, &captures[2], 2) {
+		t.Fatal("the third capture should wait for a slot")
+	}
+	captures[2].Status.Phase = phasePending
+	if !captureAdmitted(captures, &captures[2], 2) {
+		t.Fatal("an already admitted capture should continue running")
 	}
 }
 

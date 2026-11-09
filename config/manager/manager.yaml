@@ -49,6 +49,12 @@ spec:
                 fieldPath: metadata.namespace
           - name: OPERATOR_NETWORK_POLICY
             value: 'true'
+          - name: FLOWCAPTURE_MAX_CONCURRENT
+            value: "3"
+          - name: FLOWCAPTURE_MAX_DURATION
+            value: "1h"
+          - name: FLOWCAPTURE_MAX_BYTES
+            value: "0"
         image: controller:latest
         name: manager
         imagePullPolicy: Always

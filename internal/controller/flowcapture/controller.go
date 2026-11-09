@@ -16,6 +16,7 @@ import (
 	"github.com/netobserv/netobserv-operator/internal/pkg/manager/enqueuer"
 	"github.com/netobserv/netobserv-operator/internal/pkg/roles"
 	sharedcapture "github.com/netobserv/netobserv-operator/pkg/capture"
+	configv1 "github.com/openshift/api/config/v1"
 	securityv1 "github.com/openshift/api/security/v1"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -26,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -93,6 +95,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if !fc.Spec.OutputType.Valid() {
 		return ctrl.Result{}, fmt.Errorf("unsupported FlowCapture type %q", fc.Spec.OutputType)
 	}
+	if r.isOpenShift() && fc.DeletionTimestamp.IsZero() {
+		if err := r.reconcileFlowCaptureDashboard(ctx); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
 	if !fc.DeletionTimestamp.IsZero() {
 		if !controllerutil.ContainsFinalizer(&fc, flowCaptureFinalizer) {
 			return ctrl.Result{}, nil
@@ -132,7 +139,16 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if err := sharedcapture.ValidateFeatures(sharedcapture.Type(fc.Spec.OutputType), features); err != nil {
 		return ctrl.Result{}, r.setCaptureFailure(ctx, &fc, "InvalidFeature", err.Error())
 	}
-	if err := r.ensureNamespaceAvailable(ctx, &fc); err != nil {
+	if err := r.validateCaptureLimits(&fc); err != nil {
+		return ctrl.Result{}, r.setCaptureFailure(ctx, &fc, "CaptureLimit", err.Error())
+	}
+	if err := r.ensureCaptureConcurrency(ctx, &fc); err != nil {
+		if statusErr := r.updateCaptureStatus(ctx, &fc, phasePending, "CaptureConcurrencyLimit", err.Error()); statusErr != nil {
+			return ctrl.Result{}, fmt.Errorf("%w (also failed to update status: %w)", err, statusErr)
+		}
+		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+	}
+	if err := r.ensureCaptureConflicts(ctx, &fc); err != nil {
 		if statusErr := r.setConflictStatus(ctx, &fc, err.Error()); statusErr != nil {
 			return ctrl.Result{}, fmt.Errorf("%w (also failed to update status: %w)", err, statusErr)
 		}
@@ -140,11 +156,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 	if err := r.reconcileResources(ctx, &fc); err != nil {
 		return ctrl.Result{}, err
-	}
-	if r.isOpenShift() {
-		if err := r.reconcileFlowCaptureDashboard(ctx); err != nil {
-			return ctrl.Result{}, err
-		}
 	}
 	if err := r.updateStatus(ctx, &fc); err != nil {
 		return ctrl.Result{}, err
@@ -155,21 +166,22 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	return ctrl.Result{}, nil
 }
 
-func (r *Reconciler) ensureNamespaceAvailable(ctx context.Context, fc *flowcapturev1alpha1.FlowCapture) error {
+func (r *Reconciler) ensureCaptureConcurrency(ctx context.Context, fc *flowcapturev1alpha1.FlowCapture) error {
 	var captures flowcapturev1alpha1.FlowCaptureList
-	if err := r.List(ctx, &captures, client.InNamespace(fc.Namespace)); err != nil {
-		return fmt.Errorf("cannot check captures in namespace %q: %w", fc.Namespace, err)
+	reader := r.apiReader
+	if reader == nil {
+		reader = r.Client
 	}
-	for i := range captures.Items {
-		other := &captures.Items[i]
-		if other.Name == fc.Name || other.Status.Phase == phaseCompleted || other.Status.Phase == phaseFailed {
-			continue
-		}
-		if capturePrecedes(other, fc) {
-			return fmt.Errorf("namespace %q already has active FlowCapture %q", fc.Namespace, other.Name)
-		}
+	if err := reader.List(ctx, &captures); err != nil {
+		return fmt.Errorf("cannot check active FlowCaptures: %w", err)
 	}
+	if !captureAdmitted(captures.Items, fc, r.maxConcurrentCaptures()) {
+		return fmt.Errorf("maximum of %d concurrent FlowCaptures is already running", r.maxConcurrentCaptures())
+	}
+	return nil
+}
 
+func (r *Reconciler) ensureCaptureConflicts(ctx context.Context, fc *flowcapturev1alpha1.FlowCapture) error {
 	if fc.Spec.OutputType == flowcapturev1alpha1.Metrics {
 		var allCaptures flowcapturev1alpha1.FlowCaptureList
 		if err := r.List(ctx, &allCaptures); err != nil {
@@ -197,6 +209,55 @@ func (r *Reconciler) ensureNamespaceAvailable(ctx context.Context, fc *flowcaptu
 		}
 	} else if err != nil && !errors.IsNotFound(err) {
 		return fmt.Errorf("cannot check for FlowCollector: %w", err)
+	}
+	return nil
+}
+
+func isActiveCapture(fc *flowcapturev1alpha1.FlowCapture) bool {
+	return fc.Status.CompletionTime == nil && (fc.Status.Phase == phaseRunning || (fc.Status.Phase == phasePending && fc.Status.Reason != "CaptureConcurrencyLimit"))
+}
+
+func captureAdmitted(captures []flowcapturev1alpha1.FlowCapture, current *flowcapturev1alpha1.FlowCapture, limit int) bool {
+	if isActiveCapture(current) {
+		return true
+	}
+	preceding := 0
+	for i := range captures {
+		capture := &captures[i]
+		if capture.Name == current.Name && capture.Namespace == current.Namespace {
+			continue
+		}
+		if isPendingAdmission(capture) && capturePrecedes(capture, current) {
+			preceding++
+		}
+	}
+	return preceding < limit
+}
+
+func isPendingAdmission(fc *flowcapturev1alpha1.FlowCapture) bool {
+	return fc.Status.CompletionTime == nil && fc.Status.Phase != phaseCompleted && fc.Status.Phase != phaseFailed
+}
+
+func (r *Reconciler) maxConcurrentCaptures() int {
+	if r.config == nil || r.config.MaxConcurrentCaptures == 0 {
+		return manager.DefaultMaxConcurrentCaptures
+	}
+	return r.config.MaxConcurrentCaptures
+}
+
+func (r *Reconciler) maxCaptureDuration() time.Duration {
+	if r.config == nil || r.config.MaxCaptureDuration == 0 {
+		return manager.DefaultMaxCaptureDuration
+	}
+	return r.config.MaxCaptureDuration
+}
+
+func (r *Reconciler) validateCaptureLimits(fc *flowcapturev1alpha1.FlowCapture) error {
+	if fc.Spec.MaxTime != nil && fc.Spec.MaxTime.Duration > r.maxCaptureDuration() {
+		return fmt.Errorf("maxTime %s exceeds the operator limit of %s", fc.Spec.MaxTime.Duration, r.maxCaptureDuration())
+	}
+	if r.config != nil && r.config.MaxCaptureBytes > 0 && fc.Spec.MaxBytes > r.config.MaxCaptureBytes {
+		return fmt.Errorf("maxBytes %d exceeds the operator limit of %d", fc.Spec.MaxBytes, r.config.MaxCaptureBytes)
 	}
 	return nil
 }
@@ -285,7 +346,7 @@ func (r *Reconciler) updateMetricsStatus(ctx context.Context, fc *flowcapturev1a
 		}
 		return r.updateCaptureStatus(ctx, fc, phasePending, "AgentPending", "agent DaemonSet is not scheduled yet")
 	}
-	maxTime := time.Hour
+	maxTime := r.maxCaptureDuration()
 	if fc.Spec.MaxTime != nil {
 		maxTime = fc.Spec.MaxTime.Duration
 	}
@@ -381,31 +442,7 @@ func (r *Reconciler) reconcileResources(ctx context.Context, fc *flowcapturev1al
 		return err
 	}
 	if sharedcapture.Type(fc.Spec.OutputType).HasCollector() {
-		if err := r.ensure(ctx, fc, desiredService(fc, names.Names)); err != nil {
-			return err
-		}
-		if r.managedQ != nil {
-			if err := r.managedQ.EnqueueOnChange(ctx, desiredService(fc, names.Names), flowCaptureRequest(fc), reconcilers.IgnoreStatusChangeEventFilter); err != nil {
-				return err
-			}
-		}
-		if err := r.ensure(ctx, fc, desiredCollectorServiceAccount(&names)); err != nil {
-			return err
-		}
-		if err := r.ensure(ctx, fc, desiredCollectorRole(&names)); err != nil {
-			return err
-		}
-		if err := r.ensure(ctx, fc, desiredCollectorRoleBinding(&names)); err != nil {
-			return err
-		}
-		if err := r.ensure(ctx, fc, desiredCollector(fc, collectorImage, &names)); err != nil {
-			return err
-		}
-		networkPolicy, err := r.desiredCollectorNetworkPolicy(ctx, fc, names.AgentNamespace)
-		if err != nil {
-			return err
-		}
-		if err := r.ensure(ctx, fc, networkPolicy); err != nil {
+		if err := r.reconcileCollectorResources(ctx, fc, &names, collectorImage); err != nil {
 			return err
 		}
 	} else if err := r.deleteCollectorResources(ctx, fc, &names); err != nil {
@@ -432,13 +469,55 @@ func (r *Reconciler) reconcileResources(ctx context.Context, fc *flowcapturev1al
 			return err
 		}
 	}
-	agent := desiredAgent(fc, agentImage, &names)
+	var subnets map[string][]string
+	if fc.Spec.GetSubnets {
+		var err error
+		subnets, err = r.discoverSubnets(ctx)
+		if err != nil {
+			return r.setCaptureFailure(ctx, fc, "SubnetDiscoveryFailed", err.Error())
+		}
+	}
+	agent := desiredAgent(fc, agentImage, &names, subnets)
 	if r.managedQ != nil {
 		if err := r.managedQ.EnqueueOnChange(ctx, agent, flowCaptureRequest(fc), reconcilers.IgnoreStatusChangeEventFilter); err != nil {
 			return err
 		}
 	}
 	return r.ensureUnowned(ctx, agent)
+}
+
+func (r *Reconciler) reconcileCollectorResources(ctx context.Context, fc *flowcapturev1alpha1.FlowCapture, names *captureNames, image string) error {
+	if r.isOpenShift() {
+		if err := r.ensureClusterMonitoringLabel(ctx, fc.Namespace); err != nil {
+			return err
+		}
+	}
+	if err := r.ensure(ctx, fc, desiredService(fc, names.Names)); err != nil {
+		return err
+	}
+	if err := r.ensure(ctx, fc, sharedcapture.BuildCollectorMetricsServiceMonitorFor(names.CollectorService, fc.Namespace, map[string]string{"flowcapture": fc.Name, "component": "collector"}, names.AgentDaemonSet)); err != nil {
+		return err
+	}
+	if r.managedQ != nil {
+		if err := r.managedQ.EnqueueOnChange(ctx, desiredService(fc, names.Names), flowCaptureRequest(fc), reconcilers.IgnoreStatusChangeEventFilter); err != nil {
+			return err
+		}
+	}
+	for _, object := range []client.Object{
+		desiredCollectorServiceAccount(names),
+		desiredCollectorRole(names),
+		desiredCollectorRoleBinding(names),
+		r.desiredCollector(fc, image, names),
+	} {
+		if err := r.ensure(ctx, fc, object); err != nil {
+			return err
+		}
+	}
+	networkPolicy, err := r.desiredCollectorNetworkPolicy(ctx, fc, names.AgentNamespace)
+	if err != nil {
+		return err
+	}
+	return r.ensure(ctx, fc, networkPolicy)
 }
 
 func (r *Reconciler) reconcileCaptureSetup(ctx context.Context, fc *flowcapturev1alpha1.FlowCapture, names *captureNames) error {
@@ -489,7 +568,7 @@ func desiredFlowCaptureSCC() *securityv1.SecurityContextConstraints {
 		AllowPrivilegeEscalation: ptr.To(false),
 		AllowPrivilegedContainer: false,
 		AllowedCapabilities: []corev1.Capability{
-			"BPF", "PERFMON", "NET_ADMIN",
+			"BPF", "PERFMON", "NET_ADMIN", "SYS_ADMIN",
 		},
 		FSGroup:            securityv1.FSGroupStrategyOptions{Type: securityv1.FSGroupStrategyRunAsAny},
 		RunAsUser:          securityv1.RunAsUserStrategyOptions{Type: securityv1.RunAsUserStrategyRunAsAny},
@@ -507,8 +586,6 @@ func desiredFlowCapturePlaintextSCC() *securityv1.SecurityContextConstraints {
 	scc := desiredFlowCaptureSCC()
 	scc.Name = "flowcapture-plaintext"
 	scc.AllowHostPID = true
-	scc.AllowPrivilegeEscalation = ptr.To(true)
-	scc.AllowPrivilegedContainer = true
 	scc.AllowedCapabilities = append(scc.AllowedCapabilities, "SYS_PTRACE")
 	return scc
 }
@@ -576,6 +653,38 @@ func (r *Reconciler) ensureCaptureNamespace(ctx context.Context) error {
 		return nil
 	}
 	return r.Update(ctx, updated)
+}
+
+func (r *Reconciler) discoverSubnets(ctx context.Context) (map[string][]string, error) {
+	if !r.isOpenShift() {
+		return nil, fmt.Errorf("spec.getSubnets is only supported on OpenShift clusters")
+	}
+
+	var configMap corev1.ConfigMap
+	if err := r.Get(ctx, types.NamespacedName{Name: "cluster-config-v1", Namespace: "kube-system"}, &configMap); err != nil {
+		return nil, fmt.Errorf("cannot get OpenShift cluster network configuration: %w", err)
+	}
+	machineCIDRs, err := sharedcapture.ParseMachineNetworkCIDRs(configMap.Data["install-config"])
+	if err != nil {
+		return nil, fmt.Errorf("cannot parse OpenShift machine network configuration: %w", err)
+	}
+
+	var network configv1.Network
+	if err := r.Get(ctx, types.NamespacedName{Name: "cluster"}, &network); err != nil {
+		return nil, fmt.Errorf("cannot get OpenShift Network configuration: %w", err)
+	}
+	result := map[string][]string{"Machines": machineCIDRs}
+	for _, clusterNetwork := range network.Spec.ClusterNetwork {
+		if clusterNetwork.CIDR != "" {
+			result["Pods"] = append(result["Pods"], clusterNetwork.CIDR)
+		}
+	}
+	for _, serviceNetwork := range network.Spec.ServiceNetwork {
+		if serviceNetwork != "" {
+			result["Services"] = append(result["Services"], serviceNetwork)
+		}
+	}
+	return result, nil
 }
 
 func (r *Reconciler) ensureClusterMonitoringLabel(ctx context.Context, namespace string) error {
@@ -743,6 +852,7 @@ func (r *Reconciler) deleteCollectorResources(ctx context.Context, fc *flowcaptu
 	objects := []client.Object{
 		&corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: names.CollectorPod, Namespace: names.CollectorNamespace}},
 		&corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: names.CollectorService, Namespace: names.CollectorNamespace}},
+		&monitoringv1.ServiceMonitor{ObjectMeta: metav1.ObjectMeta{Name: names.CollectorService + "-metrics", Namespace: names.CollectorNamespace}},
 		&corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: names.CollectorServiceAccount, Namespace: names.CollectorNamespace}},
 		&rbacv1.Role{ObjectMeta: metav1.ObjectMeta{Name: names.CollectorServiceAccount, Namespace: names.CollectorNamespace}},
 		&rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: names.CollectorServiceAccount, Namespace: names.CollectorNamespace}},
@@ -909,17 +1019,17 @@ func (r *Reconciler) desiredCollectorNetworkPolicy(_ context.Context, fc *flowca
 	// neither a namespace selector nor dynamically discovered node IP blocks
 	// allow the agents to reach this pod. Keep the policy port-scoped instead:
 	// the collector is only exposed through its internal ClusterIP Service and
-	// only its gRPC port is allowed.
+	// only its gRPC and Prometheus ports are allowed.
 	return &networkingv1.NetworkPolicy{
 		TypeMeta:   metav1.TypeMeta{APIVersion: "networking.k8s.io/v1", Kind: "NetworkPolicy"},
 		ObjectMeta: metav1.ObjectMeta{Name: fc.Name + "-collector", Namespace: fc.Namespace},
 		Spec: networkingv1.NetworkPolicySpec{
 			PodSelector: metav1.LabelSelector{MatchLabels: map[string]string{"flowcapture": fc.Name, "component": "collector"}},
 			PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeIngress},
-			Ingress: []networkingv1.NetworkPolicyIngressRule{{Ports: []networkingv1.NetworkPolicyPort{{
-				Port:     ptr.To(intstr.FromInt32(9999)),
-				Protocol: ptr.To(corev1.ProtocolTCP),
-			}}}},
+			Ingress: []networkingv1.NetworkPolicyIngressRule{{Ports: []networkingv1.NetworkPolicyPort{
+				{Port: ptr.To(intstr.FromInt32(9999)), Protocol: ptr.To(corev1.ProtocolTCP)},
+				{Port: ptr.To(intstr.FromInt32(9401)), Protocol: ptr.To(corev1.ProtocolTCP)},
+			}}},
 		},
 	}, nil
 }
@@ -945,8 +1055,16 @@ func desiredCollectorRoleBinding(names *captureNames) *rbacv1.RoleBinding {
 	}
 }
 
+func (r *Reconciler) desiredCollector(fc *flowcapturev1alpha1.FlowCapture, image string, names *captureNames) *corev1.Pod {
+	return buildDesiredCollector(fc, image, names, r.maxCaptureDuration().String())
+}
+
 func desiredCollector(fc *flowcapturev1alpha1.FlowCapture, image string, names *captureNames) *corev1.Pod {
-	maxTime := "1h"
+	return buildDesiredCollector(fc, image, names, manager.DefaultMaxCaptureDuration.String())
+}
+
+func buildDesiredCollector(fc *flowcapturev1alpha1.FlowCapture, image string, names *captureNames, defaultMaxTime string) *corev1.Pod {
+	maxTime := defaultMaxTime
 	if fc.Spec.MaxTime != nil {
 		maxTime = fc.Spec.MaxTime.Duration.String()
 	}
@@ -968,7 +1086,7 @@ func desiredCollector(fc *flowcapturev1alpha1.FlowCapture, image string, names *
 	return pod
 }
 
-func desiredAgent(fc *flowcapturev1alpha1.FlowCapture, image string, names *captureNames) *appsv1.DaemonSet {
+func desiredAgent(fc *flowcapturev1alpha1.FlowCapture, image string, names *captureNames, subnets map[string][]string) *appsv1.DaemonSet {
 	sampling := int(fc.Spec.Sampling)
 	if sampling == 0 {
 		sampling = 1
@@ -982,6 +1100,8 @@ func desiredAgent(fc *flowcapturev1alpha1.FlowCapture, image string, names *capt
 	if sharedcapture.Type(fc.Spec.OutputType) == sharedcapture.Metrics {
 		pipeline = sharedcapture.MetricsPipelineConfig()
 	}
+	sharedcapture.AddSubnetLabels(pipeline, subnets)
+	sharedcapture.AddFilterQueries(pipeline, fc.Spec.Queries)
 	var plaintext *sharedcapture.TLSPlaintextOptions
 	if fc.Spec.TLSPlaintext != nil {
 		plaintext = &sharedcapture.TLSPlaintextOptions{MinBytes: fc.Spec.TLSPlaintext.MinBytes, PreviewBytes: fc.Spec.TLSPlaintext.PreviewBytes, ProcessAllowlist: fc.Spec.TLSPlaintext.ProcessAllowlist}

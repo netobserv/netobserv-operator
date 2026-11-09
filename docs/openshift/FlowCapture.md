@@ -106,7 +106,7 @@ FlowCapture requests a short-lived capture of flows, packets, or metrics.
           Features enables optional eBPF features. Values use the same vocabulary as
 FlowCollector.spec.agent.ebpf.features.<br/>
           <br/>
-            <i>Enum</i>: PacketDrop, DNSTracking, FlowRTT, NetworkEvents, PacketTranslation, EbpfManager, UDNMapping, IPSec, TLSTracking, SecondaryNetworks<br/>
+            <i>Enum</i>: PacketDrop, DNSTracking, FlowRTT, NetworkEvents, PacketTranslation, UDNMapping, IPSec, TLSTracking, SecondaryNetworks<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -114,6 +114,14 @@ FlowCollector.spec.agent.ebpf.features.<br/>
         <td>[]object</td>
         <td>
           Filters are applied by the eBPF agent.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>getSubnets</b></td>
+        <td>boolean</td>
+        <td>
+          GetSubnets labels flows with the detected machine, pod, and service CIDRs.
+This is currently supported on OpenShift clusters.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -145,6 +153,14 @@ FlowCollector.spec.agent.ebpf.features.<br/>
         <td>map[string]string</td>
         <td>
           <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>queries</b></td>
+        <td>[]string</td>
+        <td>
+          Queries are Flowlogs-Pipeline keep-entry expressions applied after enrichment.
+They use the same syntax as the CLI --query option and are evaluated in order.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -407,6 +423,7 @@ processes on each selected node.<br/>
         <td>
           CompletionTime is set when the capture is marked complete; it does not guarantee that the collector Pod has exited.
 For managed captures, the collector Pod and its output remain available until the FlowCapture is deleted.<br/>
+Flow captures write records to a timestamped `.json` file as a JSON array and retain the existing `.db` SQLite output. The JSON file is streamed while the capture runs and finalized when the collector closes it.
           <br/>
             <i>Format</i>: date-time<br/>
         </td>

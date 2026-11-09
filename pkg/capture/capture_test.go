@@ -11,7 +11,7 @@ import (
 
 func TestBuildCollectorResources(t *testing.T) {
 	service := BuildCollectorService("collector", "capture", map[string]string{"run": "collector"})
-	if service.Spec.Ports[0].Port != 9999 || service.Spec.Selector["run"] != "collector" {
+	if service.Spec.Ports[0].Port != 9999 || service.Spec.Ports[1].Port != 9401 || service.Spec.Selector["run"] != "collector" {
 		t.Fatalf("unexpected collector service: %#v", service)
 	}
 
@@ -82,8 +82,8 @@ func TestBuildAgentDaemonSetTLSPlaintext(t *testing.T) {
 		TLSPlaintext: &TLSPlaintextOptions{MinBytes: 32, PreviewBytes: 128, ProcessAllowlist: []string{"nginx"}},
 	})
 	container := ds.Spec.Template.Spec.Containers[0]
-	if !ds.Spec.Template.Spec.HostPID || container.SecurityContext == nil || !*container.SecurityContext.Privileged {
-		t.Fatal("TLS plaintext capture must request host PID and privileged access")
+	if !ds.Spec.Template.Spec.HostPID || container.SecurityContext == nil || *container.SecurityContext.Privileged {
+		t.Fatal("TLS plaintext capture must request host PID without privileged mode")
 	}
 	for _, name := range []string{"ENABLE_OPENSSL_TRACKING", "TLS_PLAINTEXT_MIN_BYTES", "TLS_PLAINTEXT_PREVIEW_BYTES", "TLS_PLAINTEXT_PROCESS_ALLOWLIST"} {
 		if envValue(container.Env, name) == "" {
@@ -93,9 +93,80 @@ func TestBuildAgentDaemonSetTLSPlaintext(t *testing.T) {
 	if envValue(container.Env, "ENABLE_OPENSSL_TRACKING") != "true" || envValue(container.Env, "TLS_PLAINTEXT_MIN_BYTES") != "32" || envValue(container.Env, "TLS_PLAINTEXT_PREVIEW_BYTES") != "128" || envValue(container.Env, "TLS_PLAINTEXT_PROCESS_ALLOWLIST") != "nginx" {
 		t.Fatalf("unexpected TLS plaintext environment: %#v", container.Env)
 	}
-	if len(container.VolumeMounts) != 4 || len(ds.Spec.Template.Spec.Volumes) != 4 {
-		t.Fatalf("expected debugfs plus host library mounts: mounts=%v volumes=%v", container.VolumeMounts, ds.Spec.Template.Spec.Volumes)
+	if len(container.VolumeMounts) != 3 || len(ds.Spec.Template.Spec.Volumes) != 3 {
+		t.Fatalf("expected host library mounts: mounts=%v volumes=%v", container.VolumeMounts, ds.Spec.Template.Spec.Volumes)
 	}
+}
+
+func TestBuildAgentDaemonSetFeaturePrivileges(t *testing.T) {
+	tests := []struct {
+		name       string
+		feature    Feature
+		volume     string
+		capability corev1.Capability
+	}{
+		{"packet drops", PacketDrop, "bpf-kernel-debug", ""},
+		{"network events", NetworkEvents, "var-run-ovn", ""},
+		{"secondary networks", SecondaryNetworks, "var-run-netns", "SYS_ADMIN"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ds := BuildAgentDaemonSet(&AgentOptions{Name: "capture", Namespace: "capture", ServiceAccount: "capture", Image: "agent", TargetHost: "collector", Features: []Feature{tt.feature}})
+			container := ds.Spec.Template.Spec.Containers[0]
+			if *container.SecurityContext.Privileged || *container.SecurityContext.AllowPrivilegeEscalation {
+				t.Fatal("feature must not enable privileged mode or privilege escalation")
+			}
+			if envValue(container.Env, FeatureEnvNameValue(tt.feature)) != "true" {
+				t.Fatalf("feature environment is not enabled: %#v", container.Env)
+			}
+			if !hasVolume(ds.Spec.Template.Spec.Volumes, tt.volume) {
+				t.Fatalf("expected volume %q: %#v", tt.volume, ds.Spec.Template.Spec.Volumes)
+			}
+			if tt.capability != "" && !hasCapability(container.SecurityContext.Capabilities.Add, tt.capability) {
+				t.Fatalf("expected capability %q: %#v", tt.capability, container.SecurityContext.Capabilities.Add)
+			}
+		})
+	}
+}
+
+func TestBuildAgentDaemonSetDeduplicatesFeatureVolumes(t *testing.T) {
+	ds := BuildAgentDaemonSet(&AgentOptions{
+		Name: "capture", Namespace: "capture", ServiceAccount: "capture", Image: "agent", TargetHost: "collector",
+		Features: []Feature{NetworkEvents, UDNMapping, SecondaryNetworks},
+	})
+
+	if got := len(ds.Spec.Template.Spec.Volumes); got != 3 {
+		t.Fatalf("expected three host volumes, got %d: %#v", got, ds.Spec.Template.Spec.Volumes)
+	}
+	if got := len(ds.Spec.Template.Spec.Containers[0].VolumeMounts); got != 3 {
+		t.Fatalf("expected three host mounts, got %d: %#v", got, ds.Spec.Template.Spec.Containers[0].VolumeMounts)
+	}
+	if !hasVolume(ds.Spec.Template.Spec.Volumes, "var-run-netns") {
+		t.Fatal("expected the shared netns volume")
+	}
+}
+
+func FeatureEnvNameValue(feature Feature) string {
+	name, _ := FeatureEnvName(feature)
+	return name
+}
+
+func hasVolume(volumes []corev1.Volume, name string) bool {
+	for i := range volumes {
+		if volumes[i].Name == name {
+			return true
+		}
+	}
+	return false
+}
+
+func hasCapability(capabilities []corev1.Capability, wanted corev1.Capability) bool {
+	for _, capability := range capabilities {
+		if capability == wanted {
+			return true
+		}
+	}
+	return false
 }
 
 func TestBuildAgentDaemonSetNormalizesFilters(t *testing.T) {
@@ -166,6 +237,67 @@ func TestCollectorPipelineConfig(t *testing.T) {
 	}
 	if _, err := PipelineConfigJSON(config); err != nil {
 		t.Fatalf("invalid collector pipeline config: %v", err)
+	}
+}
+
+func TestAddSubnetLabels(t *testing.T) {
+	config := CollectorPipelineConfig("collector.capture.svc")
+	AddSubnetLabels(config, map[string][]string{
+		"Services": {"172.30.0.0/16"},
+		"Machines": {"10.0.0.0/16", "fd00::/48"},
+	})
+
+	enrich := config.Parameters[0].Transform.Network
+	if len(enrich.SubnetLabels) != 2 || enrich.SubnetLabels[0].Name != "Machines" || enrich.SubnetLabels[1].Name != "Services" {
+		t.Fatalf("subnet labels are not sorted: %#v", enrich.SubnetLabels)
+	}
+	if len(enrich.Rules) < 5 || enrich.Rules[len(enrich.Rules)-2].Type != "add_subnet_label" || enrich.Rules[len(enrich.Rules)-1].Type != "add_subnet_label" {
+		t.Fatalf("subnet label rules were not appended: %#v", enrich.Rules)
+	}
+}
+
+func TestAddFilterQueriesRoutesCollectorPipeline(t *testing.T) {
+	config := CollectorPipelineConfig("collector.capture.svc")
+	AddFilterQueries(config, []string{`SrcPort>1024`, `DstPort<80`})
+
+	if len(config.Pipeline) != 3 || config.Pipeline[1].Name != "filter" || config.Pipeline[2].Follows != "filter" {
+		t.Fatalf("unexpected collector pipeline: %#v", config.Pipeline)
+	}
+	for i := range config.Parameters {
+		if config.Parameters[i].Name == "filter" {
+			rules := config.Parameters[i].Transform.Filter.Rules
+			if len(rules) != 2 || rules[0].KeepEntryQuery != `SrcPort>1024` || rules[1].KeepEntryQuery != `DstPort<80` {
+				t.Fatalf("unexpected query rules: %#v", rules)
+			}
+			return
+		}
+	}
+	t.Fatal("expected filter stage parameter")
+}
+
+func TestAddFilterQueriesQuotesBareStringValues(t *testing.T) {
+	config := CollectorPipelineConfig("collector")
+	AddFilterQueries(config, []string{`K8S_FlowLayer=app AND DstK8S_Type=Pod AND SrcPort>1024`})
+
+	for i := range config.Parameters {
+		if config.Parameters[i].Name != "filter" {
+			continue
+		}
+		got := config.Parameters[i].Transform.Filter.Rules[0].KeepEntryQuery
+		want := `K8S_FlowLayer="app" AND DstK8S_Type="Pod" AND SrcPort>1024`
+		if got != want {
+			t.Fatalf("unexpected normalized query: got %q, want %q", got, want)
+		}
+		return
+	}
+	t.Fatal("expected filter stage parameter")
+}
+
+func TestAddFilterQueriesRoutesMetricsPipeline(t *testing.T) {
+	config := MetricsPipelineConfig()
+	AddFilterQueries(config, []string{"SrcPort>1024"})
+	if len(config.Pipeline) != 3 || config.Pipeline[1].Name != "filter" || config.Pipeline[2].Name != "prometheus" || config.Pipeline[2].Follows != "filter" {
+		t.Fatalf("unexpected metrics pipeline: %#v", config.Pipeline)
 	}
 }
 
@@ -266,6 +398,23 @@ func TestBuildFlowCaptureDashboard(t *testing.T) {
 	}
 	if !strings.Contains(data, "Total egress traffic") || !strings.Contains(data, "TCP latencies") {
 		t.Fatalf("FlowCapture dashboard is missing OnDemand metric panels")
+	}
+	if strings.Count(data, "\"title\": \"Capture output\"") != 1 || strings.Contains(data, "Metrics processing") {
+		t.Fatalf("FlowCapture dashboard output sections were not merged")
+	}
+	for _, metric := range []string{
+		"flowcapture_agent_exported_batch_total",
+		"flowcapture_agent_filtered_flows_total",
+		"flowcapture_agent_dropped_flows_total",
+		"flowcapture_agent_evicted_packets_total",
+		"flowcapture_agent_openssl_data_events_total",
+	} {
+		if !strings.Contains(data, metric) {
+			t.Fatalf("FlowCapture dashboard is missing capture activity metric %q", metric)
+		}
+	}
+	if !strings.Contains(data, "flowcapture_collector_records_total") || !strings.Contains(data, "flowcapture_collector_output_bytes_total") {
+		t.Fatalf("FlowCapture dashboard is missing collector output metrics")
 	}
 }
 

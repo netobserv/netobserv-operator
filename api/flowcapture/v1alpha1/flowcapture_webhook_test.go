@@ -33,3 +33,20 @@ func TestValidateFlowCaptureTLSPlaintext(t *testing.T) {
 		t.Fatalf("expected TLS plaintext packet capture to be accepted: %v", err)
 	}
 }
+
+func TestFlowCaptureDoesNotSupportEbpfManager(t *testing.T) {
+	if Feature(EbpfManager).Valid() {
+		t.Fatal("EbpfManager must not be a supported FlowCapture feature")
+	}
+}
+
+func TestValidateFlowCaptureQueries(t *testing.T) {
+	capture := FlowCapture{Spec: FlowCaptureSpec{OutputType: Flows, Queries: []string{"  "}}}
+	if err := validateFlowCapture(&capture); err == nil {
+		t.Fatal("expected empty query to be rejected")
+	}
+	capture.Spec.Queries = []string{`SrcK8S_Namespace=~"app-.*"`}
+	if err := validateFlowCapture(&capture); err != nil {
+		t.Fatalf("expected valid query to be accepted: %v", err)
+	}
+}
