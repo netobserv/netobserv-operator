@@ -67,14 +67,16 @@ IMAGE_TAG_BASE ?= $(REPO)/network-observability-operator
 BUNDLE_IMAGE ?= $(IMAGE_TAG_BASE)-bundle:v$(BUNDLE_VERSION)
 
 # Current only supported BUNDLE_TARGET is OpenShift
-# ifeq ("$(BUNDLE_TARGET)", "OpenShift")
+ifeq ("$(BUNDLE_TARGET)", "OpenShift")
 BUNDLE_CONFIG = config/openshift/olm
 BUNDLE_OUT = bundles/openshift
-# endif
+endif
 
 # If we don't want to set bundle date (upon bundle update call), store current date
+ifneq ("$(BUNDLE_OUT)", "")
 ifneq ("$(BUNDLE_SET_DATE)", "true")
 	BUNDLE_STORED_DATE = $(shell grep "createdAt:" $(BUNDLE_OUT)/manifests/netobserv-operator.clusterserviceversion.yaml | $(SED) -E 's/^.*createdAt:[ ]*(.*)/\1/')
+endif
 endif
 
 # Image URL to use all building/pushing image targets
@@ -496,11 +498,11 @@ deploy: PLG_VERSION=main
 deploy: kustomize set-manager-images ## Deploy controller to the K8s cluster specified in ~/.kube/config.
 	$(KUSTOMIZE) build config/openshift | kubectl apply --server-side --force-conflicts -f -
 	kubectl get ns openshift-netobserv-operator || kubectl create ns openshift-netobserv-operator
-	cat $(BUNDLE_OUT)/manifests/netobserv-operator.clusterserviceversion.yaml | $(SED) -E "s/operators.coreos.com\/v1/operators.coreos.com\/v1alpha1/" | $(SED) -E "s/placeholder/openshift-netobserv-operator/" | kubectl apply --server-side --force-conflicts -f -
+	cat bundles/openshift/manifests/netobserv-operator.clusterserviceversion.yaml | $(SED) -E "s/operators.coreos.com\/v1/operators.coreos.com\/v1alpha1/" | $(SED) -E "s/placeholder/openshift-netobserv-operator/" | kubectl apply --server-side --force-conflicts -f -
 
 undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config.
 	$(KUSTOMIZE) build config/openshift | kubectl --ignore-not-found=true delete -f - || true
-	cat $(BUNDLE_OUT)/manifests/netobserv-operator.clusterserviceversion.yaml | $(SED) -E "s/operators.coreos.com\/v1/operators.coreos.com\/v1alpha1/" | $(SED) -E "s/placeholder/openshift-netobserv-operator/" | kubectl --ignore-not-found=true delete -f - || true
+	cat bundles/openshift/manifests/netobserv-operator.clusterserviceversion.yaml | $(SED) -E "s/operators.coreos.com\/v1/operators.coreos.com\/v1alpha1/" | $(SED) -E "s/placeholder/openshift-netobserv-operator/" | kubectl --ignore-not-found=true delete -f - || true
 
 run: fmt lint ## Run a controller from your host.
 	go run ./main.go
@@ -509,6 +511,10 @@ run: fmt lint ## Run a controller from your host.
 
 .PHONY: bundle-nogen
 bundle-nogen: YQ OPSDK kustomize set-manager-images ## Generate final bundle files, without prior code/doc generation.
+ifeq ("$(BUNDLE_TARGET)", "")
+	@echo "Missing BUNDLE_TARGET, can't build bundle"
+	@exit 1
+endif
 	$(SED) -i -E 's~netobserv-operator/blob/[^/]+/~netobserv-operator/blob/$(VERSION)/~g' $(BUNDLE_CONFIG)/description.md
 	rm -r $(BUNDLE_OUT)/manifests || true
 	rm -r $(BUNDLE_OUT)/metadata || true

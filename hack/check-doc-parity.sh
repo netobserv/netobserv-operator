@@ -28,7 +28,7 @@ for kind in "flowcollectors" "flowmetrics" "flowcollectorslices"; do
       echo "$vendor CRD diff:"
       git diff HEAD^1 HEAD bundles/$vendor/manifests/$olm_name
       echo ""
-      echo "Mismatch detected with $vendor $kind CRD; Did you forget do specify an override in config/$vendor/olm/crd-doc-override/$helm_name?"
+      echo "Mismatch detected with $vendor $kind CRD; Did you forget do specify an override in config/$vendor/olm/crd-doc-override/$olm_name?"
       echo "This can be an expected divergence, or a false-positive. In that case, just ignore this report."
       echo ""
     fi
