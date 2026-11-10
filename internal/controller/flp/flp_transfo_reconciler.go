@@ -98,6 +98,9 @@ func (r *transformerReconciler) reconcile(ctx context.Context, desired *flowslat
 	annotations := map[string]string{
 		constants.PodConfigurationDigest: configDigest,
 	}
+	if r.ClusterInfo.IsOpenShift() {
+		annotations["target.workload.openshift.io/management"] = `{"effect": "PreferredDuringScheduling"}`
+	}
 	if !r.Managed.Exists(r.staticConfigMap) {
 		if err := r.CreateOwned(ctx, newSCM); err != nil {
 			return err
