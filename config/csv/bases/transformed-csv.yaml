@@ -424,6 +424,12 @@ spec:
             displayName: Port
           - path: processor.metrics.server.scrapeInterval
             displayName: Scrape interval
+          - path: processor.proxyCorrelation
+            displayName: Proxy correlation
+          - path: processor.proxyCorrelation.enable
+            displayName: Enable
+          - path: processor.proxyCorrelation.sources
+            displayName: Sources
           - path: processor.service
             displayName: Service
           - path: processor.service.providedCertificates

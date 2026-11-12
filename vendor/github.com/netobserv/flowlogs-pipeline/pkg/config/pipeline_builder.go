@@ -52,6 +52,9 @@ const PresetIngesterStage = "preset-ingester"
 
 // NewPipeline creates a new pipeline from an existing ingest
 func NewPipeline(name string, ingest *Ingest) (PipelineBuilderStage, error) {
+	if ingest.HAProxy != nil {
+		return NewHAProxyPipeline(name, *ingest.HAProxy), nil
+	}
 	if ingest.Ipfix != nil {
 		return NewIPFIXPipeline(name, *ingest.Ipfix), nil
 	}
@@ -78,7 +81,15 @@ func NewIPFIXPipeline(name string, ingest api.IngestIpfix) PipelineBuilderStage 
 	return PipelineBuilderStage{pipeline: &p, lastStage: name}
 }
 
-// NewGRPCPipeline creates a new pipeline from an `IngestGRPCProto` initial stage (listening for NetObserv's eBPF agent protobuf)
+// NewHAProxyPipeline creates a pipeline receiving versioned HAProxy access logs.
+func NewHAProxyPipeline(name string, ingest api.IngestHAProxy) PipelineBuilderStage {
+	p := pipeline{stages: []Stage{{Name: name}}, config: []StageParam{
+		{Name: name, Ingest: &Ingest{Type: api.HAProxyType, HAProxy: &ingest}},
+	}}
+	return PipelineBuilderStage{pipeline: &p, lastStage: name}
+}
+
+// NewGRPCPipeline creates a pipeline listening for NetObserv agent protobuf.
 func NewGRPCPipeline(name string, ingest api.IngestGRPCProto) PipelineBuilderStage {
 	p := pipeline{
 		stages: []Stage{{Name: name}},

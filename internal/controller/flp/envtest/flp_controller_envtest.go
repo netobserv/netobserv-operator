@@ -13,6 +13,7 @@ import (
 	ascv2 "k8s.io/api/autoscaling/v2"
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
@@ -489,6 +490,74 @@ func ControllerSpecs(env test.Environment, ctxGetter test.ContextGetter) {
 			}, timeout, interval).Should(MatchError(`deployments.apps "flowlogs-pipeline-transformer" not found`))
 		})
 	})
+
+	if env == test.EnvOpenShift {
+		Context("Dedicated proxy Services", func() {
+			It("Should isolate logging from metrics and reconcile source and deployment changes", func() {
+				original := test.GetCR(ctx, k8sClient, crKey).DeepCopy()
+				defer test.UpdateCR(ctx, k8sClient, crKey, func(fc *flowslatest.FlowCollector) {
+					fc.Spec.DeploymentModel = original.Spec.DeploymentModel
+					fc.Spec.Processor.ProxyCorrelation = original.Spec.Processor.ProxyCorrelation
+					fc.Spec.Loki.Enable = original.Spec.Loki.Enable
+				})
+				source := flowslatest.FlowCollectorProxySource{Name: "router", Type: flowslatest.ProxySourceHAProxy, HAProxy: &flowslatest.FlowCollectorHAProxySource{}}
+				for _, mode := range []flowslatest.FlowCollectorDeploymentModel{flowslatest.DeploymentModelDirect, flowslatest.DeploymentModelKafka, flowslatest.DeploymentModelService} {
+					test.UpdateCR(ctx, k8sClient, crKey, func(fc *flowslatest.FlowCollector) {
+						fc.Spec.DeploymentModel = mode
+						fc.Spec.Loki.Enable = ptr.To(true)
+						fc.Spec.Processor.ProxyCorrelation = &flowslatest.FlowCollectorProxyCorrelation{Enable: true, Sources: []flowslatest.FlowCollectorProxySource{source}}
+					})
+					proxyName, inactiveName, app, metricsName := constants.FLPProxySvcName, constants.FLPTransfoProxySvcName, constants.FLPName, constants.FLPMetricsSvcName
+					if mode == flowslatest.DeploymentModelKafka {
+						proxyName, inactiveName, app, metricsName = constants.FLPTransfoProxySvcName, constants.FLPProxySvcName, constants.FLPTransfoName, constants.FLPTransfoMetricsSvcName
+					}
+					key := types.NamespacedName{Name: proxyName, Namespace: operatorNamespace}
+					proxy := v1.Service{}
+					Eventually(func(g Gomega) {
+						g.Expect(k8sClient.Get(ctx, key, &proxy)).To(Succeed())
+						g.Expect(proxy.Spec.Selector).To(Equal(map[string]string{"app": app}))
+						g.Expect(proxy.Spec.Ports).To(HaveLen(1))
+						g.Expect(proxy.Spec.Ports[0].Protocol).To(Equal(v1.ProtocolUDP))
+						g.Expect(proxy.Spec.Ports[0].Port).To(Equal(int32(10514)))
+						g.Expect(proxy.OwnerReferences).NotTo(BeEmpty())
+						metrics := v1.Service{}
+						g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: metricsName, Namespace: operatorNamespace}, &metrics)).To(Succeed())
+						g.Expect(metrics.Spec.Ports).To(HaveLen(1))
+						g.Expect(metrics.Spec.Ports[0].Protocol).To(Equal(v1.ProtocolTCP))
+						g.Expect(proxy.Labels["app"]).NotTo(Equal(metrics.Labels["app"]))
+					}, timeout, interval).Should(Succeed())
+					Eventually(func() bool {
+						return apierrors.IsNotFound(k8sClient.Get(ctx, types.NamespacedName{Name: inactiveName, Namespace: operatorNamespace}, &v1.Service{}))
+					}, timeout, interval).Should(BeTrue())
+					ip := proxy.Spec.ClusterIP
+					test.UpdateCR(ctx, k8sClient, crKey, func(fc *flowslatest.FlowCollector) {
+						fc.Spec.Processor.ProxyCorrelation.Sources = append(fc.Spec.Processor.ProxyCorrelation.Sources, flowslatest.FlowCollectorProxySource{Name: "other", Type: flowslatest.ProxySourceHAProxy, HAProxy: &flowslatest.FlowCollectorHAProxySource{Port: 11514}})
+					})
+					Eventually(func(g Gomega) {
+						g.Expect(k8sClient.Get(ctx, key, &proxy)).To(Succeed())
+						g.Expect(proxy.Spec.Ports).To(HaveLen(2))
+						g.Expect(proxy.Spec.ClusterIP).To(Equal(ip))
+					}, timeout, interval).Should(Succeed())
+					test.UpdateCR(ctx, k8sClient, crKey, func(fc *flowslatest.FlowCollector) {
+						fc.Spec.Processor.ProxyCorrelation.Sources = fc.Spec.Processor.ProxyCorrelation.Sources[:1]
+					})
+					Eventually(func(g Gomega) {
+						g.Expect(k8sClient.Get(ctx, key, &proxy)).To(Succeed())
+						g.Expect(proxy.Spec.Ports).To(HaveLen(1))
+						g.Expect(proxy.Spec.ClusterIP).To(Equal(ip))
+					}, timeout, interval).Should(Succeed())
+				}
+				test.UpdateCR(ctx, k8sClient, crKey, func(fc *flowslatest.FlowCollector) {
+					fc.Spec.Processor.ProxyCorrelation.Enable = false
+				})
+				for _, name := range []string{constants.FLPProxySvcName, constants.FLPTransfoProxySvcName} {
+					Eventually(func() bool {
+						return apierrors.IsNotFound(k8sClient.Get(ctx, types.NamespacedName{Name: name, Namespace: operatorNamespace}, &v1.Service{}))
+					}, timeout, interval).Should(BeTrue())
+				}
+			})
+		})
+	}
 
 	Context("Checking monitoring resources", func() {
 		It("Should create desired objects when they're not found (e.g. case of an operator upgrade)", func() {

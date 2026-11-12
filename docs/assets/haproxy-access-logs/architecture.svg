@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="950" viewBox="0 0 1800 950"><rect width="100%" height="100%" fill="white"/>
+<text x="55" y="47.5" font-family="Arial, sans-serif" font-size="25" font-weight="bold" fill="#536578" text-anchor="start">APPLICATION TRAFFIC</text>
+<rect x="55" y="100" width="365" height="116" rx="18" fill="#F2F5F8" stroke="#17324D" stroke-width="3"/>
+<text x="237.5" y="151.52" font-family="Arial, sans-serif" font-size="34" font-weight="bold" fill="#17324D" text-anchor="middle">Client</text>
+<text x="237.5" y="191.5" font-family="Arial, sans-serif" font-size="25" font-weight="normal" fill="#536578" text-anchor="middle">Reported source identity</text>
+<rect x="490" y="100" width="365" height="116" rx="18" fill="#F2F5F8" stroke="#17324D" stroke-width="3"/>
+<text x="672.5" y="151.52" font-family="Arial, sans-serif" font-size="34" font-weight="bold" fill="#17324D" text-anchor="middle">External LB</text>
+<text x="672.5" y="191.5" font-family="Arial, sans-serif" font-size="25" font-weight="normal" fill="#536578" text-anchor="middle">Preserve source / PROXY</text>
+<rect x="925" y="100" width="365" height="116" rx="18" fill="#F2F5F8" stroke="#17324D" stroke-width="3"/>
+<text x="1107.5" y="151.52" font-family="Arial, sans-serif" font-size="34" font-weight="bold" fill="#17324D" text-anchor="middle">HAProxy router</text>
+<text x="1107.5" y="191.5" font-family="Arial, sans-serif" font-size="25" font-weight="normal" fill="#536578" text-anchor="middle">OpenShift ingress</text>
+<rect x="1360" y="100" width="365" height="116" rx="18" fill="#F2F5F8" stroke="#17324D" stroke-width="3"/>
+<text x="1542.5" y="151.52" font-family="Arial, sans-serif" font-size="34" font-weight="bold" fill="#17324D" text-anchor="middle">Application</text>
+<text x="1542.5" y="191.5" font-family="Arial, sans-serif" font-size="25" font-weight="normal" fill="#536578" text-anchor="middle">Backend endpoint</text>
+<polyline points="428,158 480,158" fill="none" stroke="#17324D" stroke-width="5"/>
+<polygon points="480,158 462.89150505529915,166.26434514811336 462.89150505529915,149.73565485188664" fill="#17324D"/>
+<polyline points="863,158 915,158" fill="none" stroke="#17324D" stroke-width="5"/>
+<polygon points="915,158 897.8915050552991,166.26434514811336 897.8915050552991,149.73565485188664" fill="#17324D"/>
+<polyline points="1298,158 1350,158" fill="none" stroke="#17324D" stroke-width="5"/>
+<polygon points="1350,158 1332.8915050552991,166.26434514811336 1332.8915050552991,149.73565485188664" fill="#17324D"/>
+<text x="55" y="313.5" font-family="Arial, sans-serif" font-size="25" font-weight="bold" fill="#536578" text-anchor="start">OBSERVABILITY DATA</text>
+<rect x="925" y="365" width="365" height="116" rx="18" fill="#EDF8F5" stroke="#147D78" stroke-width="3"/>
+<text x="1107.5" y="416.52" font-family="Arial, sans-serif" font-size="34" font-weight="bold" fill="#147D78" text-anchor="middle">FLP proxy input</text>
+<text x="1107.5" y="456.5" font-family="Arial, sans-serif" font-size="25" font-weight="normal" fill="#536578" text-anchor="middle">Validate + enrich requests</text>
+<polyline points="1107,222 1107,355" fill="none" stroke="#147D78" stroke-width="5"/>
+<polygon points="1107,355 1098.7356548518867,337.89150505529915 1115.2643451481133,337.89150505529915" fill="#147D78"/>
+<text x="1140" y="295.06" font-family="Arial, sans-serif" font-size="27" font-weight="normal" fill="#147D78" text-anchor="start">UDP syslog</text>
+<rect x="1360" y="365" width="365" height="116" rx="18" fill="#EEF4FC" stroke="#245DB2" stroke-width="3"/>
+<text x="1542.5" y="416.52" font-family="Arial, sans-serif" font-size="34" font-weight="bold" fill="#245DB2" text-anchor="middle">eBPF agent</text>
+<text x="1542.5" y="456.5" font-family="Arial, sans-serif" font-size="25" font-weight="normal" fill="#536578" text-anchor="middle">Ordinary flow capture</text>
+<polyline points="1320,164 1320,265 1542,265 1542,355" fill="none" stroke="#245DB2" stroke-width="5"/>
+<polygon points="1542,355 1533.7356548518867,337.89150505529915 1550.2643451481133,337.89150505529915" fill="#245DB2"/>
+<rect x="1360" y="555" width="365" height="116" rx="18" fill="#EEF4FC" stroke="#245DB2" stroke-width="3"/>
+<text x="1542.5" y="606.52" font-family="Arial, sans-serif" font-size="34" font-weight="bold" fill="#245DB2" text-anchor="middle">FLP flow pipeline</text>
+<text x="1542.5" y="646.5" font-family="Arial, sans-serif" font-size="25" font-weight="normal" fill="#536578" text-anchor="middle">Existing flow processing</text>
+<polyline points="1542,487 1542,545" fill="none" stroke="#245DB2" stroke-width="5"/>
+<polygon points="1542,545 1533.7356548518867,527.8915050552991 1550.2643451481133,527.8915050552991" fill="#245DB2"/>
+<rect x="925" y="755" width="365" height="130" rx="18" fill="#F2F5F8" stroke="#17324D" stroke-width="3"/>
+<text x="1107.5" y="806.52" font-family="Arial, sans-serif" font-size="34" font-weight="bold" fill="#17324D" text-anchor="middle">Loki</text>
+<text x="1107.5" y="846.5" font-family="Arial, sans-serif" font-size="25" font-weight="normal" fill="#536578" text-anchor="middle">Separate record streams</text>
+<polyline points="1107,487 1107,745" fill="none" stroke="#147D78" stroke-width="5"/>
+<polygon points="1107,745 1098.7356548518867,727.8915050552991 1115.2643451481133,727.8915050552991" fill="#147D78"/>
+<text x="1140" y="638.06" font-family="Arial, sans-serif" font-size="27" font-weight="normal" fill="#147D78" text-anchor="start">Proxy records</text>
+<polyline points="1542,677 1542,820 1300,820" fill="none" stroke="#245DB2" stroke-width="5"/>
+<polygon points="1300,820 1317.1084949447009,811.7356548518866 1317.1084949447009,828.2643451481134" fill="#245DB2"/>
+<text x="1435" y="741.06" font-family="Arial, sans-serif" font-size="27" font-weight="normal" fill="#245DB2" text-anchor="middle">Flow records</text>
+<rect x="55" y="755" width="630" height="130" rx="18" fill="#EEF4FC" stroke="#245DB2" stroke-width="3"/>
+<text x="370.0" y="806.52" font-family="Arial, sans-serif" font-size="34" font-weight="bold" fill="#245DB2" text-anchor="middle">Console + authorized backend</text>
+<text x="370.0" y="846.5" font-family="Arial, sans-serif" font-size="25" font-weight="normal" fill="#536578" text-anchor="middle">Related clients → Find related clients</text>
+<polyline points="700,820 910,820" fill="none" stroke="#17324D" stroke-width="5"/>
+<polygon points="910,820 892.8915050552991,828.2643451481134 892.8915050552991,811.7356548518866" fill="#17324D"/>
+<polygon points="700,820 717.1084949447009,811.7356548518866 717.1084949447009,828.2643451481134" fill="#17324D"/>
+<text x="803" y="788.06" font-family="Arial, sans-serif" font-size="27" font-weight="normal" fill="#17324D" text-anchor="middle">Lookup</text>
+<text x="55" y="429.3" font-family="Arial, sans-serif" font-size="35" font-weight="bold" fill="#17324D" text-anchor="start">Independent evidence</text>
+<text x="55" y="482.62" font-family="Arial, sans-serif" font-size="29" font-weight="normal" fill="#536578" text-anchor="start">One proxy record per completed request.</text>
+<text x="55" y="529.62" font-family="Arial, sans-serif" font-size="29" font-weight="normal" fill="#536578" text-anchor="start">Flow capture continues unchanged.</text>
+<text x="55" y="576.62" font-family="Arial, sans-serif" font-size="29" font-weight="normal" fill="#536578" text-anchor="start">Correlation happens when a user asks.</text>
+</svg>

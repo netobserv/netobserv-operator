@@ -1,6 +1,7 @@
 package v1beta2
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -312,4 +313,28 @@ func IsEnvEnabled(vars map[string]string, key string) bool {
 	// Use ParseBool to allow common variants ("true", "True", "1"...) and ignore non-bools
 	b, err := strconv.ParseBool(env)
 	return err == nil && b
+}
+
+func (spec *FlowCollectorFLP) IsProxyCorrelationEnabled() bool {
+	return spec.ProxyCorrelation != nil && spec.ProxyCorrelation.Enable
+}
+
+// GetProxySources returns receiver sources only when correlation is enabled.
+func (spec *FlowCollectorFLP) GetProxySources() []FlowCollectorProxySource {
+	if spec.IsProxyCorrelationEnabled() {
+		return spec.ProxyCorrelation.Sources
+	}
+	return nil
+}
+
+func (source *FlowCollectorProxySource) GetPort() int32 {
+	if source.HAProxy != nil && source.HAProxy.Port != 0 {
+		return source.HAProxy.Port
+	}
+	return 10514
+}
+
+// ProxySourcePortName stays within Kubernetes' 15-character port-name limit.
+func ProxySourcePortName(index int) string {
+	return fmt.Sprintf("proxy-%d", index)
 }

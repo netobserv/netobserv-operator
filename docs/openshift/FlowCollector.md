@@ -4132,6 +4132,17 @@ Deprecated: use `spec.processor.consumerReplicas` instead.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#flowcollectorspecprocessorproxycorrelation">proxyCorrelation</a></b></td>
+        <td>object</td>
+        <td>
+          ProxyCorrelation configures optional proxy request correlation.
+Records are stored separately from flows and do not contribute to flow metrics.
+In Kafka mode, records are received directly by processors, bypassing Kafka.<br/>
+          <br/>
+            <i>Validations</i>:<li>!has(self.enable) || !self.enable || (has(self.sources) && size(self.sources) > 0): enabled proxy correlation requires at least one source</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#flowcollectorspecprocessorresources">resources</a></b></td>
         <td>object</td>
         <td>
@@ -5439,6 +5450,118 @@ If the namespace is different, the config map or the secret is copied so that it
           Type for the file reference: `configmap` or `secret`.<br/>
           <br/>
             <i>Enum</i>: configmap, secret<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### FlowCollector.spec.processor.proxyCorrelation
+<sup><sup>[↩ Parent](#flowcollectorspecprocessor)</sup></sup>
+
+
+
+ProxyCorrelation configures optional proxy request correlation.
+Records are stored separately from flows and do not contribute to flow metrics.
+In Kafka mode, records are received directly by processors, bypassing Kafka.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>enable</b></td>
+        <td>boolean</td>
+        <td>
+          Enable receives proxy records for on-demand correlation. Requires Loki.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#flowcollectorspecprocessorproxycorrelationsourcesindex">sources</a></b></td>
+        <td>[]object</td>
+        <td>
+          Sources configures the proxy receivers. Source names and receiver ports must be unique.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### FlowCollector.spec.processor.proxyCorrelation.sources[index]
+<sup><sup>[↩ Parent](#flowcollectorspecprocessorproxycorrelation)</sup></sup>
+
+
+
+FlowCollectorProxySource selects a proxy contract and its receiver settings.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name uniquely identifies this source.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>type</b></td>
+        <td>enum</td>
+        <td>
+          Type selects the source contract. Currently only HAProxy is supported.<br/>
+          <br/>
+            <i>Enum</i>: HAProxy<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b><a href="#flowcollectorspecprocessorproxycorrelationsourcesindexhaproxy">haproxy</a></b></td>
+        <td>object</td>
+        <td>
+          HAProxy receives versioned OpenShift router HTTP access logs over UDP.
+Requires administrator configuration of the IngressController. TLS passthrough is unsupported.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### FlowCollector.spec.processor.proxyCorrelation.sources[index].haproxy
+<sup><sup>[↩ Parent](#flowcollectorspecprocessorproxycorrelationsourcesindex)</sup></sup>
+
+
+
+HAProxy receives versioned OpenShift router HTTP access logs over UDP.
+Requires administrator configuration of the IngressController. TLS passthrough is unsupported.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>port</b></td>
+        <td>integer</td>
+        <td>
+          Port is the UDP receiver port. Defaults to 10514.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 1024<br/>
+            <i>Maximum</i>: 65535<br/>
         </td>
         <td>false</td>
       </tr></tbody>

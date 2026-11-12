@@ -123,6 +123,8 @@ github.com/kr/text v0.2.0 h1:5Nx0Ya0ZqY2ygV366QzturHI13Jq95ApcVaJBhpS+AY=
 github.com/kr/text v0.2.0/go.mod h1:eLer722TekiGuMkidMxC/pM04lWEeraHUUmBw8l2grE=
 github.com/kylelemons/godebug v1.1.0 h1:RPNrshWIDI6G2gRW9EHilWtl7Z6Sb1BR0xunSBf0SNc=
 github.com/kylelemons/godebug v1.1.0/go.mod h1:9/0rRGxNHcop5bhtWyNeEfOS8JIWk580+fNqagV/RAw=
+github.com/leandroberetta/flowlogs-pipeline v0.0.0-20261102155020-94caa5356b41 h1:1fvUy6rkmNgV9WjT8Mjmi15aJh96e3CgA3OK7EWv4n8=
+github.com/leandroberetta/flowlogs-pipeline v0.0.0-20261102155020-94caa5356b41/go.mod h1:4xis5+NWZ1P1JkpqkKiSSkQkikmedN4pC56gtDLM+4g=
 github.com/maruel/natural v1.1.1 h1:Hja7XhhmvEFhcByqDoHz9QZbkWey+COd9xWfCfn1ioo=
 github.com/maruel/natural v1.1.1/go.mod h1:v+Rfd79xlw1AgVBjbO0BEQmptqb5HvL/k9GRHB7ZKEg=
 github.com/mfridman/tparse v0.18.0 h1:wh6dzOKaIwkUGyKgOntDW4liXSo37qg5AXbIhkMV3vE=
@@ -137,8 +139,6 @@ github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 h1:C3w9PqII01/Oq
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822/go.mod h1:+n7T8mK8HuQTcFwEeznm/DIxMOiR9yIdICNftLE1DvQ=
 github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f h1:KUppIJq7/+SVif2QVs3tOP0zanoHgBEVAwHxUSIzRqU=
 github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f/go.mod h1:qRWi+5nqEBWmkhHvq77mSJWrCKwh8bxhgT7d/eI7P4U=
-github.com/netobserv/flowlogs-pipeline v1.12.0-community.0.20261023132758-4be361fc3801 h1:W2498q2tNc7erZed62JjuaO07SxD+1zSNUwgnFFDhJY=
-github.com/netobserv/flowlogs-pipeline v1.12.0-community.0.20261023132758-4be361fc3801/go.mod h1:fhqXSXTClV2faJD6dkXEyVbzbs9RdVzGIlLTCA0pwN0=
 github.com/netobserv/netobserv-ebpf-agent v1.12.0-community h1:3e18pZzZPjRSm9TPECquVFf/4ntSjpVrb32pmJ8sAT8=
 github.com/netobserv/netobserv-ebpf-agent v1.12.0-community/go.mod h1:ML3ApiUVk+ROiB/oJ6v48PxIVhE9hAt955+oE+q20JM=
 github.com/onsi/ginkgo/v2 v2.34.0 h1:aN3Us823mHHTSWMIi8WIQTdYuSPhl2lWY46E/w3SiAk=
