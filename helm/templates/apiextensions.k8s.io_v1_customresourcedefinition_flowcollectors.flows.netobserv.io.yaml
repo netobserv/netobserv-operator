@@ -1616,6 +1616,7 @@ spec:
                       type: string
                   type: object
                 consolePlugin:
+                  default: {}
                   description: '`consolePlugin` defines the settings related to the Web Console.'
                   properties:
                     advanced:

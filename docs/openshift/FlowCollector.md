@@ -105,6 +105,8 @@ for these features, without any guarantee.
         <td>object</td>
         <td>
           `consolePlugin` defines the settings related to the OpenShift Console plugin.<br/>
+          <br/>
+            <i>Default</i>: map[]<br/>
         </td>
         <td>false</td>
       </tr><tr>

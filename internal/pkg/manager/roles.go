@@ -49,9 +49,8 @@ package manager
 // Operator needs to grant plaintext SCC usage permission to FlowCapture agent pods.
 //+kubebuilder:rbac:groups=security.openshift.io,resources=securitycontextconstraints,resourceNames=flowcapture-plaintext,verbs=use
 
-// Operator needs to create and reconcile the SCC for FlowCapture agents.
+// Operator needs to create and reconcile the FlowCapture SCCs on OpenShift.
 //+kubebuilder:rbac:groups=security.openshift.io,resources=securitycontextconstraints,verbs=get;list;watch;create;update
-//+kubebuilder:rbac:groups=security.openshift.io,resources=securitycontextconstraints,resourceNames=netobserv-ebpf-agent,verbs=update
 // Operator needs to grant FlowCapture agent service accounts use of the preinstalled SCC
 
 // Operator needs to get API services for available API discovery (cluster scope)

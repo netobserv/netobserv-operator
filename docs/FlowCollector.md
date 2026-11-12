@@ -95,6 +95,8 @@ Defines the desired state of the FlowCollector resource.
         <td>object</td>
         <td>
           `consolePlugin` defines the settings related to the Web Console.<br/>
+          <br/>
+            <i>Default</i>: map[]<br/>
         </td>
         <td>false</td>
       </tr><tr>

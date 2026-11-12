@@ -18,5 +18,5 @@ spec:
   filters:
   - action: Accept
     protocol: TCP
-    destination_port: 443
+    destPort: 443
 

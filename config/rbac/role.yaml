@@ -310,11 +310,3 @@ rules:
   - securitycontextconstraints
   verbs:
   - use
-- apiGroups:
-  - security.openshift.io
-  resourceNames:
-  - netobserv-ebpf-agent
-  resources:
-  - securitycontextconstraints
-  verbs:
-  - update

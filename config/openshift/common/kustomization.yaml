@@ -26,3 +26,14 @@ patches:
     kind: Deployment
     name: controller-manager
 - path: patch.yaml
+
+# Labels to add to all resources and selectors.
+#commonLabels:
+#  someName: someValue
+
+patches:
+- path: ./manager-patch.yaml
+  target:
+    kind: Deployment
+    name: controller-manager
+- path: patch.yaml

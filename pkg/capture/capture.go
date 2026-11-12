@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	flpconfig "github.com/netobserv/flowlogs-pipeline/pkg/config"
+	agentconfig "github.com/netobserv/netobserv-ebpf-agent/pkg/config"
 	flowcapturev1alpha1 "github.com/netobserv/netobserv-operator/api/flowcapture/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -77,10 +78,19 @@ type FlowFilter = flowcapturev1alpha1.FlowFilter
 // NormalizeFilters applies the defaults used by the eBPF agent and by the
 // CLI filter builder. Keeping them here makes FlowCapture and CLI-created
 // captures produce the same agent configuration.
-func NormalizeFilters(filters []FlowFilter) []FlowFilter {
-	normalized := make([]FlowFilter, len(filters))
-	copy(normalized, filters)
+func NormalizeFilters(filters []FlowFilter) []agentconfig.FlowFilter {
+	normalized := make([]agentconfig.FlowFilter, len(filters))
 	for i := range normalized {
+		source := filters[i]
+		normalized[i] = agentconfig.FlowFilter{
+			Direction: source.Direction, IPCIDR: source.IPCIDR, Protocol: source.Protocol,
+			SourcePort: source.SourcePort, DestinationPort: source.DestinationPort, Port: source.Port,
+			SourcePortRange: source.SourcePortRange, SourcePorts: source.SourcePorts,
+			DestinationPortRange: source.DestinationPortRange, DestinationPorts: source.DestinationPorts,
+			PortRange: source.PortRange, Ports: source.Ports, ICMPType: source.ICMPType,
+			ICMPCode: source.ICMPCode, PeerIP: source.PeerIP, PeerCIDR: source.PeerCIDR,
+			Action: source.Action, TCPFlags: source.TCPFlags, Drops: source.Drops, Sample: source.Sample,
+		}
 		if normalized[i].IPCIDR == "" {
 			normalized[i].IPCIDR = "0.0.0.0/0"
 		}

@@ -69,55 +69,50 @@ spec:
                     properties:
                       action:
                         type: string
-                      destination_port:
+                      cidr:
+                        type: string
+                      destPort:
                         format: int32
                         type: integer
-                      destination_port_range:
+                      destPortRange:
                         type: string
-                      destination_ports:
+                      destPorts:
                         type: string
                       direction:
                         type: string
-                      drops:
+                      icmpCode:
+                        type: integer
+                      icmpType:
+                        type: integer
+                      peerCIDR:
+                        type: string
+                      peerIP:
+                        type: string
+                      pktDrops:
                         type: boolean
-                      icmp_code:
-                        type: integer
-                      icmp_type:
-                        type: integer
-                      ip_cidr:
-                        type: string
-                      peer_cidr:
-                        type: string
-                      peer_ip:
-                        type: string
                       port:
                         format: int32
                         type: integer
-                      port_range:
+                      portRange:
                         type: string
                       ports:
                         type: string
                       protocol:
                         type: string
-                      sample:
+                      sampling:
                         format: int32
                         type: integer
-                      source_port:
+                      sourcePort:
                         format: int32
                         type: integer
-                      source_port_range:
+                      sourcePortRange:
                         type: string
-                      source_ports:
+                      sourcePorts:
                         type: string
-                      tcp_flags:
+                      tcpFlags:
                         type: string
                     type: object
                   type: array
-                getSubnets:
-                  description: |-
-                    GetSubnets labels flows with the detected machine, pod, and service CIDRs.
-                    This is currently supported on OpenShift clusters.
-                  type: boolean
                 interfaces:
                   items:
                     type: string
@@ -153,6 +148,13 @@ spec:
                   format: int32
                   minimum: 1
                   type: integer
+                subnetLabels:
+                  description: SubnetLabels configures automatic subnet detection for captured flows.
+                  properties:
+                    autoDetect:
+                      description: AutoDetect enables vendor-specific detection of machine, pod, and service subnets.
+                      type: boolean
+                  type: object
                 tlsPlaintext:
                   description: TLSPlaintext enables TLS plaintext capture for packet captures.
                   properties:
