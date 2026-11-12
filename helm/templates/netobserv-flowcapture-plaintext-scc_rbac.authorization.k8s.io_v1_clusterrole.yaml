@@ -8,7 +8,7 @@ rules:
 - apiGroups:
   - security.openshift.io
   resourceNames:
-  - flowcapture-plaintext
+  - netobserv-flowcapture-plaintext
   resources:
   - securitycontextconstraints
   verbs:

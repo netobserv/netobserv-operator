@@ -196,7 +196,7 @@ func TestDesiredCollectorEnablesTLSPlaintextOutput(t *testing.T) {
 
 func TestDesiredFlowCaptureSCC(t *testing.T) {
 	scc := desiredFlowCaptureSCC()
-	if scc.Name != "flowcapture" || !scc.AllowHostNetwork || !scc.AllowHostPorts {
+	if scc.Name != "netobserv-flowcapture" || !scc.AllowHostNetwork || !scc.AllowHostPorts {
 		t.Fatalf("unexpected SCC identity or host access: %#v", scc)
 	}
 	if scc.AllowPrivilegedContainer || scc.AllowPrivilegeEscalation == nil || *scc.AllowPrivilegeEscalation {
@@ -209,7 +209,7 @@ func TestDesiredFlowCaptureSCC(t *testing.T) {
 
 func TestDesiredFlowCapturePlaintextSCC(t *testing.T) {
 	scc := desiredFlowCapturePlaintextSCC()
-	if scc.Name != "flowcapture-plaintext" || !scc.AllowHostPID || scc.AllowPrivilegedContainer || scc.AllowPrivilegeEscalation == nil || *scc.AllowPrivilegeEscalation {
+	if scc.Name != "netobserv-flowcapture-plaintext" || !scc.AllowHostPID || scc.AllowPrivilegedContainer || scc.AllowPrivilegeEscalation == nil || *scc.AllowPrivilegeEscalation {
 		t.Fatalf("unexpected plaintext SCC: %#v", scc)
 	}
 	if len(scc.AllowedCapabilities) != 5 || scc.AllowedCapabilities[3] != "SYS_ADMIN" || scc.AllowedCapabilities[4] != "SYS_PTRACE" {

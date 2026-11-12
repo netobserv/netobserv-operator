@@ -290,14 +290,12 @@ rules:
   - securitycontextconstraints
   verbs:
   - create
-  - get
   - list
-  - update
   - watch
 - apiGroups:
   - security.openshift.io
   resourceNames:
-  - flowcapture-plaintext
+  - hostnetwork
   resources:
   - securitycontextconstraints
   verbs:
@@ -305,7 +303,18 @@ rules:
 - apiGroups:
   - security.openshift.io
   resourceNames:
-  - hostnetwork
+  - netobserv-ebpf-agent
+  - netobserv-flowcapture
+  - netobserv-flowcapture-plaintext
+  resources:
+  - securitycontextconstraints
+  verbs:
+  - get
+  - update
+- apiGroups:
+  - security.openshift.io
+  resourceNames:
+  - netobserv-flowcapture-plaintext
   resources:
   - securitycontextconstraints
   verbs:
