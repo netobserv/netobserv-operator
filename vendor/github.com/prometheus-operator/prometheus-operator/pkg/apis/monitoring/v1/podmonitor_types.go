@@ -1,4 +1,4 @@
-// Copyright 2018 The prometheus-operator Authors
+// Copyright The prometheus-operator Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -117,14 +117,16 @@ type PodMonitorSpec struct {
 	// sampleLimit defines a per-scrape limit on the number of scraped samples
 	// that will be accepted.
 	//
+	// +kubebuilder:validation:Minimum:=0
 	// +optional
-	SampleLimit *uint64 `json:"sampleLimit,omitempty"`
+	SampleLimit *int64 `json:"sampleLimit,omitempty"`
 
 	// targetLimit defines a limit on the number of scraped targets that will
 	// be accepted.
 	//
+	// +kubebuilder:validation:Minimum:=0
 	// +optional
-	TargetLimit *uint64 `json:"targetLimit,omitempty"`
+	TargetLimit *int64 `json:"targetLimit,omitempty"`
 
 	// scrapeProtocols defines the protocols to negotiate during a scrape. It tells clients the
 	// protocols supported by Prometheus in order of preference (from most to least preferred).
@@ -143,24 +145,36 @@ type PodMonitorSpec struct {
 	// +optional
 	FallbackScrapeProtocol *ScrapeProtocol `json:"fallbackScrapeProtocol,omitempty"`
 
+	// extraScrapeMetrics defines whether to store additional time series for each scrape:
+	// `scrape_timeout_seconds`, `scrape_sample_limit` and `scrape_body_size_bytes`.
+	// These metrics help monitor how close targets are to their configured limits.
+	//
+	// It requires Prometheus >= v3.10.0.
+	//
+	// +optional
+	ExtraScrapeMetrics *bool `json:"extraScrapeMetrics,omitempty"` // nolint:kubeapilinter
+
 	// labelLimit defines the per-scrape limit on number of labels that will be accepted for a sample.
 	//
 	// It requires Prometheus >= v2.27.0.
 	//
+	// +kubebuilder:validation:Minimum:=0
 	// +optional
-	LabelLimit *uint64 `json:"labelLimit,omitempty"`
+	LabelLimit *int64 `json:"labelLimit,omitempty"`
 	// labelNameLengthLimit defines the per-scrape limit on length of labels name that will be accepted for a sample.
 	//
 	// It requires Prometheus >= v2.27.0.
 	//
+	// +kubebuilder:validation:Minimum:=0
 	// +optional
-	LabelNameLengthLimit *uint64 `json:"labelNameLengthLimit,omitempty"`
+	LabelNameLengthLimit *int64 `json:"labelNameLengthLimit,omitempty"`
 	// labelValueLengthLimit defines the per-scrape limit on length of labels value that will be accepted for a sample.
 	//
 	// It requires Prometheus >= v2.27.0.
 	//
+	// +kubebuilder:validation:Minimum:=0
 	// +optional
-	LabelValueLengthLimit *uint64 `json:"labelValueLengthLimit,omitempty"`
+	LabelValueLengthLimit *int64 `json:"labelValueLengthLimit,omitempty"`
 
 	NativeHistogramConfig `json:",inline"`
 
@@ -169,8 +183,9 @@ type PodMonitorSpec struct {
 	//
 	// It requires Prometheus >= v2.47.0.
 	//
+	// +kubebuilder:validation:Minimum:=0
 	// +optional
-	KeepDroppedTargets *uint64 `json:"keepDroppedTargets,omitempty"`
+	KeepDroppedTargets *int64 `json:"keepDroppedTargets,omitempty"`
 
 	// attachMetadata defines additional metadata which is added to the
 	// discovered targets.
@@ -267,6 +282,7 @@ type PodMetricsEndpoint struct {
 
 	// params define optional HTTP URL parameters.
 	// +optional
+	//nolint:kubeapilinter
 	Params map[string][]string `json:"params,omitempty"`
 
 	// interval at which Prometheus scrapes the metrics from the target.
@@ -286,13 +302,13 @@ type PodMetricsEndpoint struct {
 	// honorLabels when true preserves the metric's labels when they collide
 	// with the target's labels.
 	// +optional
-	HonorLabels bool `json:"honorLabels,omitempty"`
+	HonorLabels bool `json:"honorLabels,omitempty"` // nolint:kubeapilinter
 
 	// honorTimestamps defines whether Prometheus preserves the timestamps
 	// when exposed by the target.
 	//
 	// +optional
-	HonorTimestamps *bool `json:"honorTimestamps,omitempty"`
+	HonorTimestamps *bool `json:"honorTimestamps,omitempty"` // nolint:kubeapilinter
 
 	// trackTimestampsStaleness defines whether Prometheus tracks staleness of
 	// the metrics that have an explicit timestamp present in scraped data.
@@ -301,7 +317,7 @@ type PodMetricsEndpoint struct {
 	// It requires Prometheus >= v2.48.0.
 	//
 	// +optional
-	TrackTimestampsStaleness *bool `json:"trackTimestampsStaleness,omitempty"`
+	TrackTimestampsStaleness *bool `json:"trackTimestampsStaleness,omitempty"` // nolint:kubeapilinter
 
 	// metricRelabelings defines the relabeling rules to apply to the
 	// samples before ingestion.
@@ -329,7 +345,7 @@ type PodMetricsEndpoint struct {
 	// More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-phase
 	//
 	// +optional
-	FilterRunning *bool `json:"filterRunning,omitempty"`
+	FilterRunning *bool `json:"filterRunning,omitempty"` // nolint:kubeapilinter
 
-	HTTPConfig `json:",inline"`
+	HTTPConfigWithProxy `json:",inline"`
 }
