@@ -92,7 +92,7 @@ func TestPortConflictValidation(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name: "Port DefaultK8sCachePort is allowed when informers is nil",
+			name: "FLP port conflicts with default k8scache port when informers config is omitted",
 			spec: FlowCollectorSpec{
 				Processor: FlowCollectorFLP{
 					Advanced: &AdvancedProcessorConfig{
@@ -101,7 +101,8 @@ func TestPortConflictValidation(t *testing.T) {
 					InformerCacheProxy: nil,
 				},
 			},
-			expectError: false,
+			expectError:   true,
+			errorContains: "spec.processor.advanced.port 9402 conflicts with reserved k8scache port 9402",
 		},
 		{
 			name: "Valid configuration with no port conflicts",
