@@ -142,7 +142,7 @@ rules:
 - apiGroups:
   - security.openshift.io
   resourceNames:
-  - flowcapture
+  - netobserv-flowcapture
   resources:
   - securitycontextconstraints
   verbs:
@@ -156,7 +156,7 @@ rules:
 - apiGroups:
   - security.openshift.io
   resourceNames:
-  - flowcapture-plaintext
+  - netobserv-flowcapture-plaintext
   resources:
   - securitycontextconstraints
   verbs:

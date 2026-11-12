@@ -563,7 +563,7 @@ func (r *Reconciler) reconcileCaptureSetup(ctx context.Context, fc *flowcapturev
 // deployments that apply those manifests directly.
 func desiredFlowCaptureSCC() *securityv1.SecurityContextConstraints {
 	return &securityv1.SecurityContextConstraints{
-		ObjectMeta:               metav1.ObjectMeta{Name: "flowcapture"},
+		ObjectMeta:               metav1.ObjectMeta{Name: "netobserv-flowcapture"},
 		AllowHostDirVolumePlugin: true,
 		AllowHostIPC:             false,
 		AllowHostNetwork:         true,
@@ -588,7 +588,7 @@ func desiredFlowCaptureSCC() *securityv1.SecurityContextConstraints {
 
 func desiredFlowCapturePlaintextSCC() *securityv1.SecurityContextConstraints {
 	scc := desiredFlowCaptureSCC()
-	scc.Name = "flowcapture-plaintext"
+	scc.Name = "netobserv-flowcapture-plaintext"
 	scc.AllowHostPID = true
 	scc.AllowedCapabilities = append(scc.AllowedCapabilities, "SYS_PTRACE")
 	return scc
