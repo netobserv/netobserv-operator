@@ -34,7 +34,9 @@ func GetServiceMonitorTLSConfig(tls *flowslatest.ServerTLS, serverName string) (
 			SafeTLSConfig: monitoringv1.SafeTLSConfig{
 				ServerName: ptr.To(serverName),
 			},
-			CAFile: "/etc/prometheus/configmaps/serving-certs-ca-bundle/service-ca.crt",
+			TLSFilesConfig: monitoringv1.TLSFilesConfig{
+				CAFile: "/etc/prometheus/configmaps/serving-certs-ca-bundle/service-ca.crt",
+			},
 		}
 	}
 

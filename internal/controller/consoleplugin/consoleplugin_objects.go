@@ -125,30 +125,34 @@ func (b *builder) serviceMonitor() *monitoringv1.ServiceMonitor {
 					Port:     metricsPortName,
 					Interval: "15s",
 					Scheme:   ptr.To(monitoringv1.Scheme("https")),
-					TLSConfig: &monitoringv1.TLSConfig{
-						SafeTLSConfig: monitoringv1.SafeTLSConfig{
-							ServerName: ptr.To(serverName),
-							CA: monitoringv1.SecretOrConfigMap{
-								ConfigMap: &corev1.ConfigMapKeySelector{
-									LocalObjectReference: corev1.LocalObjectReference{
-										Name: "openshift-service-ca.crt",
+					HTTPConfigWithProxyAndTLSFiles: monitoringv1.HTTPConfigWithProxyAndTLSFiles{
+						HTTPConfigWithTLSFiles: monitoringv1.HTTPConfigWithTLSFiles{
+							TLSConfig: &monitoringv1.TLSConfig{
+								SafeTLSConfig: monitoringv1.SafeTLSConfig{
+									ServerName: ptr.To(serverName),
+									CA: monitoringv1.SecretOrConfigMap{
+										ConfigMap: &corev1.ConfigMapKeySelector{
+											LocalObjectReference: corev1.LocalObjectReference{
+												Name: "openshift-service-ca.crt",
+											},
+											Key: "service-ca.crt",
+										},
 									},
-									Key: "service-ca.crt",
-								},
-							},
-							Cert: monitoringv1.SecretOrConfigMap{
-								Secret: &corev1.SecretKeySelector{
-									LocalObjectReference: corev1.LocalObjectReference{
-										Name: fmt.Sprintf("%s-cert", constants.PluginName),
+									Cert: monitoringv1.SecretOrConfigMap{
+										Secret: &corev1.SecretKeySelector{
+											LocalObjectReference: corev1.LocalObjectReference{
+												Name: fmt.Sprintf("%s-cert", constants.PluginName),
+											},
+											Key: "tls.crt",
+										},
 									},
-									Key: "tls.crt",
+									KeySecret: &corev1.SecretKeySelector{
+										LocalObjectReference: corev1.LocalObjectReference{
+											Name: fmt.Sprintf("%s-cert", constants.PluginName),
+										},
+										Key: "tls.key",
+									},
 								},
-							},
-							KeySecret: &corev1.SecretKeySelector{
-								LocalObjectReference: corev1.LocalObjectReference{
-									Name: fmt.Sprintf("%s-cert", constants.PluginName),
-								},
-								Key: "tls.key",
 							},
 						},
 					},

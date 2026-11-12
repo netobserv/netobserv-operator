@@ -413,10 +413,14 @@ func serviceMonitor(desired *flowslatest.FlowCollectorSpec, smName, svcName, nam
 			ServiceDiscoveryRole: sdRole,
 			Endpoints: []monitoringv1.Endpoint{
 				{
-					Port:        prometheusPortName,
-					Interval:    monitoringv1.Duration(interval),
-					Scheme:      &scheme,
-					TLSConfig:   smTLS,
+					Port:     prometheusPortName,
+					Interval: monitoringv1.Duration(interval),
+					Scheme:   &scheme,
+					HTTPConfigWithProxyAndTLSFiles: monitoringv1.HTTPConfigWithProxyAndTLSFiles{
+						HTTPConfigWithTLSFiles: monitoringv1.HTTPConfigWithTLSFiles{
+							TLSConfig: smTLS,
+						},
+					},
 					HonorLabels: true,
 					// Relabel for Thanos multi-tenant endpoint, which requires having the namespace label
 					MetricRelabelConfigs: []monitoringv1.RelabelConfig{
