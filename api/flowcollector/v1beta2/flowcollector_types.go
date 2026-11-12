@@ -1,6 +1,7 @@
 package v1beta2
 
 import (
+	flowcapturev1alpha1 "github.com/netobserv/netobserv-operator/api/flowcapture/v1alpha1"
 	ascv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -179,16 +180,16 @@ type FlowCollectorIPFIX struct {
 type AgentFeature string
 
 const (
-	DNSTracking       AgentFeature = "DNSTracking"
-	EbpfManager       AgentFeature = "EbpfManager"
-	FlowRTT           AgentFeature = "FlowRTT"
-	IPSec             AgentFeature = "IPSec"
-	NetworkEvents     AgentFeature = "NetworkEvents"
-	PacketDrop        AgentFeature = "PacketDrop"
-	PacketTranslation AgentFeature = "PacketTranslation"
-	SecondaryNetworks AgentFeature = "SecondaryNetworks"
-	TLSTracking       AgentFeature = "TLSTracking"
-	UDNMapping        AgentFeature = "UDNMapping"
+	DNSTracking       AgentFeature = AgentFeature(flowcapturev1alpha1.DNSTracking)
+	EbpfManager       AgentFeature = AgentFeature(flowcapturev1alpha1.EbpfManager)
+	FlowRTT           AgentFeature = AgentFeature(flowcapturev1alpha1.FlowRTT)
+	IPSec             AgentFeature = AgentFeature(flowcapturev1alpha1.IPSec)
+	NetworkEvents     AgentFeature = AgentFeature(flowcapturev1alpha1.NetworkEvents)
+	PacketDrop        AgentFeature = AgentFeature(flowcapturev1alpha1.PacketDrop)
+	PacketTranslation AgentFeature = AgentFeature(flowcapturev1alpha1.PacketTranslation)
+	SecondaryNetworks AgentFeature = AgentFeature(flowcapturev1alpha1.SecondaryNetworks)
+	TLSTracking       AgentFeature = AgentFeature(flowcapturev1alpha1.TLSTracking)
+	UDNMapping        AgentFeature = AgentFeature(flowcapturev1alpha1.UDNMapping)
 )
 
 // Name of an eBPF agent alert.

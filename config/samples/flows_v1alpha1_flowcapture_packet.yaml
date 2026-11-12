@@ -1,0 +1,22 @@
+apiVersion: flows.netobserv.io/v1alpha1
+kind: FlowCapture
+metadata:
+  name: flowcapture-packet-sample
+spec:
+  # Packet captures are useful for inspecting a small, targeted slice of traffic.
+  # Keep maxBytes low enough to avoid filling the collector's output volume.
+  outputType: packets
+  maxTime: 30s
+  maxBytes: 10000000
+  sampling: 1
+  # TLS plaintext capture requires additional host access. Keep the capture
+  # narrowly scoped and allowlist only the process that should be observed.
+  tlsPlaintext:
+    previewBytes: 256
+    processAllowlist:
+    - nginx
+  filters:
+  - action: Accept
+    protocol: TCP
+    destPort: 443
+

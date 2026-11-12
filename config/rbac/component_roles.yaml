@@ -137,6 +137,34 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
+  name: flowcapture-scc
+rules:
+- apiGroups:
+  - security.openshift.io
+  resourceNames:
+  - netobserv-flowcapture
+  resources:
+  - securitycontextconstraints
+  verbs:
+  - use
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: flowcapture-plaintext-scc
+rules:
+- apiGroups:
+  - security.openshift.io
+  resourceNames:
+  - netobserv-flowcapture-plaintext
+  resources:
+  - securitycontextconstraints
+  verbs:
+  - use
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
   name: token-review
 rules:
 - apiGroups:
@@ -158,4 +186,48 @@ rules:
   verbs:
   - get
   - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: flowcapture
+rules:
+- apiGroups:
+  - ""
+  resources:
+  # The agent uses these for Kubernetes metadata and service endpoint enrichment.
+  - endpoints
+  - namespaces
+  - nodes
+  - services
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - patch
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  - replicasets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - config.openshift.io
+  resources:
+  - apiservers
+  resourceNames:
+  - cluster
+  verbs:
+  - get
 ---
