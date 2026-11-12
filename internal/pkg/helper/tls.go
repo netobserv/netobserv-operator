@@ -26,19 +26,15 @@ func DefaultCAReference(name, namespace string) *flowslatest.FileReference {
 // InformerTLSAsServiceConfig converts an InformerCacheProxyTLSConfig to a ProcessorServiceConfig
 // so that the shared GetServiceServerTLSConfig / GetServiceClientTLSConfig helpers can be reused.
 func InformerTLSAsServiceConfig(proxy *flowslatest.FlowCollectorInformerCacheProxy) *flowslatest.ProcessorServiceConfig {
-	if proxy == nil || proxy.TLS == nil {
-		return &flowslatest.ProcessorServiceConfig{TLSType: flowslatest.TLSAuto}
-	}
-	return &flowslatest.ProcessorServiceConfig{
-		TLSType:              proxy.TLS.Type,
-		ProvidedCertificates: proxy.TLS.ProvidedCertificates,
-	}
+	tlsType, certs := proxy.GetTLSInfo()
+	return &flowslatest.ProcessorServiceConfig{TLSType: tlsType, ProvidedCertificates: certs}
 }
 
 // GetServiceClientTLSConfig returns configs for [ca, client cert]
 func GetServiceClientTLSConfig(desired *flowslatest.ProcessorServiceConfig, defaultSecretName string, isOpenShift bool) (*flowslatest.FileReference, *flowslatest.CertificateReference) {
-	if desired != nil && desired.TLSType != flowslatest.TLSAuto && desired.TLSType != flowslatest.TLSAutoMTLS {
-		if desired.TLSType == flowslatest.TLSDisabled {
+	tlsType := desired.GetTLSType()
+	if tlsType != flowslatest.TLSAuto && tlsType != flowslatest.TLSAutoMTLS {
+		if tlsType == flowslatest.TLSDisabled {
 			return nil, nil
 		}
 		if desired.ProvidedCertificates == nil {
@@ -53,7 +49,7 @@ func GetServiceClientTLSConfig(desired *flowslatest.ProcessorServiceConfig, defa
 		caConfigMapName = "openshift-service-ca.crt"
 	}
 	ca := DefaultCAReference(caConfigMapName, "")
-	if desired != nil && desired.TLSType == flowslatest.TLSAutoMTLS {
+	if tlsType == flowslatest.TLSAutoMTLS {
 		return ca, DefaultCertificateReference(defaultSecretName, "")
 	}
 	return ca, nil
@@ -61,8 +57,9 @@ func GetServiceClientTLSConfig(desired *flowslatest.ProcessorServiceConfig, defa
 
 // GetServiceServerTLSConfig returns configs for [server cert, ca]
 func GetServiceServerTLSConfig(desired *flowslatest.ProcessorServiceConfig, defaultSecretName string, isOpenShift bool) (*flowslatest.CertificateReference, *flowslatest.FileReference) {
-	if desired != nil && desired.TLSType != flowslatest.TLSAuto && desired.TLSType != flowslatest.TLSAutoMTLS {
-		if desired.TLSType == flowslatest.TLSDisabled {
+	tlsType := desired.GetTLSType()
+	if tlsType != flowslatest.TLSAuto && tlsType != flowslatest.TLSAutoMTLS {
+		if tlsType == flowslatest.TLSDisabled {
 			return nil, nil
 		}
 		if desired.ProvidedCertificates == nil {
@@ -82,7 +79,7 @@ func GetServiceServerTLSConfig(desired *flowslatest.ProcessorServiceConfig, defa
 		caConfigMapName = "openshift-service-ca.crt"
 	}
 	serverCert := DefaultCertificateReference(defaultSecretName, "")
-	if desired != nil && desired.TLSType == flowslatest.TLSAutoMTLS {
+	if tlsType == flowslatest.TLSAutoMTLS {
 		return serverCert, DefaultCAReference(caConfigMapName, "")
 	}
 	return serverCert, nil

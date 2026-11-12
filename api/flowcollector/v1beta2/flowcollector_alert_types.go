@@ -156,25 +156,25 @@ func (s *FlowCollectorSpec) GetIncludeList() []string {
 			list = append(list, string(m))
 		}
 	}
-	if !s.Agent.EBPF.IsPktDropEnabled() && !s.Agent.EBPF.IsNetworkEventsEnabled() {
+	if !s.IsPktDropEnabled() && !s.IsNetworkEventsEnabled() {
 		list = removeMetricsByPattern(list, "_drop_")
 	}
-	if !s.Agent.EBPF.IsFlowRTTEnabled() {
+	if !s.IsFlowRTTEnabled() {
 		list = removeMetricsByPattern(list, "_rtt_")
 	}
-	if !s.Agent.EBPF.IsDNSTrackingEnabled() {
+	if !s.IsDNSTrackingEnabled() {
 		list = removeMetricsByPattern(list, "_dns_")
 	}
-	if !s.Agent.EBPF.IsNetworkEventsEnabled() {
+	if !s.IsNetworkEventsEnabled() {
 		list = removeMetricsByPattern(list, "_network_policy_")
 	}
 	if !s.HasFiltersSampling() {
 		list = removeMetricsByPattern(list, "_sampling")
 	}
-	if !s.Agent.EBPF.IsIPSecEnabled() {
+	if !s.IsIPSecEnabled() {
 		list = removeMetricsByPattern(list, "_ipsec_")
 	}
-	if !s.Agent.EBPF.IsTLSTrackingEnabled() {
+	if !s.IsTLSTrackingEnabled() {
 		list = removeMetricsByPattern(list, "_tls_")
 	}
 	return list
@@ -226,27 +226,27 @@ func (s *FlowCollectorSpec) GetFLPHealthRules() []FLPHealthRule {
 func (g *FLPHealthRule) IsAllowed(spec *FlowCollectorSpec) (bool, string) {
 	switch g.Template {
 	case HealthRulePacketDropsByKernel:
-		if !spec.Agent.EBPF.IsPktDropEnabled() {
+		if !spec.IsPktDropEnabled() {
 			return false, fmt.Sprintf("HealthRule %s requires the %s agent feature to be enabled", g.Template, PacketDrop)
 		}
 	case HealthRuleIPsecErrors:
-		if !spec.Agent.EBPF.IsIPSecEnabled() {
+		if !spec.IsIPSecEnabled() {
 			return false, fmt.Sprintf("HealthRule %s requires the %s agent feature to be enabled", g.Template, IPSec)
 		}
 	case HealthRuleDNSErrors, HealthRuleDNSNxDomain:
-		if !spec.Agent.EBPF.IsDNSTrackingEnabled() {
+		if !spec.IsDNSTrackingEnabled() {
 			return false, fmt.Sprintf("HealthRule %s requires the %s agent feature to be enabled", g.Template, DNSTracking)
 		}
 	case HealthRuleLatencyHighTrend:
-		if !spec.Agent.EBPF.IsFlowRTTEnabled() {
+		if !spec.IsFlowRTTEnabled() {
 			return false, fmt.Sprintf("HealthRule %s requires the %s agent feature to be enabled", g.Template, FlowRTT)
 		}
 	case HealthRuleNetpolDenied:
-		if !spec.Agent.EBPF.IsNetworkEventsEnabled() {
+		if !spec.IsNetworkEventsEnabled() {
 			return false, fmt.Sprintf("HealthRule %s requires the %s agent feature to be enabled", g.Template, NetworkEvents)
 		}
 	case HealthRuleTLSInsecureVersion:
-		if !spec.Agent.EBPF.IsTLSTrackingEnabled() {
+		if !spec.IsTLSTrackingEnabled() {
 			return false, fmt.Sprintf("HealthRule %s requires the %s agent feature to be enabled", g.Template, TLSTracking)
 		}
 	case AlertNoFlows, AlertLokiError, HealthRulePacketDropsByDevice, HealthRuleExternalEgressHighTrend, HealthRuleExternalIngressHighTrend, HealthRuleIngress5xxErrors, HealthRuleIngressHTTPLatencyTrend:

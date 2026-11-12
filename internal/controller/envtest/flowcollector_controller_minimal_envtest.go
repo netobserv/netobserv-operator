@@ -52,30 +52,31 @@ func FlowCollectorMinimalSpecs(ctxGetter test.ContextGetter) {
 			}, timeout, interval).Should(Succeed())
 		})
 
-		It("Should install components successfully", func() {
+		It("Should install components successfully with default resources", func() {
 			By("Expecting to create the agent DaemonSet")
-			Eventually(func() error {
-				ds := appsv1.DaemonSet{}
-				return k8sClient.Get(ctx, agentKey, &ds)
-			}, timeout, interval).Should(Succeed())
+			agent := appsv1.DaemonSet{}
+			Eventually(func() error { return k8sClient.Get(ctx, agentKey, &agent) }, timeout, interval).
+				Should(Succeed())
+			Expect(agent.Spec.Template.Spec.Containers[0].Resources).
+				To(Equal(flowslatest.DefaultFlowCollector.Agent.EBPF.Resources))
 
 			By("Expecting to create the flowlogs-pipeline Deployment")
-			Eventually(func() error {
-				depl := appsv1.Deployment{}
-				return k8sClient.Get(ctx, flpKey, &depl)
-			}, timeout, interval).Should(Succeed())
+			flp := appsv1.Deployment{}
+			Eventually(func() error { return k8sClient.Get(ctx, flpKey, &flp) }, timeout, interval).
+				Should(Succeed())
+			Expect(flp.Spec.Template.Spec.Containers[0].Resources).
+				To(Equal(flowslatest.DefaultFlowCollector.Processor.Resources))
 
 			By("Expecting to create the console plugin Deployment")
-			Eventually(func() interface{} {
-				dp := appsv1.Deployment{}
-				return k8sClient.Get(ctx, cpKey, &dp)
-			}, timeout, interval).Should(Succeed())
+			console := appsv1.Deployment{}
+			Eventually(func() error { return k8sClient.Get(ctx, cpKey, &console) }, timeout, interval).
+				Should(Succeed())
+			Expect(console.Spec.Template.Spec.Containers[0].Resources).
+				To(Equal(flowslatest.DefaultFlowCollector.ConsolePlugin.Resources))
 
 			By("Expecting to create the console plugin Service")
-			Eventually(func() interface{} {
-				svc := corev1.Service{}
-				return k8sClient.Get(ctx, cpKey, &svc)
-			}, timeout, interval).Should(Succeed())
+			Eventually(func() error { return k8sClient.Get(ctx, cpKey, &corev1.Service{}) }, timeout, interval).
+				Should(Succeed())
 		})
 	})
 

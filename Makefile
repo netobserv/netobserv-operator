@@ -413,6 +413,18 @@ lint: prereqs ## Run linter (golangci-lint).
 test: envtest ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./api/... ./internal/... -coverpkg="./api/... ./internal/..." -coverprofile cover.out
 
+KIND_VERSION = v0.33.0
+
+.PHONY: prereqs-kind
+prereqs-kind: ## Check if prerequisites are met for running the Kind-based e2e tests, and install missing dependencies
+	@echo "### Checking if KIND prerequisites are met, and installing missing dependencies"
+	GOFLAGS="" go install sigs.k8s.io/kind@${KIND_VERSION}
+
+.PHONY: test-e2e
+test-e2e: prereqs-kind ## Run Kind-based end-to-end tests (requires docker/podman, helm and kubectl)
+	helm dependency update helm
+	cd integration-tests/e2e-framework && go test -p 1 -v -timeout 20m ./...
+
 coverage-report: ## Generate coverage report
 	go tool cover --func=./cover.out
 
@@ -461,6 +473,7 @@ tar-image: MULTIARCH_TARGETS=amd64
 tar-image: image-build ## Build single arch (amd64) and save as a tar
 	$(OCI_BIN) tag $(IMAGE)-amd64 $(IMAGE)
 	mkdir -p ./out
+	rm -f out/operator.tar
 	$(OCI_BIN) save -o out/operator.tar $(IMAGE)
 
 ##@ Deployment
