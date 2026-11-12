@@ -66,17 +66,17 @@ IMAGE_TAG_BASE ?= $(REPO)/network-observability-operator
 # You can use it as an arg. (E.g make bundle-build BUNDLE_IMAGE=<some-registry>/<project-name-bundle>:<tag>)
 BUNDLE_IMAGE ?= $(IMAGE_TAG_BASE)-bundle:v$(BUNDLE_VERSION)
 
+# Current only supported BUNDLE_TARGET is OpenShift
 ifeq ("$(BUNDLE_TARGET)", "OpenShift")
-	BUNDLE_CONFIG = config/openshift/olm
-	BUNDLE_OUT = bundles/openshift
-else
-	BUNDLE_CONFIG = config/k8s/olm
-	BUNDLE_OUT = bundles/k8s
+BUNDLE_CONFIG = config/openshift/olm
+BUNDLE_OUT = bundles/openshift
 endif
 
 # If we don't want to set bundle date (upon bundle update call), store current date
+ifneq ("$(BUNDLE_OUT)", "")
 ifneq ("$(BUNDLE_SET_DATE)", "true")
 	BUNDLE_STORED_DATE = $(shell grep "createdAt:" $(BUNDLE_OUT)/manifests/netobserv-operator.clusterserviceversion.yaml | $(SED) -E 's/^.*createdAt:[ ]*(.*)/\1/')
+endif
 endif
 
 # Image URL to use all building/pushing image targets
@@ -498,11 +498,11 @@ deploy: PLG_VERSION=main
 deploy: kustomize set-manager-images ## Deploy controller to the K8s cluster specified in ~/.kube/config.
 	$(KUSTOMIZE) build config/openshift | kubectl apply --server-side --force-conflicts -f -
 	kubectl get ns openshift-netobserv-operator || kubectl create ns openshift-netobserv-operator
-	cat $(BUNDLE_OUT)/manifests/netobserv-operator.clusterserviceversion.yaml | $(SED) -E "s/operators.coreos.com\/v1/operators.coreos.com\/v1alpha1/" | $(SED) -E "s/placeholder/openshift-netobserv-operator/" | kubectl apply --server-side --force-conflicts -f -
+	cat bundles/openshift/manifests/netobserv-operator.clusterserviceversion.yaml | $(SED) -E "s/operators.coreos.com\/v1/operators.coreos.com\/v1alpha1/" | $(SED) -E "s/placeholder/openshift-netobserv-operator/" | kubectl apply --server-side --force-conflicts -f -
 
 undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config.
 	$(KUSTOMIZE) build config/openshift | kubectl --ignore-not-found=true delete -f - || true
-	cat $(BUNDLE_OUT)/manifests/netobserv-operator.clusterserviceversion.yaml | $(SED) -E "s/operators.coreos.com\/v1/operators.coreos.com\/v1alpha1/" | $(SED) -E "s/placeholder/openshift-netobserv-operator/" | kubectl --ignore-not-found=true delete -f - || true
+	cat bundles/openshift/manifests/netobserv-operator.clusterserviceversion.yaml | $(SED) -E "s/operators.coreos.com\/v1/operators.coreos.com\/v1alpha1/" | $(SED) -E "s/placeholder/openshift-netobserv-operator/" | kubectl --ignore-not-found=true delete -f - || true
 
 run: fmt lint ## Run a controller from your host.
 	go run ./main.go
@@ -511,6 +511,10 @@ run: fmt lint ## Run a controller from your host.
 
 .PHONY: bundle-nogen
 bundle-nogen: YQ OPSDK kustomize set-manager-images ## Generate final bundle files, without prior code/doc generation.
+ifeq ("$(BUNDLE_TARGET)", "")
+	@echo "Missing BUNDLE_TARGET, can't build bundle"
+	@exit 1
+endif
 	$(SED) -i -E 's~netobserv-operator/blob/[^/]+/~netobserv-operator/blob/$(VERSION)/~g' $(BUNDLE_CONFIG)/description.md
 	rm -r $(BUNDLE_OUT)/manifests || true
 	rm -r $(BUNDLE_OUT)/metadata || true
@@ -556,13 +560,12 @@ endif
 bundle: generate bundle-nogen ## Generate final bundle files, including prior code and OpenAPI doc generation.
 
 .PHONY: update-bundle
-update-bundle: YQ ## Prepare clean bundles to be commited (OLM and helm), alongside with markdown doc
+update-bundle: YQ generate ## Prepare clean bundles to be commited (OLM and helm), alongside with markdown doc
+	$(MAKE) VERSION=$(BUNDLE_VERSION) IMAGE_ORG=netobserv helm-update
 	$(SED) -i -E 's~netobserv-operator/blob/[^/]+/~netobserv-operator/blob/$(BUNDLE_VERSION)/~g' ./config/csv/bases/netobserv-operator.clusterserviceversion.yaml
 	cp ./config/csv/bases/netobserv-operator.clusterserviceversion.yaml ./config/csv/bases/transformed-csv.yaml
 	hack/crd2csvSpecDesc.sh v1beta2
-	$(MAKE) bundle VERSION=$(BUNDLE_VERSION) IMAGE_ORG=netobserv
 	$(MAKE) bundle VERSION=$(BUNDLE_VERSION) IMAGE_ORG=netobserv BUNDLE_TARGET=OpenShift BUNDLE_PRODUCT_NAME="Network Observability"
-	$(MAKE) helm-update
 	$(MAKE) doc
 
 .PHONY: bundle-build
@@ -644,7 +647,14 @@ related-release-notes: ## Grab release notes for related components (to be inser
 
 # Update helm templates
 .PHONY: helm-update
-helm-update: validate-digests YQ ## Update helm template
+helm-update: YQ kustomize set-manager-images validate-digests ## Update helm template
+	rm -r helm/templates || true
+	mkdir -p helm/templates
+# Dissociate kustomize builds csv, samples and the rest, because they don't share exactly the same properties (like namespace injection)
+	$(KUSTOMIZE) build config/k8s/helm -o helm/templates
+# CRD overrides
+	(shopt -s nullglob ; for file in config/k8s/helm/crd-doc-override/*.yaml; do f="$$file" $(YQ) -i ".spec.versions[0].schema.openAPIV3Schema.properties *= load(env(f)) | ... head_comment=\"\"" "helm/templates/$$(basename $$file)" ; done)
+
 	$(SED) -i -E 's/^appVersion:.*/appVersion: $(BUNDLE_VERSION)/g' helm/Chart.yaml
 	$(SED) -i -E 's/^version:.*/version: $(BUNDLE_VERSION:%-community=%)/g' helm/Chart.yaml
 ifeq ("$(PIN_DIGEST)", "true")
@@ -672,8 +682,7 @@ else
 	$(YQ) -i 'del(.standaloneConsole.digest)' helm/values.yaml
 	$(YQ) -i 'del(.operator.digest)' helm/values.yaml
 endif
-	hack/helm-update.sh
-	cp LICENSE helm/
+	hack/helm-post-process.sh
 
 include .mk/sample.mk
 include .mk/development.mk

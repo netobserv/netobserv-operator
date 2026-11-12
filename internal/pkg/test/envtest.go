@@ -194,12 +194,12 @@ func PrepareEnvTest(env Environment, controllers []manager.Registerer, opNamespa
 
 	// Pre-install CRB (the operator manages them partially: it won't create them, only update them)
 	err = util.InstallYAMLAssets(ctx, k8sClient,
-		filepath.Join(basePath, "bundles", "k8s", "manifests", "netobserv-flowcollector-viewer-role_rbac.authorization.k8s.io_v1_clusterrolebinding.yaml"),
-		filepath.Join(basePath, "bundles", "k8s", "manifests", "netobserv-token-review_rbac.authorization.k8s.io_v1_clusterrolebinding.yaml"),
-		filepath.Join(basePath, "bundles", "k8s", "manifests", "netobserv-hostnetwork_rbac.authorization.k8s.io_v1_clusterrolebinding.yaml"),
-		filepath.Join(basePath, "bundles", "k8s", "manifests", "netobserv-informers_rbac.authorization.k8s.io_v1_clusterrolebinding.yaml"),
-		filepath.Join(basePath, "bundles", "k8s", "manifests", "netobserv-flp-extra-reader_rbac.authorization.k8s.io_v1_clusterrolebinding.yaml"),
-		filepath.Join(basePath, "bundles", "k8s", "manifests", "netobserv-loki-writer_rbac.authorization.k8s.io_v1_clusterrolebinding.yaml"),
+		filepath.Join(basePath, "helm", "templates", "rbac.authorization.k8s.io_v1_clusterrolebinding_netobserv-flowcollector-viewer-role.yaml"),
+		filepath.Join(basePath, "helm", "templates", "rbac.authorization.k8s.io_v1_clusterrolebinding_netobserv-token-review.yaml"),
+		filepath.Join(basePath, "helm", "templates", "rbac.authorization.k8s.io_v1_clusterrolebinding_netobserv-hostnetwork.yaml"),
+		filepath.Join(basePath, "helm", "templates", "rbac.authorization.k8s.io_v1_clusterrolebinding_netobserv-informers.yaml"),
+		filepath.Join(basePath, "helm", "templates", "rbac.authorization.k8s.io_v1_clusterrolebinding_netobserv-flp-extra-reader.yaml"),
+		filepath.Join(basePath, "helm", "templates", "rbac.authorization.k8s.io_v1_clusterrolebinding_netobserv-loki-writer.yaml"),
 	)
 	Expect(err).NotTo(HaveOccurred())
 

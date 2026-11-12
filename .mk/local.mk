@@ -14,7 +14,7 @@ IMAGE_FOR_HELM := $(word 1,$(subst :, ,${IMAGE}))
 VERSION_FOR_HELM := $(word 2,$(subst :, ,${IMAGE}))
 .PHONY: helm-install
 helm-install: helm-install-prereqs ## Install the operator (latest builds) and its pre-requisites to a running cluster, using Helm
-	helm install netobserv -n netobserv --create-namespace \
+	helm upgrade --install netobserv -n netobserv --create-namespace \
 		--set operator.image=${IMAGE_FOR_HELM} \
 		--set operator.version=${VERSION_FOR_HELM} \
 		--set ebpfAgent.version=main \

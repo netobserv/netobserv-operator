@@ -91,7 +91,7 @@ metadata:
     categories: Monitoring, Networking, Observability
     console.openshift.io/plugins: '["netobserv-plugin"]'
     containerImage: quay.io/netobserv/network-observability-operator:2.0.2-community
-    createdAt: "2026-10-29T08:34:36Z"
+    createdAt: "2026-11-10T12:43:21Z"
     description: Network flows collector and monitoring solution
     operatorframework.io/initialization-resource: '{"apiVersion":"flows.netobserv.io/v1beta2",
       "kind":"FlowCollector","metadata":{"name":"cluster"},"spec": {}}'
@@ -1024,6 +1024,7 @@ spec:
                 app: netobserv-operator
                 control-plane: controller-manager
             spec:
+              affinity: {}
               containers:
               - args:
                 - --health-probe-bind-address=:8081
@@ -1040,14 +1041,6 @@ spec:
                   value: quay.io/netobserv/flowlogs-pipeline:v2.0.2-community
                 - name: RELATED_IMAGE_WEB_CONSOLE
                   value: quay.io/netobserv/network-observability-console-plugin:v2.0.2-community
-                - name: RELATED_IMAGE_DEMO_LOKI
-                  value: grafana/loki:3.5.0
-                - name: STATIC_PLUGIN_CPU_REQUEST
-                  value: 10m
-                - name: STATIC_PLUGIN_MEMORY_REQUEST
-                  value: 64Mi
-                - name: STATIC_PLUGIN_CPU_LIMIT
-                - name: STATIC_PLUGIN_MEMORY_LIMIT
                 - name: NAMESPACE
                   valueFrom:
                     fieldRef:
@@ -1060,6 +1053,14 @@ spec:
                   value: quay.io/netobserv/network-observability-console-plugin:v2.0.2-community-pf5
                 - name: RELATED_IMAGE_WEB_CONSOLE_PF4
                   value: quay.io/netobserv/network-observability-console-plugin:v2.0.2-community-pf4
+                - name: RELATED_IMAGE_DEMO_LOKI
+                  value: grafana/loki:3.5.0
+                - name: STATIC_PLUGIN_CPU_REQUEST
+                  value: 10m
+                - name: STATIC_PLUGIN_MEMORY_REQUEST
+                  value: 64Mi
+                - name: STATIC_PLUGIN_CPU_LIMIT
+                - name: STATIC_PLUGIN_MEMORY_LIMIT
                 image: quay.io/netobserv/network-observability-operator:2.0.2-community
                 imagePullPolicy: Always
                 livenessProbe:
@@ -1201,12 +1202,12 @@ spec:
     name: flowlogs-pipeline
   - image: quay.io/netobserv/network-observability-console-plugin:v2.0.2-community
     name: web-console
-  - image: grafana/loki:3.5.0
-    name: demo-loki
   - image: quay.io/netobserv/network-observability-console-plugin:v2.0.2-community-pf5
     name: web-console-pf5
   - image: quay.io/netobserv/network-observability-console-plugin:v2.0.2-community-pf4
     name: web-console-pf4
+  - image: grafana/loki:3.5.0
+    name: demo-loki
   version: 2.0.2-community
   webhookdefinitions:
   - admissionReviewVersions:

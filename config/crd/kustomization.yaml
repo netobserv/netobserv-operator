@@ -8,20 +8,9 @@ resources:
 - bases/flows.netobserv.io_flowcollectors.yaml
 - bases/flows.netobserv.io_flowmetrics.yaml
 - bases/flows.netobserv.io_flowcollectorslices.yaml
-#+kubebuilder:scaffold:crdkustomizeresource
-
-# [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix.
-# patches here are for enabling the conversion webhook for each CRD
-#+kubebuilder:scaffold:crdkustomizewebhookpatch
-
-# [CERTMANAGER] To enable cert-manager, uncomment all the sections with [CERTMANAGER] prefix.
-# patches here are for enabling the CA injection for each CRD
-#- patches/cainjection_in_flowcollectors.yaml
-#- patches/cainjection_in_flowmetrics.yaml
-#+kubebuilder:scaffold:crdkustomizecainjectionpatch
 
 patches:
-- path: patches/singleton_in_flowcollectors.yaml
+- path: singleton_in_flowcollectors.yaml
   target:
     kind: CustomResourceDefinition
     name: flowcollectors.flows.netobserv.io
