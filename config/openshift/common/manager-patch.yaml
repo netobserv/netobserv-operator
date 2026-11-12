@@ -48,3 +48,9 @@
   value:
     name: RELATED_IMAGE_WEB_CONSOLE_PF4
     value: quay.io/netobserv/network-observability-console-plugin:v2.0.2-community-pf4
+
+- op: add
+  path: "/spec/template/spec/containers/0/env/-"
+  value:
+    name: DEFAULT_OPERANDS_NAMESPACE
+    value: openshift-network-observability

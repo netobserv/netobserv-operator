@@ -1060,6 +1060,8 @@ spec:
                   value: quay.io/netobserv/network-observability-console-plugin:v2.0.2-community-pf5
                 - name: RELATED_IMAGE_WEB_CONSOLE_PF4
                   value: quay.io/netobserv/network-observability-console-plugin:v2.0.2-community-pf4
+                - name: DEFAULT_OPERANDS_NAMESPACE
+                  value: openshift-network-observability
                 image: quay.io/netobserv/network-observability-operator:2.0.2-community
                 imagePullPolicy: Always
                 livenessProbe:
