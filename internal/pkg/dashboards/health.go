@@ -61,7 +61,7 @@ func CreateHealthDashboard(netobsNs, nsFlowsMetric string) (string, error) {
 				NewTarget(`sum(increase(netobserv_encode_prom_errors[1m])) by (error)`, "metrics {{error}}"),
 				NewTarget(`sum(increase(netobserv_loki_batch_retries_total[1m]))`, "loki retries"),
 			),
-			NewPanel("Unenriched traffic (% bytes)", metricslatest.ChartTypeStackArea, "", 4,
+			NewPanel("Unenriched traffic (% bytes)", metricslatest.ChartTypeLine, "", 4,
 				NewTarget(
 					`100* (sum(rate(netobserv_workload_egress_bytes_total{SrcK8S_Type="", SrcSubnetLabel="Pods"}[1m])) or vector(0))   /  clamp_min(
 					sum(rate(netobserv_workload_egress_bytes_total{

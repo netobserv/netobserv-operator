@@ -62,15 +62,11 @@ func init() {
 			Labels:     labels,
 		})
 		// Flows metrics
-		flowLabels := labels
-		if group == tagNamespaces {
-			flowLabels = append(append([]string{}, labels...), "SrcK8S_Type", "DstK8S_Type")
-		}
 		predefinedMetrics = append(predefinedMetrics, metricslatest.FlowMetricSpec{
 			MetricName: fmt.Sprintf("%s_flows_total", groupTrimmed),
 			Type:       "counter",
 			Help:       fmt.Sprintf("Total flows per %s", groupTrimmed),
-			Labels:     flowLabels,
+			Labels:     labels,
 		})
 	}
 	// RTT metrics
