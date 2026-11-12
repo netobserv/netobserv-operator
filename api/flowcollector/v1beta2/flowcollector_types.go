@@ -763,10 +763,9 @@ type FlowCollectorFLP struct {
 	// +optional
 	Service *ProcessorServiceConfig `json:"service,omitempty"`
 
-	// `informerCacheProxy` (experimental) is the configuration for centralized Kubernetes informers that push cache updates to flowlogs-pipeline processors.
+	// `informerCacheProxy` is the configuration for centralized Kubernetes informers that push cache updates to flowlogs-pipeline processors.
 	// This reduces load on the API server by having fewer components running informers, and allows to scale FLP up without paying the cost of new informers.
-	// It is not recommended to use on small clusters with few FLP replicas (<4), or when API server load is not a concern.
-	// This feature is currently experimental.
+	// It is enabled by default. Set `enabled` to `false` to use local informers in each processor instead.
 	// +optional
 	InformerCacheProxy *FlowCollectorInformerCacheProxy `json:"informerCacheProxy,omitempty"`
 
@@ -781,9 +780,9 @@ type FlowCollectorFLP struct {
 type FlowCollectorInformerCacheProxy struct {
 	// `enabled` controls whether to deploy the informer cache proxy.
 	// When `true`, a dedicated deployment watches K8s resources and pushes cache updates via gRPC to FLP processors, reducing API server load.
-	// When `false` (default), each FLP processor uses local informers.
-	// Enable only on large clusters or when API server load is a concern, as it adds deployment complexity.
-	// +kubebuilder:default:=false
+	// When `false`, each FLP processor uses local informers.
+	// Defaults to `true` when omitted, including when `informerCacheProxy` is not configured.
+	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
 
 	// `replicas` defines the number of replicas for the flowlogs-pipeline-informers deployment.

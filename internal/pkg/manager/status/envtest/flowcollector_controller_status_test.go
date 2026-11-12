@@ -75,22 +75,24 @@ func flowCollectorStatusSpecs() {
 				return k8sClient.Status().Update(ctx, &ds)
 			}, timeout, interval).Should(Succeed())
 
-			By("Updating FLP")
-			Eventually(func() interface{} {
-				dep := appsv1.Deployment{}
-				if err := k8sClient.Get(ctx, types.NamespacedName{Name: "flowlogs-pipeline", Namespace: namespace}, &dep); err != nil {
-					return err
-				}
-				dep.Status.ReadyReplicas = 1
-				dep.Status.Replicas = 1
-				dep.Status.Conditions = []appsv1.DeploymentCondition{
-					{
-						Type:   appsv1.DeploymentAvailable,
-						Status: v1.ConditionTrue,
-					},
-				}
-				return k8sClient.Status().Update(ctx, &dep)
-			}, timeout, interval).Should(Succeed())
+			for _, name := range []string{"flowlogs-pipeline", "flowlogs-pipeline-informers"} {
+				By("Updating " + name)
+				Eventually(func() interface{} {
+					dep := appsv1.Deployment{}
+					if err := k8sClient.Get(ctx, types.NamespacedName{Name: name, Namespace: namespace}, &dep); err != nil {
+						return err
+					}
+					dep.Status.ReadyReplicas = *dep.Spec.Replicas
+					dep.Status.Replicas = *dep.Spec.Replicas
+					dep.Status.Conditions = []appsv1.DeploymentCondition{
+						{
+							Type:   appsv1.DeploymentAvailable,
+							Status: v1.ConditionTrue,
+						},
+					}
+					return k8sClient.Status().Update(ctx, &dep)
+				}, timeout, interval).Should(Succeed())
+			}
 		})
 
 		It("Should show status errors", func() {
