@@ -15,6 +15,7 @@ import (
 	"github.com/netobserv/netobserv-operator/internal/pkg/helper"
 	"github.com/netobserv/netobserv-operator/internal/pkg/manager/status"
 	"github.com/netobserv/netobserv-operator/internal/pkg/roles"
+	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 )
 
 const (
@@ -26,6 +27,8 @@ type informerReconciler struct {
 	*reconcilers.Instance
 	deployment     *appsv1.Deployment
 	service        *corev1.Service
+	metricsService *corev1.Service
+	serviceMonitor *monitoringv1.ServiceMonitor
 	serviceAccount *corev1.ServiceAccount
 }
 
@@ -34,7 +37,11 @@ func newInformerReconciler(cmn *reconcilers.Instance) *informerReconciler {
 		Instance:       cmn,
 		deployment:     cmn.Managed.NewDeployment(informerName),
 		service:        cmn.Managed.NewService(k8sCacheServiceName),
+		metricsService: cmn.Managed.NewService(informerMetricsServiceName),
 		serviceAccount: cmn.Managed.NewServiceAccount(informerName),
+	}
+	if cmn.ClusterInfo.HasSvcMonitor() {
+		rec.serviceMonitor = cmn.Managed.NewServiceMonitor(informerMetricsMonitorName)
 	}
 	return &rec
 }
@@ -85,6 +92,9 @@ func (r *informerReconciler) reconcile(ctx context.Context, desired *flowslatest
 	if err := r.reconcileService(ctx, &builder); err != nil {
 		return fmt.Errorf("failed to reconcile k8scache service: %w", err)
 	}
+	if err := r.reconcileMetricsService(ctx, &builder); err != nil {
+		return fmt.Errorf("failed to reconcile informer metrics service: %w", err)
+	}
 
 	// Reconcile Deployment
 	if err := r.reconcileDeployment(ctx, &builder); err != nil {
@@ -109,6 +119,19 @@ func (r *informerReconciler) reconcileService(ctx context.Context, builder *info
 	report := helper.NewChangeReport("k8scache Service")
 	defer report.LogIfNeeded(ctx)
 	return r.ReconcileService(ctx, r.service, builder.service(), &report)
+}
+
+func (r *informerReconciler) reconcileMetricsService(ctx context.Context, builder *informerBuilder) error {
+	report := helper.NewChangeReport("FLP informer metrics service")
+	defer report.LogIfNeeded(ctx)
+	if err := r.ReconcileService(ctx, r.metricsService, builder.metricsService(), &report); err != nil {
+		return err
+	}
+	if r.serviceMonitor != nil {
+		return reconcilers.GenericReconcile(ctx, r.Managed, &r.Client, r.serviceMonitor,
+			builder.metricsServiceMonitor(), &report, helper.ServiceMonitorChanged)
+	}
+	return nil
 }
 
 func (r *informerReconciler) reconcilePermissions(ctx context.Context, isDelete bool) error {

@@ -104,6 +104,9 @@ func ControllerSpecs(env test.Environment, ctxGetter test.ContextGetter) {
 						LogTypes: &outputRecordTypes,
 						Metrics: flowslatest.FLPMetrics{
 							IncludeList: &[]flowslatest.FLPMetric{"node_ingress_bytes_total", "namespace_ingress_bytes_total", "workload_ingress_bytes_total"},
+							Server: flowslatest.MetricsServerConfig{
+								TLS: flowslatest.ServerTLS{Type: flowslatest.TLSAuto},
+							},
 						},
 						InformerCacheProxy: &flowslatest.FlowCollectorInformerCacheProxy{
 							Enabled: ptr.To(true),
@@ -138,6 +141,37 @@ func ControllerSpecs(env test.Environment, ctxGetter test.ContextGetter) {
 				deploy := appsv1.Deployment{}
 				return k8sClient.Get(ctx, flpKeyInformer, &deploy)
 			}, timeout, interval).Should(Succeed())
+
+			By("Expecting a dedicated informer metrics Service")
+			metricsKey := types.NamespacedName{Name: "flowlogs-pipeline-informers-metrics", Namespace: operatorNamespace}
+			metricsService := v1.Service{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, metricsKey, &metricsService)
+			}, timeout, interval).Should(Succeed())
+			Expect(metricsService.Spec.Selector).To(Equal(map[string]string{"app": informerName}))
+			Expect(metricsService.Spec.Ports).To(HaveLen(1))
+			Expect(metricsService.Spec.Ports[0].Port).To(Equal(int32(9091)))
+			if env == test.EnvOpenShift {
+				Expect(metricsService.Annotations[constants.OpenShiftCertificateAnnotation]).To(Equal(metricsKey.Name))
+			}
+			if env != test.EnvVanillaNaked {
+				By("Expecting an HTTPS ServiceMonitor for informer metrics")
+				monitor := monitoringv1.ServiceMonitor{}
+				Eventually(func() error {
+					return k8sClient.Get(ctx, metricsKey, &monitor)
+				}, timeout, interval).Should(Succeed())
+				Expect(*monitor.Spec.Endpoints[0].Scheme).To(Equal(monitoringv1.Scheme("https")))
+				Expect(*monitor.Spec.Endpoints[0].TLSConfig.ServerName).To(Equal(metricsKey.Name + "." + operatorNamespace + ".svc"))
+				if env == test.EnvOpenShift {
+					Expect(monitor.Spec.Endpoints[0].TLSConfig.CAFile).To(Equal("/etc/prometheus/configmaps/serving-certs-ca-bundle/service-ca.crt"))
+				} else {
+					Expect(monitor.Spec.Endpoints[0].TLSConfig.CAFile).To(BeEmpty())
+					Expect(monitor.Spec.Endpoints[0].TLSConfig.CA.ConfigMap).To(Equal(&v1.ConfigMapKeySelector{
+						LocalObjectReference: v1.LocalObjectReference{Name: "netobserv-ca"},
+						Key:                  "service-ca.crt",
+					}))
+				}
+			}
 
 			By("Expecting to create the flowlogs-pipeline ServiceAccount")
 			Eventually(func() interface{} {
@@ -303,6 +337,17 @@ func ControllerSpecs(env test.Environment, ctxGetter test.ContextGetter) {
 			Eventually(func() error {
 				return k8sClient.Get(ctx, flpKey1, &v1.Service{})
 			}, timeout, interval).Should(MatchError(`services "flowlogs-pipeline" not found`))
+
+			By("Deleting informer metrics resources when informers are disabled")
+			metricsKey := types.NamespacedName{Name: "flowlogs-pipeline-informers-metrics", Namespace: operatorNamespace}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, metricsKey, &v1.Service{})
+			}, timeout, interval).Should(MatchError(`services "flowlogs-pipeline-informers-metrics" not found`))
+			if env != test.EnvVanillaNaked {
+				Eventually(func() error {
+					return k8sClient.Get(ctx, metricsKey, &monitoringv1.ServiceMonitor{})
+				}, timeout, interval).Should(MatchError(`servicemonitors.monitoring.coreos.com "flowlogs-pipeline-informers-metrics" not found`))
+			}
 		})
 
 		It("Should redeploy if the spec doesn't change but the external flowlogs-pipeline-config does", func() {
