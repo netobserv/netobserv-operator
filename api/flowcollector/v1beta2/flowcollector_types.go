@@ -45,6 +45,7 @@ type FlowCollectorSpec struct {
 	Prometheus FlowCollectorPrometheus `json:"prometheus,omitempty"`
 
 	// `consolePlugin` defines the settings related to the Web Console.
+	//+kubebuilder:default:={}
 	ConsolePlugin FlowCollectorConsolePlugin `json:"consolePlugin,omitempty"`
 
 	// `deploymentModel` defines the desired type of deployment for flow processing. Possible values are:<br>

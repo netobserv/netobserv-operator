@@ -8,7 +8,6 @@ namePrefix: netobserv-
 resources:
 - monitor.yaml
 - flowcapture_scc.yaml
-- flowcapture_metrics_rbac.yaml
 
 patches:
   - path: ./manager-patch.yaml

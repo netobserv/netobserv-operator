@@ -28,7 +28,7 @@ metadata:
             "filters": [
               {
                 "action": "Accept",
-                "destination_port": 443,
+                "destPort": 443,
                 "protocol": "TCP"
               }
             ],
@@ -1087,14 +1087,6 @@ spec:
           - securitycontextconstraints
           verbs:
           - use
-        - apiGroups:
-          - security.openshift.io
-          resourceNames:
-          - netobserv-ebpf-agent
-          resources:
-          - securitycontextconstraints
-          verbs:
-          - update
         - apiGroups:
           - authentication.k8s.io
           resources:

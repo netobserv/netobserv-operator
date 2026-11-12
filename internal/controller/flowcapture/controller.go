@@ -470,7 +470,7 @@ func (r *Reconciler) reconcileResources(ctx context.Context, fc *flowcapturev1al
 		}
 	}
 	var subnets map[string][]string
-	if fc.Spec.GetSubnets {
+	if flowCaptureAutoDetectSubnets(fc) {
 		var err error
 		subnets, err = r.discoverSubnets(ctx)
 		if err != nil {
@@ -484,6 +484,10 @@ func (r *Reconciler) reconcileResources(ctx context.Context, fc *flowcapturev1al
 		}
 	}
 	return r.ensureUnowned(ctx, agent)
+}
+
+func flowCaptureAutoDetectSubnets(fc *flowcapturev1alpha1.FlowCapture) bool {
+	return fc.Spec.SubnetLabels.AutoDetect != nil && *fc.Spec.SubnetLabels.AutoDetect
 }
 
 func (r *Reconciler) reconcileCollectorResources(ctx context.Context, fc *flowcapturev1alpha1.FlowCapture, names *captureNames, image string) error {
@@ -657,7 +661,7 @@ func (r *Reconciler) ensureCaptureNamespace(ctx context.Context) error {
 
 func (r *Reconciler) discoverSubnets(ctx context.Context) (map[string][]string, error) {
 	if !r.isOpenShift() {
-		return nil, fmt.Errorf("spec.getSubnets is only supported on OpenShift clusters")
+		return nil, fmt.Errorf("automatic subnet detection is not supported on this cluster")
 	}
 
 	var configMap corev1.ConfigMap

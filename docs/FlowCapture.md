@@ -117,14 +117,6 @@ FlowCollector.spec.agent.ebpf.features.<br/>
         </td>
         <td>false</td>
       </tr><tr>
-        <td><b>getSubnets</b></td>
-        <td>boolean</td>
-        <td>
-          GetSubnets labels flows with the detected machine, pod, and service CIDRs.
-This is currently supported on OpenShift clusters.<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
         <td><b>interfaces</b></td>
         <td>[]string</td>
         <td>
@@ -174,6 +166,13 @@ They use the same syntax as the CLI --query option and are evaluated in order.<b
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#flowcapturespecsubnetlabels">subnetLabels</a></b></td>
+        <td>object</td>
+        <td>
+          SubnetLabels configures automatic subnet detection for captured flows.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#flowcapturespectlsplaintext">tlsPlaintext</a></b></td>
         <td>object</td>
         <td>
@@ -208,7 +207,14 @@ FlowFilter is shared with the eBPF agent's FlowCollector filter vocabulary.
         </td>
         <td>false</td>
       </tr><tr>
-        <td><b>destination_port</b></td>
+        <td><b>cidr</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>destPort</b></td>
         <td>integer</td>
         <td>
           <br/>
@@ -217,14 +223,14 @@ FlowFilter is shared with the eBPF agent's FlowCollector filter vocabulary.
         </td>
         <td>false</td>
       </tr><tr>
-        <td><b>destination_port_range</b></td>
+        <td><b>destPortRange</b></td>
         <td>string</td>
         <td>
           <br/>
         </td>
         <td>false</td>
       </tr><tr>
-        <td><b>destination_ports</b></td>
+        <td><b>destPorts</b></td>
         <td>string</td>
         <td>
           <br/>
@@ -238,43 +244,36 @@ FlowFilter is shared with the eBPF agent's FlowCollector filter vocabulary.
         </td>
         <td>false</td>
       </tr><tr>
-        <td><b>drops</b></td>
+        <td><b>icmpCode</b></td>
+        <td>integer</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>icmpType</b></td>
+        <td>integer</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>peerCIDR</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>peerIP</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>pktDrops</b></td>
         <td>boolean</td>
-        <td>
-          <br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>icmp_code</b></td>
-        <td>integer</td>
-        <td>
-          <br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>icmp_type</b></td>
-        <td>integer</td>
-        <td>
-          <br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>ip_cidr</b></td>
-        <td>string</td>
-        <td>
-          <br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>peer_cidr</b></td>
-        <td>string</td>
-        <td>
-          <br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>peer_ip</b></td>
-        <td>string</td>
         <td>
           <br/>
         </td>
@@ -289,7 +288,7 @@ FlowFilter is shared with the eBPF agent's FlowCollector filter vocabulary.
         </td>
         <td>false</td>
       </tr><tr>
-        <td><b>port_range</b></td>
+        <td><b>portRange</b></td>
         <td>string</td>
         <td>
           <br/>
@@ -310,7 +309,7 @@ FlowFilter is shared with the eBPF agent's FlowCollector filter vocabulary.
         </td>
         <td>false</td>
       </tr><tr>
-        <td><b>sample</b></td>
+        <td><b>sampling</b></td>
         <td>integer</td>
         <td>
           <br/>
@@ -319,7 +318,7 @@ FlowFilter is shared with the eBPF agent's FlowCollector filter vocabulary.
         </td>
         <td>false</td>
       </tr><tr>
-        <td><b>source_port</b></td>
+        <td><b>sourcePort</b></td>
         <td>integer</td>
         <td>
           <br/>
@@ -328,24 +327,51 @@ FlowFilter is shared with the eBPF agent's FlowCollector filter vocabulary.
         </td>
         <td>false</td>
       </tr><tr>
-        <td><b>source_port_range</b></td>
+        <td><b>sourcePortRange</b></td>
         <td>string</td>
         <td>
           <br/>
         </td>
         <td>false</td>
       </tr><tr>
-        <td><b>source_ports</b></td>
+        <td><b>sourcePorts</b></td>
         <td>string</td>
         <td>
           <br/>
         </td>
         <td>false</td>
       </tr><tr>
-        <td><b>tcp_flags</b></td>
+        <td><b>tcpFlags</b></td>
         <td>string</td>
         <td>
           <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### FlowCapture.spec.subnetLabels
+<sup><sup>[↩ Parent](#flowcapturespec)</sup></sup>
+
+
+
+SubnetLabels configures automatic subnet detection for captured flows.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>autoDetect</b></td>
+        <td>boolean</td>
+        <td>
+          AutoDetect enables vendor-specific detection of machine, pod, and service subnets.<br/>
         </td>
         <td>false</td>
       </tr></tbody>

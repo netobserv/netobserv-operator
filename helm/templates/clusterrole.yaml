@@ -311,14 +311,6 @@ rules:
     verbs:
       - use
   - apiGroups:
-      - security.openshift.io
-    resourceNames:
-      - netobserv-ebpf-agent
-    resources:
-      - securitycontextconstraints
-    verbs:
-      - update
-  - apiGroups:
       - authentication.k8s.io
     resources:
       - tokenreviews

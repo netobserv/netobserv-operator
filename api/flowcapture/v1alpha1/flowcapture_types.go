@@ -42,25 +42,33 @@ const (
 // FlowFilter is shared with the eBPF agent's FlowCollector filter vocabulary.
 type FlowFilter struct {
 	Direction            string `json:"direction,omitempty"`
-	IPCIDR               string `json:"ip_cidr,omitempty"`
+	IPCIDR               string `json:"cidr,omitempty"`
 	Protocol             string `json:"protocol,omitempty"`
-	SourcePort           int32  `json:"source_port,omitempty"`
-	DestinationPort      int32  `json:"destination_port,omitempty"`
+	SourcePort           int32  `json:"sourcePort,omitempty"`
+	DestinationPort      int32  `json:"destPort,omitempty"`
 	Port                 int32  `json:"port,omitempty"`
-	SourcePortRange      string `json:"source_port_range,omitempty"`
-	SourcePorts          string `json:"source_ports,omitempty"`
-	DestinationPortRange string `json:"destination_port_range,omitempty"`
-	DestinationPorts     string `json:"destination_ports,omitempty"`
-	PortRange            string `json:"port_range,omitempty"`
+	SourcePortRange      string `json:"sourcePortRange,omitempty"`
+	SourcePorts          string `json:"sourcePorts,omitempty"`
+	DestinationPortRange string `json:"destPortRange,omitempty"`
+	DestinationPorts     string `json:"destPorts,omitempty"`
+	PortRange            string `json:"portRange,omitempty"`
 	Ports                string `json:"ports,omitempty"`
-	ICMPType             int    `json:"icmp_type,omitempty"`
-	ICMPCode             int    `json:"icmp_code,omitempty"`
-	PeerIP               string `json:"peer_ip,omitempty"`
-	PeerCIDR             string `json:"peer_cidr,omitempty"`
+	ICMPType             int    `json:"icmpType,omitempty"`
+	ICMPCode             int    `json:"icmpCode,omitempty"`
+	PeerIP               string `json:"peerIP,omitempty"`
+	PeerCIDR             string `json:"peerCIDR,omitempty"`
 	Action               string `json:"action,omitempty"`
-	TCPFlags             string `json:"tcp_flags,omitempty"`
-	Drops                bool   `json:"drops,omitempty"`
-	Sample               uint32 `json:"sample,omitempty"`
+	TCPFlags             string `json:"tcpFlags,omitempty"`
+	Drops                bool   `json:"pktDrops,omitempty"`
+	Sample               uint32 `json:"sampling,omitempty"`
+}
+
+// SubnetLabels controls automatic subnet detection for the capture. Additional
+// custom labels can be added here without changing the FlowCapture API shape.
+type SubnetLabels struct {
+	// AutoDetect enables vendor-specific detection of machine, pod, and service subnets.
+	// +optional
+	AutoDetect *bool `json:"autoDetect,omitempty"`
 }
 
 // TLSPlaintextSpec enables TLS plaintext capture through libssl uprobes.
@@ -111,10 +119,9 @@ type FlowCaptureSpec struct {
 	// They use the same syntax as the CLI --query option and are evaluated in order.
 	// +optional
 	Queries []string `json:"queries,omitempty"`
-	// GetSubnets labels flows with the detected machine, pod, and service CIDRs.
-	// This is currently supported on OpenShift clusters.
+	// SubnetLabels configures automatic subnet detection for captured flows.
 	// +optional
-	GetSubnets bool `json:"getSubnets,omitempty"`
+	SubnetLabels SubnetLabels `json:"subnetLabels,omitempty"`
 	// TLSPlaintext enables TLS plaintext capture for packet captures.
 	// +optional
 	TLSPlaintext *TLSPlaintextSpec `json:"tlsPlaintext,omitempty"`
