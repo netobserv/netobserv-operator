@@ -11,6 +11,7 @@ import (
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -20,6 +21,7 @@ import (
 	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
 	"github.com/netobserv/netobserv-operator/internal/controller/constants"
 	"github.com/netobserv/netobserv-operator/internal/pkg/helper"
+	"github.com/netobserv/netobserv-operator/internal/pkg/roles"
 	"github.com/netobserv/netobserv-operator/internal/pkg/test"
 )
 
@@ -234,6 +236,72 @@ func FlowCollectorEBPFSpecs(env test.Environment, ctxGetter test.ContextGetter) 
 			Eventually(func() interface{} {
 				return k8sClient.Get(ctx, promSvcKey, &v1.Service{})
 			}).WithTimeout(timeout).WithPolling(interval).Should(MatchError(`services "ebpf-agent-svc-prom" not found`))
+		})
+
+		It("Should grant and revoke the metrics auth permissions", func() {
+			crbKey := types.NamespacedName{Name: string(roles.MetricsAuthRole)}
+			subject := rbacv1.Subject{
+				Kind:      "ServiceAccount",
+				Name:      constants.EBPFServiceAccount,
+				Namespace: privilegedNamespace,
+			}
+			getSubjects := func(g Gomega) []rbacv1.Subject {
+				crb := rbacv1.ClusterRoleBinding{}
+				g.Expect(k8sClient.Get(ctx, crbKey, &crb)).To(Succeed())
+				return crb.Subjects
+			}
+			authEnv := v1.EnvVar{Name: "METRICS_AUTH_TYPE", Value: "kubernetes"}
+			getAgentEnv := func(g Gomega) []v1.EnvVar {
+				ds := appsv1.DaemonSet{}
+				g.Expect(k8sClient.Get(ctx, agentKey, &ds)).To(Succeed())
+				return ds.Spec.Template.Spec.Containers[0].Env
+			}
+
+			By("expecting no metrics auth permission while authentication is disabled")
+			Consistently(getSubjects, "1s", interval).ShouldNot(ContainElement(subject))
+
+			By("enabling metrics authentication")
+			test.UpdateCR(ctx, k8sClient, crKey, func(fc *flowslatest.FlowCollector) {
+				fc.Spec.Agent.EBPF.Metrics.Enable = ptr.To(true)
+				fc.Spec.Agent.EBPF.Metrics.Server.Auth.Type = flowslatest.MetricsAuthKubernetes
+			})
+
+			Eventually(getSubjects, timeout, interval).Should(ContainElement(subject))
+			Eventually(getAgentEnv, timeout, interval).Should(ContainElement(authEnv))
+
+			if env != test.EnvVanillaNaked {
+				By("expecting the ServiceMonitor to scrape with a bearer token")
+				Eventually(func(g Gomega) string {
+					sm := monitoringv1.ServiceMonitor{}
+					g.Expect(k8sClient.Get(ctx, types.NamespacedName{
+						Name:      "ebpf-agent-svc-monitor",
+						Namespace: privilegedNamespace,
+					}, &sm)).To(Succeed())
+					g.Expect(sm.Spec.Endpoints).To(HaveLen(1))
+					return sm.Spec.Endpoints[0].BearerTokenFile
+				}, timeout, interval).Should(Equal("/var/run/secrets/kubernetes.io/serviceaccount/token"))
+			}
+
+			By("disabling metrics authentication again")
+			test.UpdateCR(ctx, k8sClient, crKey, func(fc *flowslatest.FlowCollector) {
+				fc.Spec.Agent.EBPF.Metrics.Server.Auth.Type = flowslatest.MetricsAuthDisabled
+			})
+
+			Eventually(getSubjects, timeout, interval).ShouldNot(ContainElement(subject))
+			Eventually(getAgentEnv, timeout, interval).ShouldNot(ContainElement(authEnv))
+
+			if env != test.EnvVanillaNaked {
+				By("expecting the ServiceMonitor to drop the bearer token")
+				Eventually(func(g Gomega) string {
+					sm := monitoringv1.ServiceMonitor{}
+					g.Expect(k8sClient.Get(ctx, types.NamespacedName{
+						Name:      "ebpf-agent-svc-monitor",
+						Namespace: privilegedNamespace,
+					}, &sm)).To(Succeed())
+					g.Expect(sm.Spec.Endpoints).To(HaveLen(1))
+					return sm.Spec.Endpoints[0].BearerTokenFile
+				}, timeout, interval).Should(BeEmpty())
+			}
 		})
 
 		It("Should undeploy everything when deleted", func() {

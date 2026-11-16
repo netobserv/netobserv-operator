@@ -159,6 +159,10 @@ func ServiceChanged(old, n *corev1.Service, report *ChangeReport) bool {
 
 func ServiceMonitorChanged(old, n *monitoringv1.ServiceMonitor, report *ChangeReport) bool {
 	return report.Check("ServiceMonitor spec changed", !deepDerivative(n.Spec, old.Spec)) ||
+		// Note: DeepDerivative ignores the fields that are cleared in the desired object, such as
+		// bearerTokenFile when metrics authentication is turned off, hence the exact comparison here
+		// (covered by test "Expecting ServiceMonitor to drop the bearer token")
+		report.Check("ServiceMonitor endpoints changed", !deepEqual(n.Spec.Endpoints, old.Spec.Endpoints)) ||
 		report.Check("ServiceMonitor labels changed", !IsSubSet(old.Labels, n.Labels))
 }
 

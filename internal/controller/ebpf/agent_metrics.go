@@ -114,10 +114,11 @@ func (c *AgentController) promServiceMonitoring(target *flowslatest.FlowCollecto
 			ServiceDiscoveryRole: sdRole,
 			Endpoints: []monitoringv1.Endpoint{
 				{
-					Port:      "metrics",
-					Interval:  monitoringv1.Duration(interval),
-					Scheme:    &scheme,
-					TLSConfig: smTLS,
+					Port:            "metrics",
+					Interval:        monitoringv1.Duration(interval),
+					Scheme:          &scheme,
+					TLSConfig:       smTLS,
+					BearerTokenFile: helper.GetServiceMonitorBearerTokenFile(&target.Metrics.Server.Auth),
 				},
 			},
 			NamespaceSelector: monitoringv1.NamespaceSelector{

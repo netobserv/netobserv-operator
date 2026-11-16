@@ -487,3 +487,81 @@ func assertAgentSecurityContext(t *testing.T, ds *appsv1.DaemonSet, privileged b
 		assert.Equal(t, capabilities, securityContext.Capabilities.Add)
 	}
 }
+
+func metricsAuthEnvConfig(t *testing.T, fc *flowslatest.FlowCollector) []corev1.EnvVar {
+	t.Helper()
+	info := reconcilers.Common{Namespace: "netobserv", ClusterInfo: &cluster.Info{}}
+	agent := NewAgentController(info.NewInstance(nil, status.Instance{}))
+	env, err := agent.envConfig(context.Background(), fc, map[string]string{})
+	require.NoError(t, err)
+
+	var found []corev1.EnvVar
+	for _, e := range env {
+		if e.Name == "METRICS_AUTH_TYPE" {
+			found = append(found, e)
+		}
+	}
+	return found
+}
+
+func TestGetEnvConfig_MetricsAuth(t *testing.T) {
+	// Disabled by default: the variable isn't set at all, as for METRICS_ENABLE
+	fc := flowslatest.FlowCollector{}
+	assert.Empty(t, metricsAuthEnvConfig(t, &fc))
+
+	// Enabled
+	fc = flowslatest.FlowCollector{}
+	fc.Spec.Agent.EBPF.Metrics.Server.Auth.Type = flowslatest.MetricsAuthKubernetes
+	assert.Equal(t, []corev1.EnvVar{{Name: "METRICS_AUTH_TYPE", Value: "kubernetes"}}, metricsAuthEnvConfig(t, &fc))
+
+	// Enabled, but agent metrics are off altogether: nothing to authenticate
+	fc = flowslatest.FlowCollector{}
+	fc.Spec.Agent.EBPF.Metrics.Enable = ptr.To(false)
+	fc.Spec.Agent.EBPF.Metrics.Server.Auth.Type = flowslatest.MetricsAuthKubernetes
+	assert.Empty(t, metricsAuthEnvConfig(t, &fc))
+}
+
+// Users can force the value through advanced.env, as for every other METRICS_* variable.
+// The operator must not then emit a second, conflicting entry.
+func TestGetEnvConfig_MetricsAuthOverridden(t *testing.T) {
+	fc := flowslatest.FlowCollector{}
+	fc.Spec.Agent.EBPF.Metrics.Server.Auth.Type = flowslatest.MetricsAuthKubernetes
+	fc.Spec.Agent.EBPF.Advanced = &flowslatest.AdvancedAgentConfig{
+		Env: map[string]string{"METRICS_AUTH_TYPE": "disabled"},
+	}
+
+	assert.Equal(t, []corev1.EnvVar{{Name: "METRICS_AUTH_TYPE", Value: "disabled"}}, metricsAuthEnvConfig(t, &fc))
+}
+
+// The auth variable is appended after the env list is sorted, so make sure that doesn't make
+// the DaemonSet look permanently out of date.
+func TestGetEnvConfig_MetricsAuthStable(t *testing.T) {
+	fc := flowslatest.FlowCollector{}
+	fc.Spec.Agent.EBPF.Metrics.Server.Auth.Type = flowslatest.MetricsAuthKubernetes
+
+	info := reconcilers.Common{Namespace: "netobserv", ClusterInfo: &cluster.Info{}}
+	agent := NewAgentController(info.NewInstance(nil, status.Instance{}))
+
+	first, err := agent.envConfig(context.Background(), &fc, map[string]string{})
+	require.NoError(t, err)
+	second, err := agent.envConfig(context.Background(), &fc, map[string]string{})
+	require.NoError(t, err)
+
+	assert.Equal(t, first, second)
+}
+
+func TestPromServiceMonitoring_Auth(t *testing.T) {
+	info := reconcilers.Common{Namespace: "netobserv", ClusterInfo: &cluster.Info{}}
+	agent := NewAgentController(info.NewInstance(nil, status.Instance{}))
+
+	spec := flowslatest.FlowCollectorEBPF{}
+	//nolint:staticcheck // BearerTokenFile is deprecated upstream, but see GetServiceMonitorBearerTokenFile
+	assert.Empty(t, agent.promServiceMonitoring(&spec, false).Spec.Endpoints[0].BearerTokenFile)
+
+	spec.Metrics.Server.Auth.Type = flowslatest.MetricsAuthKubernetes
+	assert.Equal(t,
+		"/var/run/secrets/kubernetes.io/serviceaccount/token",
+		//nolint:staticcheck // BearerTokenFile is deprecated upstream, but see GetServiceMonitorBearerTokenFile
+		agent.promServiceMonitoring(&spec, false).Spec.Endpoints[0].BearerTokenFile,
+	)
+}

@@ -1376,6 +1376,24 @@ spec:
                             server:
                               description: Metrics server endpoint configuration for the Prometheus scraper.
                               properties:
+                                auth:
+                                  description: Authentication configuration.
+                                  properties:
+                                    type:
+                                      default: Disabled
+                                      description: |-
+                                        Select the type of authentication required from the Prometheus scraper:<br>
+                                        - `Disabled` (default) to let the metrics endpoint be scraped without authentication.<br>
+                                        - `Kubernetes` to require a bearer token, which is verified with the Kubernetes `TokenReview`
+                                        and `SubjectAccessReview` APIs. The scraper must be allowed to `get` the `/metrics` non-resource URL:
+                                        this is already granted to the Prometheus deployed by OpenShift monitoring, whereas on other
+                                        Kubernetes distributions the `netobserv-metrics-scraper` cluster role must be bound to the scraper.
+                                        Authentication does not encrypt anything by itself, so `tls` should be configured as well.
+                                      enum:
+                                        - Disabled
+                                        - Kubernetes
+                                      type: string
+                                  type: object
                                 port:
                                   description: The metrics server HTTP port.
                                   format: int32
@@ -5940,6 +5958,24 @@ spec:
                         server:
                           description: Metrics server endpoint configuration for Prometheus scraper
                           properties:
+                            auth:
+                              description: Authentication configuration.
+                              properties:
+                                type:
+                                  default: Disabled
+                                  description: |-
+                                    Select the type of authentication required from the Prometheus scraper:<br>
+                                    - `Disabled` (default) to let the metrics endpoint be scraped without authentication.<br>
+                                    - `Kubernetes` to require a bearer token, which is verified with the Kubernetes `TokenReview`
+                                    and `SubjectAccessReview` APIs. The scraper must be allowed to `get` the `/metrics` non-resource URL:
+                                    this is already granted to the Prometheus deployed by OpenShift monitoring, whereas on other
+                                    Kubernetes distributions the `netobserv-metrics-scraper` cluster role must be bound to the scraper.
+                                    Authentication does not encrypt anything by itself, so `tls` should be configured as well.
+                                  enum:
+                                    - Disabled
+                                    - Kubernetes
+                                  type: string
+                              type: object
                             port:
                               description: The metrics server HTTP port.
                               format: int32

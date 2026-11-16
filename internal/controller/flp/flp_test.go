@@ -3,6 +3,7 @@ package flp
 import (
 	"context"
 	"fmt"
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"testing"
 	"time"
 
@@ -996,4 +997,49 @@ func TestK8sCacheInformerTLSServerName(t *testing.T) {
 		}
 	}
 	assert.True(foundCA, "k8scache-server-ca volume should exist")
+}
+
+func TestMetricsAuth(t *testing.T) {
+	assert := assert.New(t)
+
+	ns := "namespace"
+	cfg := getConfig()
+
+	// Disabled by default: no auth section in the FLP config, no bearer token on the scraper
+	b := monoBuilder(ns, &cfg)
+	assert.Nil(metricsSettings(&cfg, &b.volumes, nil).Auth)
+	//nolint:staticcheck // BearerTokenFile is deprecated upstream, but see GetServiceMonitorBearerTokenFile
+	assert.Empty(b.serviceMonitor().Spec.Endpoints[0].BearerTokenFile)
+
+	cfg.Processor.Metrics.Server.Auth.Type = flowslatest.MetricsAuthKubernetes
+	b = monoBuilder(ns, &cfg)
+
+	settings := metricsSettings(&cfg, &b.volumes, nil)
+	assert.NotNil(settings.Auth)
+	assert.Equal(api.PromAuthKubernetes, settings.Auth.Type)
+
+	assert.Equal(
+		"/var/run/secrets/kubernetes.io/serviceaccount/token",
+		//nolint:staticcheck // BearerTokenFile is deprecated upstream, but see GetServiceMonitorBearerTokenFile
+		b.serviceMonitor().Spec.Endpoints[0].BearerTokenFile,
+	)
+}
+
+// Toggling auth must change the config digest, so that FLP pods actually roll.
+func TestMetricsAuthRollsPods(t *testing.T) {
+	assert := assert.New(t)
+
+	ns := "namespace"
+	cfg := getConfig()
+	b := monoBuilder(ns, &cfg)
+	_, digestNoAuth, _, err := b.configMaps()
+	assert.NoError(err)
+
+	cfg.Processor.Metrics.Server.Auth.Type = flowslatest.MetricsAuthKubernetes
+	b = monoBuilder(ns, &cfg)
+	static, digestAuth, _, err := b.configMaps()
+	assert.NoError(err)
+
+	assert.NotEqual(digestNoAuth, digestAuth)
+	assert.Contains(static.Data[configFile], "type: kubernetes")
 }

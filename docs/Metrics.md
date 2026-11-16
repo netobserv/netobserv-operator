@@ -9,6 +9,7 @@ There are two ways to configure metrics:
 - Using the FlowMetrics API to create custom metrics
 
 For alerts and health documentation, see [HealthRules.md](./HealthRules.md).
+For securing the endpoints these metrics are served on, see [Securing the metrics endpoints](#securing-the-metrics-endpoints).
 
 ## Predefined metrics
 
@@ -206,4 +207,71 @@ You may also be interested in showing averages of histograms: this is done by di
 
 ```yaml
 promQL: "(sum(rate($METRIC_sum{DstK8S_Namespace!=\"\"}[2m])) by (DstK8S_Namespace,DstK8S_OwnerName) / sum(rate($METRIC_count{DstK8S_Namespace!=\"\"}[2m])) by (DstK8S_Namespace,DstK8S_OwnerName))*1000"
+```
+
+## Securing the metrics endpoints
+
+Both flowlogs-pipeline and the eBPF agent expose their metrics on an HTTP endpoint that Prometheus
+scrapes. Two independent settings protect it, for `spec.processor.metrics.server` (flowlogs-pipeline)
+and `spec.agent.ebpf.metrics.server` (eBPF agent) alike:
+
+- `tls` encrypts the endpoint. On OpenShift, `type: Auto` uses the service serving certificates.
+- `auth` requires the scraper to identify itself. Both are disabled by default.
+
+```yaml
+spec:
+  processor:
+    metrics:
+      server:
+        tls:
+          type: Auto
+        auth:
+          type: Kubernetes
+  agent:
+    ebpf:
+      metrics:
+        server:
+          tls:
+            type: Auto
+          auth:
+            type: Kubernetes
+```
+
+With `auth.type: Kubernetes`, every scrape must carry a bearer token. The operand validates it with a
+`TokenReview`, then checks the caller's access to `/metrics` with a `SubjectAccessReview` — the same
+mechanism the NetObserv operator uses for its own metrics endpoint. The operator configures the
+`ServiceMonitor` to send the Prometheus service account token, and grants the operands the right to
+submit those reviews by adding them to the `netobserv-metrics-auth` cluster role binding.
+
+Authentication does not encrypt anything by itself, so configure `tls` as well: otherwise the scraper
+sends its token in clear text over the pod network. The validation webhook warns about this, but does
+not block it, since the endpoint may be protected at a lower layer.
+
+### Granting access to your Prometheus
+
+The authorization check is made against the request path, so the scraper needs a *non-resource URL*
+rule on `/metrics`. The Prometheus deployed by OpenShift monitoring, platform and user-workload alike,
+already has it cluster-wide, so nothing else is needed there.
+
+On other Kubernetes distributions, bind the `netobserv-metrics-scraper` cluster role, which the
+operator installs but deliberately leaves unbound, to the service account your Prometheus runs as:
+
+```bash
+kubectl create clusterrolebinding netobserv-metrics-scraper \
+  --clusterrole=netobserv-metrics-scraper \
+  --serviceaccount=monitoring:prometheus-server
+```
+
+Without it, scrapes are rejected with a 403.
+
+### Known limitation with user-workload monitoring
+
+OpenShift sets `arbitraryFSAccessThroughSMs.deny` on the user-workload Prometheus, which forbids a
+`ServiceMonitor` from referencing the service account token file. On clusters where NetObserv is
+scraped by user-workload monitoring rather than platform monitoring, enabling authentication therefore
+breaks scraping. Check with:
+
+```bash
+oc -n openshift-user-workload-monitoring get prometheus user-workload \
+  -o jsonpath='{.spec.arbitraryFSAccessThroughSMs}'
 ```

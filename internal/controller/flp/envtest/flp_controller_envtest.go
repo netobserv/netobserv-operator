@@ -560,6 +560,62 @@ func ControllerSpecs(env test.Environment, ctxGetter test.ContextGetter) {
 				}, timeout, interval).Should(Succeed())
 			}
 		})
+
+		It("Should grant and revoke the metrics auth permissions", func() {
+			getBearerToken := func(g Gomega) string {
+				sm := monitoringv1.ServiceMonitor{}
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{
+					Name:      "flowlogs-pipeline-monitor",
+					Namespace: operatorNamespace,
+				}, &sm)).To(Succeed())
+				g.Expect(sm.Spec.Endpoints).To(HaveLen(1))
+				return sm.Spec.Endpoints[0].BearerTokenFile
+			}
+
+			By("Not expecting the metrics auth role while authentication is disabled")
+			Eventually(func() any {
+				return expectClusterRoleBinding(ctx, k8sClient, roles.MetricsAuthRole, operatorNamespace /* empty expect list */)
+			}, timeout, interval).Should(Succeed())
+
+			By("Enabling metrics authentication")
+			test.UpdateCR(ctx, k8sClient, crKey, func(fc *flowslatest.FlowCollector) {
+				fc.Spec.Processor.Metrics.Server.Auth.Type = flowslatest.MetricsAuthKubernetes
+			})
+
+			Eventually(func() any {
+				return expectClusterRoleBinding(ctx, k8sClient, roles.MetricsAuthRole, operatorNamespace, "flowlogs-pipeline")
+			}, timeout, interval).Should(Succeed())
+
+			By("Expecting the FLP config to require authentication")
+			Eventually(func(g Gomega) string {
+				cm := v1.ConfigMap{}
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{
+					Name:      "flowlogs-pipeline-config",
+					Namespace: operatorNamespace,
+				}, &cm)).To(Succeed())
+				return cm.Data["config.yaml"]
+			}, timeout, interval).Should(ContainSubstring("type: kubernetes"))
+
+			if env != test.EnvVanillaNaked {
+				By("Expecting the ServiceMonitor to scrape with a bearer token")
+				Eventually(getBearerToken, timeout, interval).Should(Equal("/var/run/secrets/kubernetes.io/serviceaccount/token"))
+			}
+
+			By("Disabling metrics authentication again")
+			test.UpdateCR(ctx, k8sClient, crKey, func(fc *flowslatest.FlowCollector) {
+				fc.Spec.Processor.Metrics.Server.Auth.Type = flowslatest.MetricsAuthDisabled
+			})
+
+			Eventually(func() any {
+				return expectClusterRoleBinding(ctx, k8sClient, roles.MetricsAuthRole, operatorNamespace /* empty expect list */)
+			}, timeout, interval).Should(Succeed())
+
+			if env != test.EnvVanillaNaked {
+				// Guards against DeepDerivative silently ignoring the cleared bearerTokenFile
+				By("Expecting ServiceMonitor to drop the bearer token")
+				Eventually(getBearerToken, timeout, interval).Should(BeEmpty())
+			}
+		})
 	})
 
 	Context("Using certificates with loki manual mode", func() {

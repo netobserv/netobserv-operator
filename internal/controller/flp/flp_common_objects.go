@@ -289,6 +289,9 @@ func metricsSettings(desired *flowslatest.FlowCollectorSpec, vol *volumes.Builde
 			}
 		}
 	}
+	if desired.Processor.Metrics.Server.IsMetricsAuthEnabled() {
+		metricsSettings.Auth = &api.PromAuth{Type: api.PromAuthKubernetes}
+	}
 	return metricsSettings
 }
 
@@ -413,11 +416,12 @@ func serviceMonitor(desired *flowslatest.FlowCollectorSpec, smName, svcName, nam
 			ServiceDiscoveryRole: sdRole,
 			Endpoints: []monitoringv1.Endpoint{
 				{
-					Port:        prometheusPortName,
-					Interval:    monitoringv1.Duration(interval),
-					Scheme:      &scheme,
-					TLSConfig:   smTLS,
-					HonorLabels: true,
+					Port:            prometheusPortName,
+					Interval:        monitoringv1.Duration(interval),
+					Scheme:          &scheme,
+					TLSConfig:       smTLS,
+					BearerTokenFile: helper.GetServiceMonitorBearerTokenFile(&desired.Processor.Metrics.Server.Auth),
+					HonorLabels:     true,
 					// Relabel for Thanos multi-tenant endpoint, which requires having the namespace label
 					MetricRelabelConfigs: []monitoringv1.RelabelConfig{
 						{

@@ -860,6 +860,13 @@ Metrics server endpoint configuration for the Prometheus scraper.
         </tr>
     </thead>
     <tbody><tr>
+        <td><b><a href="#flowcollectorspecagentebpfmetricsserverauth">auth</a></b></td>
+        <td>object</td>
+        <td>
+          Authentication configuration.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>port</b></td>
         <td>integer</td>
         <td>
@@ -884,6 +891,42 @@ Metrics server endpoint configuration for the Prometheus scraper.
         <td>object</td>
         <td>
           TLS configuration.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### FlowCollector.spec.agent.ebpf.metrics.server.auth
+<sup><sup>[↩ Parent](#flowcollectorspecagentebpfmetricsserver)</sup></sup>
+
+
+
+Authentication configuration.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>type</b></td>
+        <td>enum</td>
+        <td>
+          Select the type of authentication required from the Prometheus scraper:<br>
+- `Disabled` (default) to let the metrics endpoint be scraped without authentication.<br>
+- `Kubernetes` to require a bearer token, which is verified with the Kubernetes `TokenReview`
+and `SubjectAccessReview` APIs. The scraper must be allowed to `get` the `/metrics` non-resource URL:
+this is already granted to the Prometheus deployed by OpenShift monitoring, whereas on other
+Kubernetes distributions the `netobserv-metrics-scraper` cluster role must be bound to the scraper.
+Authentication does not encrypt anything by itself, so `tls` should be configured as well.<br/>
+          <br/>
+            <i>Enum</i>: Disabled, Kubernetes<br/>
+            <i>Default</i>: Disabled<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -5229,6 +5272,13 @@ Metrics server endpoint configuration for Prometheus scraper
         </tr>
     </thead>
     <tbody><tr>
+        <td><b><a href="#flowcollectorspecprocessormetricsserverauth">auth</a></b></td>
+        <td>object</td>
+        <td>
+          Authentication configuration.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>port</b></td>
         <td>integer</td>
         <td>
@@ -5253,6 +5303,42 @@ Metrics server endpoint configuration for Prometheus scraper
         <td>object</td>
         <td>
           TLS configuration.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### FlowCollector.spec.processor.metrics.server.auth
+<sup><sup>[↩ Parent](#flowcollectorspecprocessormetricsserver)</sup></sup>
+
+
+
+Authentication configuration.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>type</b></td>
+        <td>enum</td>
+        <td>
+          Select the type of authentication required from the Prometheus scraper:<br>
+- `Disabled` (default) to let the metrics endpoint be scraped without authentication.<br>
+- `Kubernetes` to require a bearer token, which is verified with the Kubernetes `TokenReview`
+and `SubjectAccessReview` APIs. The scraper must be allowed to `get` the `/metrics` non-resource URL:
+this is already granted to the Prometheus deployed by OpenShift monitoring, whereas on other
+Kubernetes distributions the `netobserv-metrics-scraper` cluster role must be bound to the scraper.
+Authentication does not encrypt anything by itself, so `tls` should be configured as well.<br/>
+          <br/>
+            <i>Enum</i>: Disabled, Kubernetes<br/>
+            <i>Default</i>: Disabled<br/>
         </td>
         <td>false</td>
       </tr></tbody>

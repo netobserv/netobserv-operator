@@ -223,6 +223,13 @@ func (spec *FlowCollectorEBPF) GetMetricsPort() int32 {
 	return port
 }
 
+// IsMetricsAuthEnabled tells whether the Prometheus scraper must authenticate against this metrics
+// endpoint. An unset type is treated as disabled, so that resources created before this field existed
+// keep their previous behaviour.
+func (cfg *MetricsServerConfig) IsMetricsAuthEnabled() bool {
+	return cfg.Auth.Type == MetricsAuthKubernetes
+}
+
 func (spec *FlowCollectorFLP) GetMetricsPort() int32 {
 	port := int32(constants.FLPMetricsPort)
 	if spec.Metrics.Server.Port != nil {

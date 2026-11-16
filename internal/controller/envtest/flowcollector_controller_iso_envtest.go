@@ -88,6 +88,9 @@ func FlowCollectorIsoSpecs(ctxGetter test.ContextGetter) {
 							Type:     "Disabled",
 							Provided: nil,
 						},
+						Auth: flowslatest.MetricsServerAuth{
+							Type: "Disabled",
+						},
 					},
 					DisableAlerts: []flowslatest.HealthRuleTemplate{},
 				},
@@ -128,6 +131,9 @@ func FlowCollectorIsoSpecs(ctxGetter test.ContextGetter) {
 							TLS: flowslatest.ServerTLS{
 								Type:     "Disabled",
 								Provided: nil,
+							},
+							Auth: flowslatest.MetricsServerAuth{
+								Type: "Disabled",
 							},
 						},
 					},

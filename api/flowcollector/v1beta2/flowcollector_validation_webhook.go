@@ -70,6 +70,7 @@ func (r *FlowCollector) Validate(_ context.Context, fc *FlowCollector) (admissio
 	v.warnLogLevels()
 	v.warnProfiling()
 	v.warnLokiDemo()
+	v.warnMetricsAuth()
 	return v.warnings, errors.Join(v.errors...)
 }
 
@@ -106,6 +107,40 @@ func (v *validator) warnProfiling() {
 func (v *validator) warnLokiDemo() {
 	if v.fc.Loki.Mode == LokiModeMonolithic && v.fc.Loki.Monolithic.InstallDemoLoki != nil && *v.fc.Loki.Monolithic.InstallDemoLoki {
 		v.warnings = append(v.warnings, "InstallDemoLoki option is enabled. This is useful for development and demo purposes but should not be used in production.")
+	}
+}
+
+// warnMetricsAuth reports the configurations where authenticating a metrics endpoint still works, but
+// is either weaker than it looks or has no effect. Misconfigurations that cannot work at all belong in
+// v.errors instead; this one is deliberately non-blocking, as authentication over an unencrypted
+// endpoint is a legitimate choice on an encrypted underlay.
+func (v *validator) warnMetricsAuth() {
+	for _, server := range []struct {
+		path string
+		cfg  *MetricsServerConfig
+	}{
+		{path: "spec.processor.metrics.server", cfg: &v.fc.Processor.Metrics.Server},
+		{path: "spec.agent.ebpf.metrics.server", cfg: &v.fc.Agent.EBPF.Metrics.Server},
+	} {
+		if !server.cfg.IsMetricsAuthEnabled() {
+			continue
+		}
+		// Positive logic, so that an unset type counts as disabled rather than slipping through
+		if server.cfg.TLS.Type != TLSAuto && server.cfg.TLS.Type != TLSProvided {
+			v.warnings = append(v.warnings, fmt.Sprintf(MetricsAuthWithoutTLSWarning, server.path))
+		}
+		if CurrentClusterInfo != nil && !CurrentClusterInfo.IsOpenShift() {
+			v.warnings = append(v.warnings, fmt.Sprintf(MetricsAuthScraperRBACWarning, server.path))
+		}
+	}
+
+	if v.fc.Agent.EBPF.Metrics.Server.IsMetricsAuthEnabled() && !v.fc.Agent.EBPF.IsEBPFMetricsEnabled() {
+		v.warnings = append(v.warnings, MetricsAuthWithoutAgentMetricsWarning)
+	}
+	if v.fc.Agent.EBPF.Advanced != nil {
+		if _, ok := v.fc.Agent.EBPF.Advanced.Env["METRICS_AUTH_TYPE"]; ok {
+			v.warnings = append(v.warnings, MetricsAuthEnvOverrideWarning)
+		}
 	}
 }
 

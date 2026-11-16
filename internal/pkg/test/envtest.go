@@ -200,6 +200,7 @@ func PrepareEnvTest(env Environment, controllers []manager.Registerer, opNamespa
 		filepath.Join(basePath, "bundles", "k8s", "manifests", "netobserv-informers_rbac.authorization.k8s.io_v1_clusterrolebinding.yaml"),
 		filepath.Join(basePath, "bundles", "k8s", "manifests", "netobserv-flp-extra-reader_rbac.authorization.k8s.io_v1_clusterrolebinding.yaml"),
 		filepath.Join(basePath, "bundles", "k8s", "manifests", "netobserv-loki-writer_rbac.authorization.k8s.io_v1_clusterrolebinding.yaml"),
+		filepath.Join(basePath, "bundles", "k8s", "manifests", "netobserv-metrics-auth_rbac.authorization.k8s.io_v1_clusterrolebinding.yaml"),
 	)
 	Expect(err).NotTo(HaveOccurred())
 

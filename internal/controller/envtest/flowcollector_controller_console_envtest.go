@@ -576,6 +576,7 @@ func FlowCollectorConsolePluginSpecs(env test.Environment, ctxGetter test.Contex
 				"netobserv-loki-writer",
 				"netobserv-informers",
 				"netobserv-hostnetwork",
+				"netobserv-metrics-auth",
 			} {
 				By("Expecting subjects removed from " + name)
 				Eventually(func() interface{} {
