@@ -131,7 +131,7 @@ func (so *SubscriptionObjects) SubscribeOperator() {
 			}
 			return true, nil
 		})
-		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("can't create project %s", so.Namespace))
+		assertWaitPollNoErr(err, fmt.Sprintf("can't create project %s", so.Namespace))
 	}
 
 	// check the operator group, if no object found, then create an operator group in the project
@@ -168,7 +168,7 @@ func (so *SubscriptionObjects) SubscribeOperator() {
 			}
 			return true, nil
 		})
-		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("can't create subscription %s in %s project", so.PackageName, so.Namespace))
+		assertWaitPollNoErr(err, fmt.Sprintf("can't create subscription %s in %s project", so.PackageName, so.Namespace))
 	}
 }
 
