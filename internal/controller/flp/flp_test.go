@@ -530,6 +530,7 @@ func TestServiceDirectModeWithoutInformers(t *testing.T) {
 	ns := "namespace"
 	cfg := getConfig()
 	cfg.DeploymentModel = flowslatest.DeploymentModelDirect
+	cfg.Processor.InformerCacheProxy = &flowslatest.FlowCollectorInformerCacheProxy{Enabled: ptr.To(false)}
 	b := monoBuilder(ns, &cfg)
 	svc := b.service()
 

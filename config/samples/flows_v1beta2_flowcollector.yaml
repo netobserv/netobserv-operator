@@ -99,7 +99,7 @@ spec:
     #     name: ""
     # Centralized Kubernetes informers (enabled by default for reduced API server load)
     # informerCacheProxy:
-    #   enabled: true
+    #   enabled: false  # Opt out and use local informers in each processor
     #   replicas: 2  # Minimum 2 for HA with leader election
     #   resources:
     #     requests:

@@ -4027,10 +4027,9 @@ but with a lesser improvement in performance.<br/>
         <td><b><a href="#flowcollectorspecprocessorinformercacheproxy">informerCacheProxy</a></b></td>
         <td>object</td>
         <td>
-          `informerCacheProxy` (experimental) is the configuration for centralized Kubernetes informers that push cache updates to flowlogs-pipeline processors.
+          `informerCacheProxy` is the configuration for centralized Kubernetes informers that push cache updates to flowlogs-pipeline processors.
 This reduces load on the API server by having fewer components running informers, and allows to scale FLP up without paying the cost of new informers.
-It is not recommended to use on small clusters with few FLP replicas (<4), or when API server load is not a concern.
-This feature is currently experimental.<br/>
+It is enabled by default. Set `enabled` to `false` to use local informers in each processor instead.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4478,10 +4477,9 @@ Fields absent from the 'k8s.v1.cni.cncf.io/network-status' annotation must not b
 
 
 
-`informerCacheProxy` (experimental) is the configuration for centralized Kubernetes informers that push cache updates to flowlogs-pipeline processors.
+`informerCacheProxy` is the configuration for centralized Kubernetes informers that push cache updates to flowlogs-pipeline processors.
 This reduces load on the API server by having fewer components running informers, and allows to scale FLP up without paying the cost of new informers.
-It is not recommended to use on small clusters with few FLP replicas (<4), or when API server load is not a concern.
-This feature is currently experimental.
+It is enabled by default. Set `enabled` to `false` to use local informers in each processor instead.
 
 <table>
     <thead>
@@ -4505,10 +4503,8 @@ This feature is currently experimental.
         <td>
           `enabled` controls whether to deploy the informer cache proxy.
 When `true`, a dedicated deployment watches K8s resources and pushes cache updates via gRPC to FLP processors, reducing API server load.
-When `false` (default), each FLP processor uses local informers.
-Enable only on large clusters or when API server load is a concern, as it adds deployment complexity.<br/>
-          <br/>
-            <i>Default</i>: false<br/>
+When `false`, each FLP processor uses local informers.
+Defaults to `true` when omitted, including when `informerCacheProxy` is not configured.<br/>
         </td>
         <td>false</td>
       </tr><tr>

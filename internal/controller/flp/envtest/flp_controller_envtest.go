@@ -105,9 +105,6 @@ func ControllerSpecs(env test.Environment, ctxGetter test.ContextGetter) {
 						Metrics: flowslatest.FLPMetrics{
 							IncludeList: &[]flowslatest.FLPMetric{"node_ingress_bytes_total", "namespace_ingress_bytes_total", "workload_ingress_bytes_total"},
 						},
-						InformerCacheProxy: &flowslatest.FlowCollectorInformerCacheProxy{
-							Enabled: ptr.To(true),
-						},
 						BgpEnrichment: ptr.To(true),
 					},
 				},
@@ -115,6 +112,7 @@ func ControllerSpecs(env test.Environment, ctxGetter test.ContextGetter) {
 
 			// Create
 			Expect(k8sClient.Create(ctx, created)).Should(Succeed())
+			Expect(created.Spec.Processor.InformerCacheProxy).To(BeNil())
 
 			By("Expecting to create the flowlogs-pipeline DaemonSet")
 			Eventually(func() error {
@@ -128,12 +126,14 @@ func ControllerSpecs(env test.Environment, ctxGetter test.ContextGetter) {
 				return nil
 			}, timeout, interval).Should(Succeed())
 
+			Expect(ds.Spec.Template.Spec.Containers[0].Args).To(ContainElement("--k8scache.port=9402"))
+
 			if env == test.EnvOpenShift {
 				By("In OpenShift, expecting to have the required SCC annotation")
 				Expect(ds.Spec.Template.Annotations).To(HaveKeyWithValue("openshift.io/required-scc", "hostnetwork"))
 			}
 
-			By("Expecting to create the flowlogs-pipeline-informers Deployment")
+			By("Expecting to create the flowlogs-pipeline-informers Deployment by default")
 			Eventually(func() interface{} {
 				deploy := appsv1.Deployment{}
 				return k8sClient.Get(ctx, flpKeyInformer, &deploy)
@@ -216,6 +216,9 @@ func ControllerSpecs(env test.Environment, ctxGetter test.ContextGetter) {
 				fc.Spec.Processor = flowslatest.FlowCollectorFLP{
 					ImagePullPolicy: "Never",
 					LogLevel:        "error",
+					InformerCacheProxy: &flowslatest.FlowCollectorInformerCacheProxy{
+						Enabled: ptr.To(false),
+					},
 					Advanced: &flowslatest.AdvancedProcessorConfig{
 						Env: map[string]string{
 							// we'll test that env vars are sorted, to keep idempotency
@@ -303,6 +306,14 @@ func ControllerSpecs(env test.Environment, ctxGetter test.ContextGetter) {
 			Eventually(func() error {
 				return k8sClient.Get(ctx, flpKey1, &v1.Service{})
 			}, timeout, interval).Should(MatchError(`services "flowlogs-pipeline" not found`))
+
+			By("Deleting the informer deployment and restoring local informer permissions after opt-out")
+			Eventually(func() error {
+				return k8sClient.Get(ctx, flpKeyInformer, &appsv1.Deployment{})
+			}, timeout, interval).Should(MatchError(`deployments.apps "flowlogs-pipeline-informers" not found`))
+			Eventually(func() any {
+				return expectClusterRoleBinding(ctx, k8sClient, roles.FLPInformersRole, operatorNamespace, "flowlogs-pipeline")
+			}, timeout, interval).Should(Succeed())
 		})
 
 		It("Should redeploy if the spec doesn't change but the external flowlogs-pipeline-config does", func() {

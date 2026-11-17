@@ -5166,10 +5166,9 @@ spec:
                       type: string
                     informerCacheProxy:
                       description: |-
-                        `informerCacheProxy` (experimental) is the configuration for centralized Kubernetes informers that push cache updates to flowlogs-pipeline processors.
+                        `informerCacheProxy` is the configuration for centralized Kubernetes informers that push cache updates to flowlogs-pipeline processors.
                         This reduces load on the API server by having fewer components running informers, and allows to scale FLP up without paying the cost of new informers.
-                        It is not recommended to use on small clusters with few FLP replicas (<4), or when API server load is not a concern.
-                        This feature is currently experimental.
+                        It is enabled by default. Set `enabled` to `false` to use local informers in each processor instead.
                       properties:
                         advanced:
                           description: '`advanced` allows setting some technical parameters of the informer cache proxy component.'
@@ -5203,12 +5202,11 @@ spec:
                               type: integer
                           type: object
                         enabled:
-                          default: false
                           description: |-
                             `enabled` controls whether to deploy the informer cache proxy.
                             When `true`, a dedicated deployment watches K8s resources and pushes cache updates via gRPC to FLP processors, reducing API server load.
-                            When `false` (default), each FLP processor uses local informers.
-                            Enable only on large clusters or when API server load is a concern, as it adds deployment complexity.
+                            When `false`, each FLP processor uses local informers.
+                            Defaults to `true` when omitted, including when `informerCacheProxy` is not configured.
                           type: boolean
                         replicas:
                           default: 2
