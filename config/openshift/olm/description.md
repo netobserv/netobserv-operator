@@ -90,7 +90,7 @@ The examples outlined in the table demonstrate scenarios that are tailored to sp
 
 ## CLI
 There is a CLI tool next to the web interface. If you need additional features like traffic capturing then go for the CLI tool. The documentation for it is at [netobserv-cli](https://github.com/netobserv/netobserv-cli). Important: There is a distinction between the community releases and downstream / vendored releases (ie. just OpenShift, as of now)
-The documentation for the OpenShift client is [here](https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html/network_observability/network-observability-cli).
+The documentation for the OpenShift client is [OpenShift CLI documentation](https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html/network_observability/network-observability-cli).
 
 ## Further reading
 
