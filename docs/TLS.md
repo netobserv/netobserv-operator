@@ -127,11 +127,11 @@ For mTLS, configure `spec.processor.service.providedCertificates.clientCert`. Fo
 
 ## Informers to Processor certificates
 
-When `spec.processor.informers.enabled` is `true`, informers communicate with processors via gRPC on port 9090 (k8scache). TLS can be configured for this communication.
+The informer cache proxy is enabled by default and communicates with processors via gRPC on port 9402 (k8scache). Configure TLS for this communication through `spec.processor.informerCacheProxy.tls`, or set `spec.processor.informerCacheProxy.enabled` to `false` to use local informers instead.
 
 ### Auto (TLS)
 
-When `spec.processor.informers.tls.type` is "Auto":
+When `spec.processor.informerCacheProxy.tls.type` is "Auto":
 
 <table>
   <thead>
@@ -163,7 +163,7 @@ When `spec.processor.informers.tls.type` is "Auto":
 
 ### Auto (mTLS)
 
-When `spec.processor.informers.tls.type` is "Auto-mTLS":
+When `spec.processor.informerCacheProxy.tls.type` is "Auto-mTLS":
 
 <table>
   <thead>
@@ -209,6 +209,6 @@ When `spec.processor.informers.tls.type` is "Auto-mTLS":
 
 ### Provided
 
-When `spec.processor.informers.tls.type` is "Provided", you can specify any Secret or ConfigMap for TLS or mTLS, via `spec.processor.informers.tls.providedCertificates`.
+When `spec.processor.informerCacheProxy.tls.type` is "Provided", you can specify any Secret or ConfigMap for TLS or mTLS, via `spec.processor.informerCacheProxy.tls.providedCertificates`.
 
 For mTLS, configure both `serverCert` and `clientCert`. For simple TLS, only configure `serverCert`.

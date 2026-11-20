@@ -263,7 +263,7 @@ func (spec *FlowCollectorFLP) IsUnmanagedFLPReplicas() bool {
 }
 
 func (spec *FlowCollectorFLP) IsInformerCacheProxyEnabled() bool {
-	return spec.InformerCacheProxy != nil && spec.InformerCacheProxy.Enabled != nil && *spec.InformerCacheProxy.Enabled
+	return spec.InformerCacheProxy == nil || spec.InformerCacheProxy.Enabled == nil || *spec.InformerCacheProxy.Enabled
 }
 
 // DefaultK8sCachePort is the default gRPC port where FLP processors listen for k8scache updates

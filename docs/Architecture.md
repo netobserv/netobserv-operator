@@ -13,7 +13,7 @@ The components are:
   - It is able to correlate those flows with other events such as network policy rules and drops (network policy correlation requires the [OVN Kubernetes](https://github.com/ovn-org/ovn-kubernetes/) network plugin).
   - When used with the CLI or as a standalone, the agent can also do full packet captures instead of generating logical flows.
 - [Flowlogs-pipeline](https://github.com/netobserv/flowlogs-pipeline) (FLP), a component that collects, enriches and exports these flows.
-  - It uses Kubernetes informers to enrich flows with details such as Pod names, namespaces, availability zones, etc.
+  - It enriches flows with details such as Pod names, namespaces, availability zones, etc. By default, a centralized informer cache proxy watches Kubernetes resources and pushes cache updates to the processors over gRPC, reducing API server traffic as the number of processors grows.
   - It derives all flows into metric counters, for Prometheus.
   - Raw flows can be exported to Loki and/or custom exporters (Kafka, IPFIX, OpenTelemetry).
   - As a standalone, FLP is very flexible and configurable. It supports more inputs and outputs, allows more arbitrary filters, sampling, aggregations, relabelling, etc. When deployed via the operator, only a subset of its capacities is used.
@@ -29,6 +29,21 @@ The components are:
   - It is also available via [Krew](https://krew.sigs.k8s.io/).
   - It offers a live visualization via a TUI. For metrics, when used in a Kubernetes vendor supporting dashboards, it provides out-of-the-box dashboards.
   - Check out the blog post: [Network observability on demand](https://developers.redhat.com/articles/2024/09/17/network-observability-demand#what_is_the_network_observability_cli_).
+
+## Informer cache proxy
+
+The operator deploys `flowlogs-pipeline-informers` by default in all deployment models, with two replicas for leader election and high availability. The elected leader watches Kubernetes resources and distributes cache updates to FLP processors. Processors keep local caches for enrichment without each watching the API server.
+
+Configure replicas, resources, TLS and advanced settings through `spec.processor.informerCacheProxy`. Set `enabled: false` to use local Kubernetes informers in each processor instead:
+
+```yaml
+spec:
+  processor:
+    informerCacheProxy:
+      enabled: false
+```
+
+On upgrade, an existing `enabled: false` value is preserved, including values previously populated by the CRD default. Remove `enabled` or set it to `true` to enable the proxy on those installations.
 
 ## Service deployment model
 
