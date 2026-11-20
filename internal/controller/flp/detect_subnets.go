@@ -8,9 +8,9 @@ import (
 
 	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
 	"github.com/netobserv/netobserv-operator/internal/pkg/helper"
+	sharedcapture "github.com/netobserv/netobserv-operator/pkg/capture"
 	configv1 "github.com/openshift/api/config/v1"
 	operatorv1 "github.com/openshift/api/operator/v1"
-	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -124,29 +124,15 @@ func readClusterConfig(ctx context.Context, cl client.Client) ([]string, error) 
 }
 
 func readMachineFromConfig(cm *corev1.ConfigMap) ([]string, error) {
-	type ClusterConfig struct {
-		Networking struct {
-			MachineNetwork []struct {
-				CIDR string `yaml:"cidr"`
-			} `yaml:"machineNetwork"`
-		} `yaml:"networking"`
-	}
-
 	var rawConfig string
 	var ok bool
 	if rawConfig, ok = cm.Data["install-config"]; !ok {
 		return nil, fmt.Errorf(`can't find key "install-config" in "cluster-config-v1" ConfigMap`)
 	}
-	var config ClusterConfig
-	if err := yaml.Unmarshal([]byte(rawConfig), &config); err != nil {
+	cidrs, err := sharedcapture.ParseMachineNetworkCIDRs(rawConfig)
+	if err != nil {
 		return nil, fmt.Errorf(`can't deserialize content of "cluster-config-v1" ConfigMap: %w`, err)
 	}
-
-	var cidrs []string
-	for _, cidr := range config.Networking.MachineNetwork {
-		cidrs = append(cidrs, cidr.CIDR)
-	}
-
 	return cidrs, nil
 }
 

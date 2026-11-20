@@ -22,6 +22,7 @@ export PLG_VERSION ?= v${BUNDLE_VERSION}
 export FLP_VERSION ?= v${BUNDLE_VERSION}
 # eBPF agent
 export BPF_VERSION ?= v${BUNDLE_VERSION}
+export CLI_VERSION ?= v2.0.0-community
 
 # Allows building bundles in Mac replacing BSD 'sed' command by GNU-compatible 'gsed'
 ifeq (,$(shell which gsed 2>/dev/null))
@@ -126,6 +127,10 @@ ifndef BPF_DIGEST
 BPF_DIGEST := $(shell docker buildx imagetools inspect quay.io/netobserv/netobserv-ebpf-agent:$(BPF_VERSION) --format '{{json .Manifest.Digest}}' | tr -d '"')
 endif
 $(info Pinning eBPF Agent: $(BPF_VERSION) => $(BPF_DIGEST))
+ifndef CLI_DIGEST
+CLI_DIGEST := $(shell docker buildx imagetools inspect quay.io/netobserv/network-observability-cli:$(CLI_VERSION) --format '{{json .Manifest.Digest}}' | tr -d '"')
+endif
+$(info Pinning CLI: $(CLI_VERSION) => $(CLI_DIGEST))
 ifndef FLP_DIGEST
 FLP_DIGEST := $(shell docker buildx imagetools inspect quay.io/netobserv/flowlogs-pipeline:$(FLP_VERSION) --format '{{json .Manifest.Digest}}' | tr -d '"')
 endif
@@ -475,6 +480,7 @@ set-manager-images: validate-digests kustomize ## Update image references
 ifeq ("$(PIN_DIGEST)", "true")
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(BUNDLE_OPERATOR_IMAGE)
 	$(SED) -i -E "/RELATED_IMAGE_EBPF_AGENT$$/{ n; s~value:.+$$~value: quay.io/netobserv/netobserv-ebpf-agent@$(BPF_DIGEST)~}" ./config/manager/manager.yaml
+	$(SED) -i -E "/RELATED_IMAGE_CLI$$/{ n; s~value:.+$$~value: quay.io/netobserv/network-observability-cli@$(CLI_DIGEST)~}" ./config/manager/manager.yaml
 	$(SED) -i -E "/RELATED_IMAGE_FLOWLOGS_PIPELINE$$/{ n; s~value:.+$$~value: quay.io/netobserv/flowlogs-pipeline@$(FLP_DIGEST)~}" ./config/manager/manager.yaml
 	$(SED) -i -E "/RELATED_IMAGE_WEB_CONSOLE$$/{ n; s~value:.+$$~value: quay.io/netobserv/network-observability-console-plugin@$(PLG_DIGEST)~}" ./config/manager/manager.yaml
 ifeq ("$(BUNDLE_TARGET)", "OpenShift")
@@ -484,6 +490,7 @@ endif
 else
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMAGE)
 	$(SED) -i -E '/RELATED_IMAGE_EBPF_AGENT$$/{ n; s~value:.+$$~value: quay.io/netobserv/netobserv-ebpf-agent:$(BPF_VERSION)~}' ./config/manager/manager.yaml
+	$(SED) -i -E '/RELATED_IMAGE_CLI$$/{ n; s~value:.+$$~value: quay.io/netobserv/network-observability-cli:$(CLI_VERSION)~}' ./config/manager/manager.yaml
 	$(SED) -i -E '/RELATED_IMAGE_FLOWLOGS_PIPELINE$$/{ n; s~value:.+$$~value: quay.io/netobserv/flowlogs-pipeline:$(FLP_VERSION)~}' ./config/manager/manager.yaml
 	$(SED) -i -E '/RELATED_IMAGE_WEB_CONSOLE$$/{ n; s~value:.+$$~value: quay.io/netobserv/network-observability-console-plugin:$(PLG_VERSION)~}' ./config/manager/manager.yaml
 ifeq ("$(BUNDLE_TARGET)", "OpenShift")
@@ -551,7 +558,6 @@ endif
 	echo $${VALIDATION_OUTPUT}; \
 	if [ $$(echo $${VALIDATION_OUTPUT} | grep -i 'warning' | wc -c) -gt 0 ]; then echo "please correct warnings and errors first"; exit -1 ; fi \
 	'
-
 .PHONY: bundle
 bundle: generate bundle-nogen ## Generate final bundle files, including prior code and OpenAPI doc generation.
 
