@@ -130,7 +130,7 @@ Click on "Publish release".
 From the operator repository:
 
 ```bash
-VERSION=$version PIN_DIGEST=true make helm-update
+VERSION=$version IMAGE_ORG=netobserv PIN_DIGEST=true make helm-update
 
 helm package helm/
 index_path=/path/to/netobserv.github.io/static/helm
