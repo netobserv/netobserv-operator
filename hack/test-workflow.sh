@@ -1,9 +1,7 @@
 #!/bin/bash
 
 test_out="test.out"
-openshift_bundle_csv="bundles/openshift/manifests/netobserv-operator.clusterserviceversion.yaml"
-k8s_bundle_csv="bundles/k8s/manifests/netobserv-operator.clusterserviceversion.yaml"
-bundle_csv=$openshift_bundle_csv
+bundle_csv="bundles/openshift/manifests/netobserv-operator.clusterserviceversion.yaml"
 test_registry="${TEST_REGISTRY:-quay.io/netobserv}"
 test_image_org="${TEST_IMAGE_ORG:-netobserv}"
 operator_image="$test_registry/network-observability-operator"
@@ -183,7 +181,6 @@ expect_image_tagged "$operator_image:$release_tag-amd64"
 expect_image_tagged "$operator_image:$release_tag-arm64"
 expect_image_tagged "$operator_image:$release_tag-ppc64le"
 
-bundle_csv=$k8s_bundle_csv
 run_step "release.yml" "push-image" "build bundle"
 expect_image_tagged "$bundle_image:v$release_tag"
 expect_pinned_bundle_images

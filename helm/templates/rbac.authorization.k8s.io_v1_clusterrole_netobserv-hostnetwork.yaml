@@ -1,0 +1,13 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: netobserv-hostnetwork
+rules:
+- apiGroups:
+  - security.openshift.io
+  resourceNames:
+  - hostnetwork
+  resources:
+  - securitycontextconstraints
+  verbs:
+  - use

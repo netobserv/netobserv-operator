@@ -61,24 +61,6 @@ jobs:
         run: |
           MULTIARCH_TARGETS="${WF_MULTIARCH_TARGETS}" IMAGE_ORG=${WF_ORG} IMAGE=${WF_REGISTRY}/${WF_IMAGE}:${tag} make manifest-build manifest-push
 
-      - name: build bundle
-        run: |
-          IMAGE_ORG=${WF_ORG} \
-            VERSION=${tag} \
-            BUNDLE_VERSION=${tag} \
-            CLEAN_BUILD=1 \
-            PIN_DIGEST=true \
-            make bundle-nogen bundle-build
-
-      - name: push bundle to quay.io
-        run: IMAGE_ORG=${WF_ORG} BUNDLE_VERSION=${tag} make bundle-push
-
-      - name: build catalog
-        run: IMAGE_ORG=${WF_ORG} BUNDLE_VERSION=${tag} make catalog-build
-
-      - name: push catalog to quay.io
-        run: IMAGE_ORG=${WF_ORG} BUNDLE_VERSION=${tag} make catalog-push
-
       - name: extract binaries
         run: MULTIARCH_TARGETS="${WF_MULTIARCH_TARGETS}" IMAGE_ORG=${WF_ORG} VERSION=${tag} make extract-binaries
 

@@ -1,7 +1,9 @@
+# This is the kustomize entry point for dev-purpose deployment on openshift (make deploy)
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 # Adds namespace to all resources.
 namespace: netobserv
 
 resources:
+- namespace.yaml
 - common
