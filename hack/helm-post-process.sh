@@ -6,37 +6,37 @@ depl=helm/templates/apps_v1_deployment_netobserv-controller-manager.yaml
 
 # Operator image
 perl -i -pe "
-  s|^([[:space:]]*)image: .*/$IMAGE_ORG/network-observability-operator:.*$|{{- if .Values.operator.digest }}
+  s|^([[:space:]]*)image: .*/$IMAGE_ORG/network-observability-operator[:\@].*$|{{- if .Values.operator.digest }}
 \${1}image: \"{{ .Values.operator.image }}\@{{ .Values.operator.digest }}\"
 {{- else }}
 \${1}image: \"{{ .Values.operator.image }}:{{ .Values.operator.version }}\"
 {{- end }}|
 " $depl
-grep -q 'operator.digest' $depl || { echo "ERROR: Operator substitution had no match for '/$IMAGE_ORG/network-observability-operator:'"; exit 1; }
+grep -q 'operator.digest' $depl || { echo "ERROR: Operator substitution had no match for '/$IMAGE_ORG/network-observability-operator'"; exit 1; }
 
 # eBPF agent image
 perl -i -pe '
-  s|^([[:space:]]*)value: .*/netobserv/netobserv-ebpf-agent:.*$|{{- if .Values.ebpfAgent.digest }}
+  s|^([[:space:]]*)value: .*/netobserv/netobserv-ebpf-agent[:\@].*$|{{- if .Values.ebpfAgent.digest }}
 ${1}value: "{{ .Values.ebpfAgent.image }}\@{{ .Values.ebpfAgent.digest }}"
 {{- else }}
 ${1}value: "{{ .Values.ebpfAgent.image }}:{{ .Values.ebpfAgent.version }}"
 {{- end }}|
 ' $depl
-grep -q 'ebpfAgent.digest' $depl || { echo "ERROR: Agent substitution had no match for '/netobserv/netobserv-ebpf-agent:'"; exit 1; }
+grep -q 'ebpfAgent.digest' $depl || { echo "ERROR: Agent substitution had no match for '/netobserv/netobserv-ebpf-agent'"; exit 1; }
 
 # FLP image
 perl -i -pe '
-  s|^([[:space:]]*)value: .*/netobserv/flowlogs-pipeline:.*$|{{- if .Values.flowlogsPipeline.digest }}
+  s|^([[:space:]]*)value: .*/netobserv/flowlogs-pipeline[:\@].*$|{{- if .Values.flowlogsPipeline.digest }}
 ${1}value: "{{ .Values.flowlogsPipeline.image }}\@{{ .Values.flowlogsPipeline.digest }}"
 {{- else }}
 ${1}value: "{{ .Values.flowlogsPipeline.image }}:{{ .Values.flowlogsPipeline.version }}"
 {{- end }}|
 ' $depl
-grep -q 'flowlogsPipeline.digest' $depl || { echo "ERROR: FLP substitution had no match for '/netobserv/flowlogs-pipeline:'"; exit 1; }
+grep -q 'flowlogsPipeline.digest' $depl || { echo "ERROR: FLP substitution had no match for '/netobserv/flowlogs-pipeline'"; exit 1; }
 
 # Web console image
 perl -i -pe '
-  s|^([[:space:]]*)value: .*/netobserv/network-observability-console-plugin:.*$|{{- if .Values.standaloneConsole.enable }}
+  s|^([[:space:]]*)value: .*/netobserv/network-observability-console-plugin[:\@].*$|{{- if .Values.standaloneConsole.enable }}
   {{- if .Values.standaloneConsole.digest }}
 ${1}value: "{{ .Values.standaloneConsole.image }}\@{{ .Values.standaloneConsole.digest }}"
   {{- else }}
@@ -50,7 +50,7 @@ ${1}value: "{{ .Values.consolePlugin.image }}:{{ .Values.consolePlugin.version }
   {{- end }}
 {{- end }}|
 ' $depl
-grep -q 'standaloneConsole.digest' $depl || { echo "ERROR: Web console substitution had no match for '/netobserv/network-observability-console-plugin:'"; exit 1; }
+grep -q 'standaloneConsole.digest' $depl || { echo "ERROR: Web console substitution had no match for '/netobserv/network-observability-console-plugin'"; exit 1; }
 
 # Affinity
 perl -i -pe '
