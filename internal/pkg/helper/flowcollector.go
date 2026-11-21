@@ -6,6 +6,7 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
 	"github.com/netobserv/netobserv-operator/internal/pkg/manager"
+	"github.com/netobserv/netobserv-operator/internal/pkg/manager/status"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -262,9 +263,15 @@ func GetAdvancedPluginConfig(specConfig *flowslatest.AdvancedPluginConfig) flows
 	return cfg
 }
 
-func GetOperandsNamespace(fc *flowslatest.FlowCollectorSpec, mgrConfig *manager.Config) string {
-	if fc.Namespace != "" {
-		return fc.Namespace
+func GetOperandsNamespace(fc *flowslatest.FlowCollector, mgrConfig *manager.Config) string {
+	if fc.Spec.Namespace != "" {
+		return fc.Spec.Namespace
+	}
+	// If the FlowCollector already has a deployed namespace stored in annotations, use it
+	// so that an existing namespace takes priority over a different newly created default namespace
+	// (this matters on upgrade, when DefaultOperandsNamespace changes)
+	if currentNS := status.GetDeployedNamespace(status.FlowCollectorController, fc); currentNS != "" {
+		return currentNS
 	}
 	if mgrConfig.DefaultOperandsNamespace != "" {
 		return mgrConfig.DefaultOperandsNamespace

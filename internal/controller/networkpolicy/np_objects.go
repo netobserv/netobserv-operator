@@ -14,7 +14,7 @@ import (
 const netpolName = "netobserv"
 
 func buildMainNetworkPolicy(desired *flowslatest.FlowCollector, mgr *manager.Manager) (types.NamespacedName, *networkingv1.NetworkPolicy) {
-	ns := helper.GetOperandsNamespace(&desired.Spec, mgr.Config)
+	ns := helper.GetOperandsNamespace(desired, mgr.Config)
 	cni, _ := mgr.ClusterInfo.GetCNI()
 
 	name := types.NamespacedName{Name: netpolName, Namespace: ns}
@@ -51,7 +51,7 @@ func buildMainNetworkPolicy(desired *flowslatest.FlowCollector, mgr *manager.Man
 
 	if desired.Spec.DeploymentModel == flowslatest.DeploymentModelService {
 		// Can be counter-intuitive, but only the DeploymentModelService mode needs an explicit rule for host-network (agents are still hostnetwork pods)
-		fromNs := helper.GetOperandsNamespace(&desired.Spec, mgr.Config) + constants.EBPFPrivilegedNSSuffix
+		fromNs := helper.GetOperandsNamespace(desired, mgr.Config) + constants.EBPFPrivilegedNSSuffix
 		ingress = append(ingress, netpol.AllowHostNetworkFlows(mgr.ClusterInfo, mgr.Config.Vendor, &desired.Spec, fromNs))
 	}
 
@@ -95,7 +95,7 @@ func buildMainNetworkPolicy(desired *flowslatest.FlowCollector, mgr *manager.Man
 }
 
 func buildPrivilegedNetworkPolicy(desired *flowslatest.FlowCollector, mgr *manager.Manager) (types.NamespacedName, *networkingv1.NetworkPolicy) {
-	mainNs := helper.GetOperandsNamespace(&desired.Spec, mgr.Config)
+	mainNs := helper.GetOperandsNamespace(desired, mgr.Config)
 	privNs := mainNs + constants.EBPFPrivilegedNSSuffix
 	cni, _ := mgr.ClusterInfo.GetCNI()
 

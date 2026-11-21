@@ -101,7 +101,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Result
 
 func (r *Reconciler) reconcile(ctx context.Context, clh *helper.Client, desired *flowslatest.FlowCollector) error {
 	log := log.FromContext(ctx)
-	ns := helper.GetOperandsNamespace(&desired.Spec, r.mgr.Config)
+	ns := helper.GetOperandsNamespace(desired, r.mgr.Config)
 	r.currentNamespace = ns
 
 	// If namespace does not exist, we create it

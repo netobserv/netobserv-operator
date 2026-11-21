@@ -125,7 +125,7 @@ func (lsw *Watcher) ensureLokiStackWatcher(ctx context.Context) error {
 
 func (lsw *Watcher) checkStatus(ctx context.Context, fc *flowslatest.FlowCollector) error {
 	lokiStack := &lokiv1.LokiStack{}
-	ns := helper.GetOperandsNamespace(&fc.Spec, lsw.mgr.Config)
+	ns := helper.GetOperandsNamespace(fc, lsw.mgr.Config)
 	nsname := types.NamespacedName{Name: fc.Spec.Loki.LokiStack.Name, Namespace: ns}
 	if len(fc.Spec.Loki.LokiStack.Namespace) > 0 {
 		nsname.Namespace = fc.Spec.Loki.LokiStack.Namespace
