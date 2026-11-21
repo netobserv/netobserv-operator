@@ -212,3 +212,15 @@ When `spec.processor.informers.tls.type` is "Auto-mTLS":
 When `spec.processor.informers.tls.type` is "Provided", you can specify any Secret or ConfigMap for TLS or mTLS, via `spec.processor.informers.tls.providedCertificates`.
 
 For mTLS, configure both `serverCert` and `clientCert`. For simple TLS, only configure `serverCert`.
+
+## Informer metrics
+
+The `flowlogs-pipeline-informers` metrics endpoint listens on port 9091 and follows `spec.processor.metrics.server.tls` independently of the informer cache gRPC TLS configuration:
+
+- `Auto`: the operator mounts a certificate for the `flowlogs-pipeline-informers-metrics` Service. OpenShift issues it through the service CA; on Kubernetes, the Helm chart provisions it through cert-manager when enabled.
+- `Provided`: the operator mounts the configured certificate and key. The certificate must also be valid for `flowlogs-pipeline-informers-metrics.<namespace>.svc`, unless verification is explicitly disabled.
+- `Disabled`: the endpoint serves HTTP.
+
+When ServiceMonitor support is available, the operator creates a dedicated monitor using the corresponding HTTP or HTTPS scheme and the configured CA and verification settings.
+
+For `Auto` on Kubernetes, the informer ServiceMonitor references the `netobserv-ca` ConfigMap's `service-ca.crt` key, allowing Prometheus Operator to load the CA for scraping. The Helm trust-manager Bundle distributes this ConfigMap into the Helm release namespace. If the operands run in a different namespace, distribute the CA bundle into that namespace as well: the ConfigMap reference is local to the ServiceMonitor namespace. On OpenShift, the monitor retains the platform Prometheus service CA bundle path.

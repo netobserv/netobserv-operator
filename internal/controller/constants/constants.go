@@ -20,6 +20,7 @@ const (
 	FLPTransfoName           = FLPName + "-transformer"
 	FLPTransfoMetricsSvcName = FLPTransfoName + "-prom"
 	FLPMetricsPort           = 9401
+	FLPInformerMetricsPort   = 9091
 	PluginName               = "netobserv-plugin"
 	StaticPluginName         = "netobserv-plugin-static"
 	PluginShortName          = "plugin"

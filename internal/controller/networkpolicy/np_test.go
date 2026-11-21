@@ -1,6 +1,7 @@
 package networkpolicy
 
 import (
+	"fmt"
 	"testing"
 
 	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
@@ -455,4 +456,30 @@ func TestNpBuilderWithAPIServerIPs(t *testing.T) {
 		}
 	}
 	assert.True(foundMixed, "Expected to find mixed IPv4/IPv6 egress rule")
+}
+
+func TestInformerMetricsScrapeAllowed(t *testing.T) {
+	for _, enabled := range []bool{false, true} {
+		t.Run(fmt.Sprintf("enabled=%t", enabled), func(t *testing.T) {
+			desired := getConfig()
+			desired.Spec.NetworkPolicy.Enable = ptr.To(true)
+			desired.Spec.Processor.InformerCacheProxy = &flowslatest.FlowCollectorInformerCacheProxy{Enabled: ptr.To(enabled)}
+			mgr := &manager.Manager{
+				ClusterInfo: cluster.Mock(cluster.WithOpenShiftVersion("4.20.0")),
+				Config:      &manager.Config{Vendor: constants.VendorOpenShift},
+			}
+			_, np := buildMainNetworkPolicy(&desired, mgr)
+			found := false
+			for _, rule := range np.Spec.Ingress {
+				for _, port := range rule.Ports {
+					if port.Port != nil && port.Port.IntVal == constants.FLPInformerMetricsPort {
+						found = true
+						assert.Equal(t, v1.ProtocolTCP, *port.Protocol)
+						assert.NotEmpty(t, rule.From)
+					}
+				}
+			}
+			assert.Equal(t, enabled, found)
+		})
+	}
 }
