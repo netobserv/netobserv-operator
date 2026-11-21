@@ -26,6 +26,7 @@ type transformerReconciler struct {
 	*reconcilers.Instance
 	deployment       *appsv1.Deployment
 	promService      *corev1.Service
+	proxyService     *corev1.Service
 	hpa              *ascv2.HorizontalPodAutoscaler
 	serviceAccount   *corev1.ServiceAccount
 	staticConfigMap  *corev1.ConfigMap
@@ -40,6 +41,7 @@ func newTransformerReconciler(cmn *reconcilers.Instance) *transformerReconciler 
 		Instance:         cmn,
 		deployment:       cmn.Managed.NewDeployment(transfoName),
 		promService:      cmn.Managed.NewService(constants.FLPTransfoMetricsSvcName),
+		proxyService:     cmn.Managed.NewService(constants.FLPTransfoProxySvcName),
 		hpa:              cmn.Managed.NewHPA(transfoName),
 		serviceAccount:   cmn.Managed.NewServiceAccount(transfoName),
 		staticConfigMap:  cmn.Managed.NewConfigMap(transfoConfigMap),
@@ -121,6 +123,9 @@ func (r *transformerReconciler) reconcile(ctx context.Context, desired *flowslat
 
 	err = r.reconcilePrometheusService(ctx, &builder)
 	if err != nil {
+		return err
+	}
+	if err := reconcileProxyService(ctx, r.Instance, r.proxyService, builder.proxyService()); err != nil {
 		return err
 	}
 

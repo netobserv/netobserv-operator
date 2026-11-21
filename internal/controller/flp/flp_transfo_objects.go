@@ -123,6 +123,10 @@ func (b *transfoBuilder) configMaps() (*corev1.ConfigMap, string, *corev1.Config
 	return staticCM, digest, dynamicCM, err
 }
 
+func (b *transfoBuilder) proxyService() *corev1.Service {
+	return proxyService(b.desired, constants.FLPTransfoProxySvcName, b.info.Namespace, transfoName)
+}
+
 func (b *transfoBuilder) promService() *corev1.Service {
 	return promService(
 		b.desired,

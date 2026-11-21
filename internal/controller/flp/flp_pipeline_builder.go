@@ -40,6 +40,9 @@ type PipelineBuilder struct {
 	volumes           *volumes.Builder
 	loki              *helper.LokiConfig
 	clusterID         string
+	proxyPipelines    []config.PipelineBuilderStage
+	proxyRecords      bool
+	proxySourceName   string
 }
 
 func createPipeline(
@@ -97,6 +100,30 @@ func createPipeline(
 		return nil, err
 	}
 
+	for _, source := range desired.Processor.GetProxySources() {
+		if !desired.UseLoki() {
+			return nil, fmt.Errorf("proxy correlation requires Loki")
+		}
+		if source.Type != flowslatest.ProxySourceHAProxy || source.HAProxy == nil {
+			return nil, fmt.Errorf("unsupported or incomplete proxy source %q", source.Name)
+		}
+		root := config.NewHAProxyPipeline("ingest-proxy-"+source.Name, api.IngestHAProxy{Address: fmt.Sprintf(":%d", source.GetPort())})
+		var rules api.NetworkTransformRules
+		for _, pair := range [][2]string{{"SrcAddr", "SrcK8S"}, {"DstAddr", "DstK8S"}, {"ProxyClientAddr", "ProxyClientK8S"}, {"ProxyFrontendAddr", "ProxyFrontendK8S"}} {
+			rules = append(rules, api.NetworkTransformRule{Type: api.NetworkAddKubernetes, Kubernetes: &api.K8sRule{IPField: pair[0], Output: pair[1]}})
+		}
+		enriched := root.TransformNetwork("enrich-proxy-"+source.Name, api.TransformNetwork{Rules: rules, KubeConfig: api.NetworkTransformKubeConfig{TrackedKinds: []string{"ReplicaSet", "Deployment", "Gateway"}}})
+		if filters := b.addOtherTransforms(nil); len(filters) > 0 {
+			enriched = enriched.TransformFilter("scope-proxy-"+source.Name, api.TransformFilter{Rules: filters})
+		}
+		proxyBuilder := *b
+		proxyBuilder.proxyRecords = true
+		proxyBuilder.proxySourceName = source.Name
+		if err := proxyBuilder.addLokiStage(enriched); err != nil {
+			return nil, err
+		}
+		b.proxyPipelines = append(b.proxyPipelines, root)
+	}
 	return b, nil
 }
 
@@ -588,7 +615,7 @@ func (b *PipelineBuilder) addLokiStage(previous config.PipelineBuilderStage) err
 	lokiStage := previous
 	// Custom filters: Loki only
 	filters := filtersToFLP(b.desired.Processor.Filters, flowslatest.FLPFilterTargetLoki)
-	if len(filters) > 0 {
+	if len(filters) > 0 && !b.proxyRecords {
 		lokiStage = lokiStage.TransformFilter("filters-loki", api.TransformFilter{Rules: filters, SamplingField: "Sampling"})
 	}
 
@@ -642,7 +669,15 @@ func (b *PipelineBuilder) addLokiStage(previous config.PipelineBuilderStage) err
 			Authorization: authorization,
 		}
 	}
-	lokiStage.WriteLoki("loki", lokiWrite)
+	name := "loki"
+	if b.proxyRecords {
+		name = "loki-proxy-" + b.proxySourceName
+		lokiWrite.Labels = []string{"_RecordType", "SrcK8S_Namespace", "DstK8S_Namespace", constants.ClusterNameLabelName}
+		lokiWrite.StaticLabels["app"] = "netobserv-proxy"
+		lokiWrite.TimestampLabel = "TimeReceived"
+		lokiWrite.TimestampScale = "1s"
+	}
+	lokiStage.WriteLoki(name, lokiWrite)
 	return nil
 }
 

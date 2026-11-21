@@ -242,3 +242,13 @@ func AllowDNS(vendor constants.Vendor) networkingv1.NetworkPolicyEgressRule {
 		},
 	}
 }
+
+// AllowHAProxyLogs permits the dedicated UDP receiver from OpenShift routers.
+// OVN host-network traffic needs its platform-specific peer in addition to the namespace.
+func AllowHAProxyLogs(clusterInfo *cluster.Info, vendor constants.Vendor, port int32) networkingv1.NetworkPolicyIngressRule {
+	peers := []networkingv1.NetworkPolicyPeer{PeerInNamespace("openshift-ingress")}
+	if cni, _ := clusterInfo.GetCNI(); cni == flowslatest.OVNKubernetes {
+		peers = append(peers, ovnHostNetworkPeer(vendor))
+	}
+	return networkingv1.NetworkPolicyIngressRule{From: peers, Ports: []networkingv1.NetworkPolicyPort{{Protocol: ptr.To(corev1.ProtocolUDP), Port: ptr.To(intstr.FromInt32(port))}}}
+}

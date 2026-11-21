@@ -27,6 +27,7 @@ type monolithReconciler struct {
 	deployment       *appsv1.Deployment
 	service          *corev1.Service
 	promService      *corev1.Service
+	proxyService     *corev1.Service
 	serviceAccount   *corev1.ServiceAccount
 	staticConfigMap  *corev1.ConfigMap
 	dynamicConfigMap *corev1.ConfigMap
@@ -42,6 +43,7 @@ func newMonolithReconciler(cmn *reconcilers.Instance) *monolithReconciler {
 		deployment:       cmn.Managed.NewDeployment(monoName),
 		service:          cmn.Managed.NewService(monoName),
 		promService:      cmn.Managed.NewService(constants.FLPMetricsSvcName),
+		proxyService:     cmn.Managed.NewService(constants.FLPProxySvcName),
 		serviceAccount:   cmn.Managed.NewServiceAccount(monoName),
 		staticConfigMap:  cmn.Managed.NewConfigMap(monoConfigMap),
 		dynamicConfigMap: cmn.Managed.NewConfigMap(monoDynConfigMap),
@@ -126,6 +128,9 @@ func (r *monolithReconciler) reconcile(ctx context.Context, desired *flowslatest
 
 	err = r.reconcilePrometheusService(ctx, &builder)
 	if err != nil {
+		return err
+	}
+	if err := reconcileProxyService(ctx, r.Instance, r.proxyService, builder.proxyService()); err != nil {
 		return err
 	}
 

@@ -25,6 +25,7 @@ const (
 	CollectorType   = "collector" // deprecated: use 'ipfix' instead
 	StdinType       = "stdin"
 	GRPCType        = "grpc"
+	HAProxyType     = "haproxy"
 	FakeType        = "fake"
 	KafkaType       = "kafka"
 	S3Type          = "s3"
@@ -51,6 +52,7 @@ const (
 // Note: items beginning with doc: "## title" are top level items that get divided into sections inside api.md.
 
 type API struct {
+	IngestHAProxy      IngestHAProxy     `yaml:"haproxy" doc:"## Ingest HAProxy access logs\nVersioned HTTP correlation logs received over UDP syslog. TLS passthrough is not supported.\n"`
 	PromEncode         PromEncode        `yaml:"prom" doc:"## Prometheus encode API\nFollowing is the supported API format for prometheus encode:\n"`
 	KafkaEncode        EncodeKafka       `yaml:"kafka" doc:"## Kafka encode API\nFollowing is the supported API format for kafka encode:\n"`
 	S3Encode           EncodeS3          `yaml:"s3" doc:"## S3 encode API\nFollowing is the supported API format for S3 encode:\n"`

@@ -195,6 +195,10 @@ func (b *monolithBuilder) service() *corev1.Service {
 	return &svc
 }
 
+func (b *monolithBuilder) proxyService() *corev1.Service {
+	return proxyService(b.desired, constants.FLPProxySvcName, b.info.Namespace, monoName)
+}
+
 func (b *monolithBuilder) promService() *corev1.Service {
 	return promService(
 		b.desired,

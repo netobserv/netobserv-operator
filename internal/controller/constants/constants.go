@@ -17,8 +17,10 @@ const (
 	FLPShortName             = "flp"
 	FLPPortName              = "flp" // must be <15 chars
 	FLPMetricsSvcName        = FLPName + "-prom"
+	FLPProxySvcName          = FLPName + "-proxy"
 	FLPTransfoName           = FLPName + "-transformer"
 	FLPTransfoMetricsSvcName = FLPTransfoName + "-prom"
+	FLPTransfoProxySvcName   = FLPTransfoName + "-proxy"
 	FLPMetricsPort           = 9401
 	PluginName               = "netobserv-plugin"
 	StaticPluginName         = "netobserv-plugin-static"
