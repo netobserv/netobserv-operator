@@ -22,6 +22,20 @@ type PromTLSConf struct {
 	KeyPath  string `yaml:"keyPath,omitempty" json:"keyPath,omitempty" doc:"path to the key file"`
 }
 
+type PromAuthTypeEnum string
+
+const (
+	// For doc generation, enum definitions must match format `Constant Type = "value" // doc`
+	PromAuthDisabled   PromAuthTypeEnum = "disabled"   // no authentication (default)
+	PromAuthKubernetes PromAuthTypeEnum = "kubernetes" // delegate to the Kubernetes API: callers must provide a bearer token accepted by a TokenReview, and be granted access by a SubjectAccessReview on the requested path
+)
+
+// PromAuth configures authentication of the clients scraping the metrics endpoint.
+type PromAuth struct {
+	Type           PromAuthTypeEnum `yaml:"type,omitempty" json:"type,omitempty" doc:"(enum) authentication mode, one of the following:"`
+	KubeConfigPath string           `yaml:"kubeConfigPath,omitempty" json:"kubeConfigPath,omitempty" doc:"path to kubeconfig file, to run outside of a cluster (optional)"`
+}
+
 type PromEncode struct {
 	*PromConnectionInfo `json:",inline,omitempty" doc:"Prometheus connection info (optional); includes:"`
 	Metrics             MetricsItems `yaml:"metrics,omitempty" json:"metrics,omitempty" doc:"list of prometheus metric definitions, each includes:"`
@@ -44,6 +58,7 @@ type PromConnectionInfo struct {
 	Address string       `yaml:"address,omitempty" json:"address,omitempty" doc:"endpoint address to expose"`
 	Port    int          `yaml:"port,omitempty" json:"port,omitempty" doc:"endpoint port number to expose"`
 	TLS     *PromTLSConf `yaml:"tls,omitempty" json:"tls,omitempty" doc:"TLS configuration for the endpoint"`
+	Auth    *PromAuth    `yaml:"auth,omitempty" json:"auth,omitempty" doc:"authentication configuration for the endpoint (optional); includes:"`
 }
 
 type MetricsItem struct {

@@ -40,6 +40,9 @@ func (c *permissionsReconciler) reconcile(ctx context.Context, desired *flowslat
 	if err := c.reconcileServiceAccount(ctx, desired); err != nil {
 		return fmt.Errorf("reconciling service account: %w", err)
 	}
+	if err := c.reconcileMetricsAuthCRB(ctx, desired); err != nil {
+		return fmt.Errorf("reconciling metrics auth cluster role binding: %w", err)
+	}
 	if err := c.reconcileVendorPermissions(ctx, &desired.Spec.Agent.EBPF); err != nil {
 		return fmt.Errorf("reconciling vendor permissions: %w", err)
 	}
@@ -149,6 +152,16 @@ func (c *permissionsReconciler) reconcileServiceAccount(ctx context.Context, des
 	}
 	rlog.Info("service account already reconciled, doing nothing")
 	return nil
+}
+
+// reconcileMetricsAuthCRB grants the agent the right to submit the token / access reviews that
+// authenticating its metrics endpoint requires, and takes it back when authentication is turned off.
+func (c *permissionsReconciler) reconcileMetricsAuthCRB(ctx context.Context, desired *flowslatest.FlowCollector) error {
+	// Note: this runs before the on-hold early return of the agent controller, hence the explicit check
+	use := !desired.Spec.OnHold() &&
+		desired.Spec.Agent.EBPF.IsEBPFMetricsEnabled() &&
+		desired.Spec.Agent.EBPF.Metrics.Server.IsMetricsAuthEnabled()
+	return c.ReconcileClusterRoleBinding(ctx, c.PrivilegedNamespace(), constants.EBPFServiceAccount, roles.MetricsAuthRole, !use)
 }
 
 func (c *permissionsReconciler) reconcileVendorPermissions(

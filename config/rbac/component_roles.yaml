@@ -159,3 +159,39 @@ rules:
   - get
   - watch
 ---
+# Lets flowlogs-pipeline and the eBPF agent authenticate and authorize the clients scraping their
+# metrics endpoint, when spec.*.metrics.server.auth.type is set to Kubernetes.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: metrics-auth
+rules:
+- apiGroups:
+  - authentication.k8s.io
+  resources:
+  - tokenreviews
+  verbs:
+  - create
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - subjectaccessreviews
+  verbs:
+  - create
+---
+# This cluster role is installed but not bound by default: the operator cannot know which service
+# account your Prometheus runs as. Bind it when setting spec.*.metrics.server.auth.type to Kubernetes
+# on a cluster whose Prometheus isn't already granted the /metrics non-resource URL. OpenShift
+# monitoring, platform and user-workload alike, already grants it. E.g.:
+# kubectl create clusterrolebinding netobserv-metrics-scraper \
+#   --clusterrole=netobserv-metrics-scraper --serviceaccount=monitoring:prometheus-server
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: metrics-scraper
+rules:
+- nonResourceURLs:
+  - /metrics
+  verbs:
+  - get
+---

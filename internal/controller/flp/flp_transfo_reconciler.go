@@ -252,5 +252,11 @@ func (r *transformerReconciler) reconcileCRB(ctx context.Context, desired *flows
 		return err
 	}
 
+	// Authenticating the metrics endpoint requires flowlogs-pipeline to submit token / access reviews
+	useMetricsAuth := desired.Processor.Metrics.Server.IsMetricsAuthEnabled() && !isDelete
+	if err := r.ReconcileClusterRoleBinding(ctx, r.Namespace, transfoName, roles.MetricsAuthRole, !useMetricsAuth); err != nil {
+		return err
+	}
+
 	return nil
 }

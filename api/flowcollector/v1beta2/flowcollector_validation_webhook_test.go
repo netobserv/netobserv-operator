@@ -3,6 +3,7 @@ package v1beta2
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/coreos/go-semver/semver"
@@ -1322,4 +1323,115 @@ func TestHealthRuleVariant_GetMode(t *testing.T) {
 			assert.Equal(t, tc.expectedMode, result)
 		})
 	}
+}
+
+func TestWarnMetricsAuth(t *testing.T) {
+	kubeAuth := MetricsServerAuth{Type: MetricsAuthKubernetes}
+
+	for _, tc := range []struct {
+		name             string
+		ocpVersion       string
+		fc               *FlowCollector
+		expectedWarnings admission.Warnings
+	}{
+		{
+			name:       "Default config triggers no warning",
+			ocpVersion: "4.19.0",
+			fc:         &FlowCollector{Spec: FlowCollectorSpec{}},
+		},
+		{
+			name:       "Auth with TLS on OpenShift triggers no warning",
+			ocpVersion: "4.19.0",
+			fc: &FlowCollector{Spec: FlowCollectorSpec{
+				Processor: FlowCollectorFLP{Metrics: FLPMetrics{Server: MetricsServerConfig{
+					TLS:  ServerTLS{Type: TLSAuto},
+					Auth: kubeAuth,
+				}}},
+			}},
+		},
+		{
+			name:       "Auth without TLS warns about plaintext tokens",
+			ocpVersion: "4.19.0",
+			fc: &FlowCollector{Spec: FlowCollectorSpec{
+				Processor: FlowCollectorFLP{Metrics: FLPMetrics{Server: MetricsServerConfig{
+					TLS:  ServerTLS{Type: TLSDisabled},
+					Auth: kubeAuth,
+				}}},
+			}},
+			expectedWarnings: admission.Warnings{
+				fmt.Sprintf(MetricsAuthWithoutTLSWarning, "spec.processor.metrics.server"),
+			},
+		},
+		{
+			name: "Auth outside of OpenShift warns about the scraper RBAC",
+			fc: &FlowCollector{Spec: FlowCollectorSpec{
+				Agent: FlowCollectorAgent{EBPF: FlowCollectorEBPF{Metrics: EBPFMetrics{Server: MetricsServerConfig{
+					TLS:  ServerTLS{Type: TLSProvided},
+					Auth: kubeAuth,
+				}}}},
+			}},
+			expectedWarnings: admission.Warnings{
+				fmt.Sprintf(MetricsAuthScraperRBACWarning, "spec.agent.ebpf.metrics.server"),
+			},
+		},
+		{
+			name:       "Auth on both servers warns for both",
+			ocpVersion: "4.19.0",
+			fc: &FlowCollector{Spec: FlowCollectorSpec{
+				Processor: FlowCollectorFLP{Metrics: FLPMetrics{Server: MetricsServerConfig{Auth: kubeAuth}}},
+				Agent: FlowCollectorAgent{EBPF: FlowCollectorEBPF{Metrics: EBPFMetrics{Server: MetricsServerConfig{
+					Auth: kubeAuth,
+				}}}},
+			}},
+			expectedWarnings: admission.Warnings{
+				fmt.Sprintf(MetricsAuthWithoutTLSWarning, "spec.processor.metrics.server"),
+				fmt.Sprintf(MetricsAuthWithoutTLSWarning, "spec.agent.ebpf.metrics.server"),
+			},
+		},
+		{
+			name:       "Auth while agent metrics are disabled warns that it has no effect",
+			ocpVersion: "4.19.0",
+			fc: &FlowCollector{Spec: FlowCollectorSpec{
+				Agent: FlowCollectorAgent{EBPF: FlowCollectorEBPF{Metrics: EBPFMetrics{
+					Enable: ptr.To(false),
+					Server: MetricsServerConfig{TLS: ServerTLS{Type: TLSAuto}, Auth: kubeAuth},
+				}}},
+			}},
+			expectedWarnings: admission.Warnings{MetricsAuthWithoutAgentMetricsWarning},
+		},
+		{
+			name:       "Overriding METRICS_AUTH_TYPE warns about inconsistency",
+			ocpVersion: "4.19.0",
+			fc: &FlowCollector{Spec: FlowCollectorSpec{
+				Agent: FlowCollectorAgent{EBPF: FlowCollectorEBPF{
+					Advanced: &AdvancedAgentConfig{Env: map[string]string{"METRICS_AUTH_TYPE": "disabled"}},
+				}},
+			}},
+			expectedWarnings: admission.Warnings{MetricsAuthEnvOverrideWarning},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			CurrentClusterInfo = &clusterInfoMock{version: tc.ocpVersion}
+			v := validator{fc: &tc.fc.Spec}
+			v.warnMetricsAuth()
+			// Authenticating over a plaintext endpoint is weaker than it looks, but it works: never an error
+			assert.Empty(t, v.errors)
+			assert.Equal(t, tc.expectedWarnings, v.warnings)
+		})
+	}
+}
+
+// CurrentClusterInfo is nil before the manager wires it up; warnings must not panic there.
+func TestWarnMetricsAuth_UnknownCluster(t *testing.T) {
+	CurrentClusterInfo = nil
+	defer func() { CurrentClusterInfo = &clusterInfoMock{} }()
+
+	fc := FlowCollectorSpec{}
+	fc.Processor.Metrics.Server.Auth.Type = MetricsAuthKubernetes
+	fc.Processor.Metrics.Server.TLS.Type = TLSAuto
+
+	v := validator{fc: &fc}
+	assert.NotPanics(t, v.warnMetricsAuth)
+	assert.Empty(t, v.warnings)
+	assert.Empty(t, v.errors)
 }

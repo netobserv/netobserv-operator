@@ -401,6 +401,10 @@ spec:
         path: agent.ebpf.metrics.disableAlerts
       - displayName: Server
         path: agent.ebpf.metrics.server
+      - displayName: Auth
+        path: agent.ebpf.metrics.server.auth
+      - displayName: Type
+        path: agent.ebpf.metrics.server.auth.type
       - displayName: Port
         path: agent.ebpf.metrics.server.port
       - displayName: Scrape interval
@@ -501,6 +505,10 @@ spec:
         path: processor.metrics.healthRules
       - displayName: Include list
         path: processor.metrics.includeList
+      - displayName: Auth
+        path: processor.metrics.server.auth
+      - displayName: Type
+        path: processor.metrics.server.auth.type
       - displayName: Port
         path: processor.metrics.server.port
       - displayName: Scrape interval
@@ -935,6 +943,7 @@ spec:
           - netobserv-hostnetwork
           - netobserv-informers
           - netobserv-loki-writer
+          - netobserv-metrics-auth
           - netobserv-token-review
           resources:
           - clusterrolebindings
@@ -950,6 +959,7 @@ spec:
           - netobserv-hostnetwork
           - netobserv-informers
           - netobserv-loki-writer
+          - netobserv-metrics-auth
           - netobserv-token-review
           resources:
           - clusterroles

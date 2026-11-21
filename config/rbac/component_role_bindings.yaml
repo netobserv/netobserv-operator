@@ -58,3 +58,13 @@ roleRef:
   kind: ClusterRole
   name: flowcollector-viewer-role
 subjects: []
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: metrics-auth
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: metrics-auth
+subjects: []

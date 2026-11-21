@@ -21,6 +21,7 @@ const (
 	ConsoleTokenReviewRole  ClusterRoleName = "netobserv-token-review"
 	FlowCollectorViewerRole ClusterRoleName = "netobserv-flowcollector-viewer-role"
 	ConfigWatcherRole       RoleName        = "netobserv-config-watcher"
+	MetricsAuthRole         ClusterRoleName = "netobserv-metrics-auth"
 )
 
 // OperandClusterRoleBindings lists the preinstalled ClusterRoleBindings whose subjects are managed
@@ -33,6 +34,7 @@ var OperandClusterRoleBindings = []ClusterRoleName{
 	HostNetworkRole,
 	ConsoleTokenReviewRole,
 	FlowCollectorViewerRole,
+	MetricsAuthRole,
 }
 
 func GetRoleBindingName(shortName string, ref RoleName) string {

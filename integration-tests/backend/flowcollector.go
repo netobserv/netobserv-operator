@@ -295,6 +295,7 @@ var operandClusterRoleBindings = []string{
 	"netobserv-hostnetwork",
 	"netobserv-token-review",
 	"netobserv-flowcollector-viewer-role",
+	"netobserv-metrics-auth",
 }
 
 // delete flowcollector CRD from a cluster and wait for privileged namespace to be fully removed

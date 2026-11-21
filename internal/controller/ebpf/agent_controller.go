@@ -68,18 +68,21 @@ const (
 	envMetricPrefix               = "METRICS_PREFIX"
 	envMetricsTLSCertPath         = "METRICS_TLS_CERT_PATH"
 	envMetricsTLSKeyPath          = "METRICS_TLS_KEY_PATH"
-	envFilterRules                = "FLOW_FILTER_RULES"
-	envEnablePacketTranslation    = "ENABLE_PKT_TRANSLATION"
-	envEnableEbpfMgr              = "EBPF_PROGRAM_MANAGER_MODE"
-	envEnableUDNMapping           = "ENABLE_UDN_MAPPING"
-	envEnableIPsec                = "ENABLE_IPSEC_TRACKING"
-	envEnableTLSTracking          = "ENABLE_TLS_TRACKING"
-	envEnableSecondaryNetworks    = "ENABLE_SECONDARY_NETWORKS"
-	envDNSTrackingPort            = "DNS_TRACKING_PORT"
-	envPreferredInterface         = "PREFERRED_INTERFACE_FOR_MAC_PREFIX"
-	envAttachMode                 = "TC_ATTACH_MODE"
-	envOVNObservHostMountPath     = "OVN_OBSERV_HOST_MOUNT_PATH"
-	envListSeparator              = ","
+	// Note: the agent also accepts METRICS_AUTH_KUBE_CONFIG_PATH, to authenticate from outside of a
+	// cluster. We never set it: the agent always runs in-cluster, where its empty default is correct.
+	envMetricsAuthType         = "METRICS_AUTH_TYPE"
+	envFilterRules             = "FLOW_FILTER_RULES"
+	envEnablePacketTranslation = "ENABLE_PKT_TRANSLATION"
+	envEnableEbpfMgr           = "EBPF_PROGRAM_MANAGER_MODE"
+	envEnableUDNMapping        = "ENABLE_UDN_MAPPING"
+	envEnableIPsec             = "ENABLE_IPSEC_TRACKING"
+	envEnableTLSTracking       = "ENABLE_TLS_TRACKING"
+	envEnableSecondaryNetworks = "ENABLE_SECONDARY_NETWORKS"
+	envDNSTrackingPort         = "DNS_TRACKING_PORT"
+	envPreferredInterface      = "PREFERRED_INTERFACE_FOR_MAC_PREFIX"
+	envAttachMode              = "TC_ATTACH_MODE"
+	envOVNObservHostMountPath  = "OVN_OBSERV_HOST_MOUNT_PATH"
+	envListSeparator           = ","
 )
 
 const (
@@ -549,6 +552,9 @@ func (c *AgentController) envConfig(ctx context.Context, coll *flowslatest.FlowC
 		config = addEnv(config, envEnableMetrics, "true", advancedConfig.Env)
 		config = addEnv(config, envMetricsPort, strconv.Itoa(int(coll.Spec.Agent.EBPF.GetMetricsPort())), advancedConfig.Env)
 		config = addEnv(config, envMetricPrefix, "netobserv_agent_", advancedConfig.Env)
+		if coll.Spec.Agent.EBPF.Metrics.Server.IsMetricsAuthEnabled() {
+			config = addEnv(config, envMetricsAuthType, "kubernetes", advancedConfig.Env)
+		}
 	}
 
 	// set GOMEMLIMIT which allows specifying a soft memory cap to force GC when resource limit is reached to prevent OOM

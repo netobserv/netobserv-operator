@@ -223,6 +223,7 @@ rules:
   - netobserv-hostnetwork
   - netobserv-informers
   - netobserv-loki-writer
+  - netobserv-metrics-auth
   - netobserv-token-review
   resources:
   - clusterrolebindings
@@ -238,6 +239,7 @@ rules:
   - netobserv-hostnetwork
   - netobserv-informers
   - netobserv-loki-writer
+  - netobserv-metrics-auth
   - netobserv-token-review
   resources:
   - clusterroles

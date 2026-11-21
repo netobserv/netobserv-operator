@@ -21,6 +21,19 @@ func TestConfigmapToSecretOrConfig(t *testing.T) {
 	assert.Equal(res.ConfigMap.Key, "test.txt")
 }
 
+func TestGetServiceMonitorBearerTokenFile(t *testing.T) {
+	assert := assert.New(t)
+
+	// Unset and explicitly disabled: the scraper sends no credentials
+	assert.Empty(GetServiceMonitorBearerTokenFile(&flowslatest.MetricsServerAuth{}))
+	assert.Empty(GetServiceMonitorBearerTokenFile(&flowslatest.MetricsServerAuth{Type: flowslatest.MetricsAuthDisabled}))
+
+	assert.Equal(
+		"/var/run/secrets/kubernetes.io/serviceaccount/token",
+		GetServiceMonitorBearerTokenFile(&flowslatest.MetricsServerAuth{Type: flowslatest.MetricsAuthKubernetes}),
+	)
+}
+
 func TestSecretToSecretOrConfig(t *testing.T) {
 	assert := assert.New(t)
 	file := flowslatest.FileReference{

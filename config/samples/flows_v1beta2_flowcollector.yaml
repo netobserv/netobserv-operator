@@ -63,6 +63,13 @@ spec:
       # metrics:
       #   server:
       #     port: 9400
+      #     # Encrypt and authenticate the metrics endpoint. "Auto" uses the OpenShift service serving
+      #     # certificates: on other Kubernetes distributions, provide your own certificate instead, and
+      #     # bind the netobserv-metrics-scraper cluster role to your Prometheus service account.
+      #     tls:
+      #       type: Auto
+      #     auth:
+      #       type: Kubernetes
       # Custom optionnal resources configuration
       # resources:
       #   requests:
@@ -117,6 +124,13 @@ spec:
     metrics:
       # server:
       #   port: 9401
+      #   # Encrypt and authenticate the metrics endpoint. "Auto" uses the OpenShift service serving
+      #   # certificates: on other Kubernetes distributions, provide your own certificate instead, and
+      #   # bind the netobserv-metrics-scraper cluster role to your Prometheus service account.
+      #   tls:
+      #     type: Auto
+      #   auth:
+      #     type: Kubernetes
       disableAlerts: []
       # includeList:
       # - "node_ingress_bytes_total"

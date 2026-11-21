@@ -566,6 +566,30 @@ type ServerTLS struct {
 	ProvidedCAFile *FileReference `json:"providedCaFile,omitempty"`
 }
 
+// Authentication required from the clients scraping a metrics endpoint.
+// +kubebuilder:validation:Enum:="Disabled";"Kubernetes"
+type MetricsAuthType string
+
+const (
+	MetricsAuthDisabled   MetricsAuthType = "Disabled"
+	MetricsAuthKubernetes MetricsAuthType = "Kubernetes"
+)
+
+// `MetricsServerAuth` define the authentication configuration of the metrics endpoint.
+type MetricsServerAuth struct {
+	// Select the type of authentication required from the Prometheus scraper:<br>
+	// - `Disabled` (default) to let the metrics endpoint be scraped without authentication.<br>
+	// - `Kubernetes` to require a bearer token, which is verified with the Kubernetes `TokenReview`
+	// and `SubjectAccessReview` APIs. The scraper must be allowed to `get` the `/metrics` non-resource URL:
+	// this is already granted to the Prometheus deployed by OpenShift monitoring, whereas on other
+	// Kubernetes distributions the `netobserv-metrics-scraper` cluster role must be bound to the scraper.
+	// Authentication does not encrypt anything by itself, so `tls` should be configured as well.
+	// +unionDiscriminator
+	//+kubebuilder:default:="Disabled"
+	// +optional
+	Type MetricsAuthType `json:"type,omitempty"`
+}
+
 // `ClientServerTLS` define the TLS configuration for both client and server sides
 type ClientServerTLS struct {
 	// TLS client certificate reference, used for mTLS. Leave unset for simple TLS.
@@ -591,6 +615,10 @@ type MetricsServerConfig struct {
 	// TLS configuration.
 	// +optional
 	TLS ServerTLS `json:"tls"`
+
+	// Authentication configuration.
+	// +optional
+	Auth MetricsServerAuth `json:"auth"`
 
 	// Prometheus scraping interval, how often metrics are pulled.
 	//+kubebuilder:validation:Format=duration
