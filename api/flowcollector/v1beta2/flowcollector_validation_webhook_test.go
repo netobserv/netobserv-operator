@@ -1116,13 +1116,20 @@ func TestValidateScheduling(t *testing.T) {
 			},
 		},
 		{
-			name: "Valid default (Kafka)",
+			name: "No inconsistent scheduling in Service mode",
 			fc: &FlowCollector{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "cluster",
 				},
 				Spec: FlowCollectorSpec{
-					DeploymentModel: DeploymentModelKafka,
+					DeploymentModel: DeploymentModelService,
+					Processor: FlowCollectorFLP{
+						Advanced: &AdvancedProcessorConfig{
+							Scheduling: &SchedulingConfig{
+								Tolerations: []corev1.Toleration{{Key: "key"}},
+							},
+						},
+					},
 				},
 			},
 		},
@@ -1133,6 +1140,11 @@ func TestValidateScheduling(t *testing.T) {
 					Name: "cluster",
 				},
 				Spec: FlowCollectorSpec{
+					DeploymentModel: DeploymentModelKafka,
+					Kafka: FlowCollectorKafka{
+						Address: "a",
+						Topic:   "b",
+					},
 					Processor: FlowCollectorFLP{
 						Advanced: &AdvancedProcessorConfig{
 							Scheduling: &SchedulingConfig{
@@ -1158,26 +1170,111 @@ func TestValidateScheduling(t *testing.T) {
 	}
 }
 
+func TestValidateKafka(t *testing.T) {
+	for _, tc := range []struct {
+		name             string
+		fc               *FlowCollector
+		expectedError    string
+		expectedWarnings admission.Warnings
+		ocpVersion       string
+	}{
+		{
+			name: "Invalid default when using Kafka",
+			fc: &FlowCollector{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "cluster",
+				},
+				Spec: FlowCollectorSpec{
+					DeploymentModel: DeploymentModelKafka,
+				},
+			},
+			expectedError: "spec.kafka.address must be set with Kafka deployment model",
+		},
+		{
+			name: "Valid Kafka config",
+			fc: &FlowCollector{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "cluster",
+				},
+				Spec: FlowCollectorSpec{
+					DeploymentModel: DeploymentModelKafka,
+					Kafka: FlowCollectorKafka{
+						Address: "a",
+						Topic:   "b",
+					},
+				},
+			},
+		},
+		{
+			name: "Invalid empty Kafka exporter",
+			fc: &FlowCollector{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "cluster",
+				},
+				Spec: FlowCollectorSpec{
+					Exporters: []*FlowCollectorExporter{
+						{
+							Type: KafkaExporter,
+						},
+					},
+				},
+			},
+			expectedError: "spec.exporters[0].kafka.address must be set in Kafka exporter",
+		},
+		{
+			name: "Valid Kafka exporter",
+			fc: &FlowCollector{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "cluster",
+				},
+				Spec: FlowCollectorSpec{
+					Exporters: []*FlowCollectorExporter{
+						{
+							Type: KafkaExporter,
+							Kafka: FlowCollectorKafka{
+								Address: "a",
+								Topic:   "b",
+							},
+						},
+					},
+				},
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			r := FlowCollector{}
+			CurrentClusterInfo = &clusterInfoMock{version: tc.ocpVersion}
+			warnings, err := r.Validate(context.TODO(), tc.fc)
+			if tc.expectedError == "" {
+				assert.NoError(t, err)
+			} else {
+				assert.ErrorContains(t, err, tc.expectedError)
+			}
+			assert.Equal(t, tc.expectedWarnings, warnings)
+		})
+	}
+}
+
 func TestElligibleMetrics(t *testing.T) {
-	met, tot := GetElligibleMetricsForHealthRule(HealthRulePacketDropsByKernel, &HealthRuleVariant{
+	met, tot := GetElligibleMetricsForAlert(HealthRulePacketDropsByKernel, &HealthRuleVariant{
 		GroupBy: GroupByNamespace,
 	})
 	assert.Equal(t, []string{"namespace_drop_packets_total", "workload_drop_packets_total"}, met)
 	assert.Equal(t, []string{"namespace_ingress_packets_total", "workload_ingress_packets_total", "namespace_egress_packets_total", "workload_egress_packets_total"}, tot)
 
-	met, tot = GetElligibleMetricsForHealthRule(HealthRulePacketDropsByKernel, &HealthRuleVariant{
+	met, tot = GetElligibleMetricsForAlert(HealthRulePacketDropsByKernel, &HealthRuleVariant{
 		GroupBy: GroupByWorkload,
 	})
 	assert.Equal(t, []string{"workload_drop_packets_total"}, met)
 	assert.Equal(t, []string{"workload_ingress_packets_total", "workload_egress_packets_total"}, tot)
 
-	met, tot = GetElligibleMetricsForHealthRule(HealthRulePacketDropsByKernel, &HealthRuleVariant{
+	met, tot = GetElligibleMetricsForAlert(HealthRulePacketDropsByKernel, &HealthRuleVariant{
 		GroupBy: GroupByNode,
 	})
 	assert.Equal(t, []string{"node_drop_packets_total"}, met)
 	assert.Equal(t, []string{"node_ingress_packets_total", "node_egress_packets_total"}, tot)
 
-	met, tot = GetElligibleMetricsForHealthRule(HealthRulePacketDropsByKernel, &HealthRuleVariant{})
+	met, tot = GetElligibleMetricsForAlert(HealthRulePacketDropsByKernel, &HealthRuleVariant{})
 	assert.Equal(t, []string{"namespace_drop_packets_total", "workload_drop_packets_total", "node_drop_packets_total"}, met)
 	assert.Equal(t, []string{"namespace_ingress_packets_total", "workload_ingress_packets_total", "node_ingress_packets_total", "namespace_egress_packets_total", "workload_egress_packets_total", "node_egress_packets_total"}, tot)
 }

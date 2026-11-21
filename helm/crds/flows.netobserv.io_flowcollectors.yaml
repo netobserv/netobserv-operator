@@ -1029,19 +1029,17 @@ spec:
                               type: object
                           type: object
                         cacheActiveTimeout:
-                          default: 15s
                           description: |-
                             `cacheActiveTimeout` is the period during which the agent aggregates flows before sending.
                             Increasing `cacheMaxFlows` and `cacheActiveTimeout` can decrease the network traffic overhead and the CPU load,
-                            however you can expect higher memory consumption and an increased latency in the flow collection.
+                            however you can expect higher memory consumption and an increased latency in the flow collection. The default is 15s.
                           pattern: ^\d+(ns|ms|s|m)?$
                           type: string
                         cacheMaxFlows:
-                          default: 120000
                           description: |-
                             `cacheMaxFlows` is the maximum number of flows in an aggregate; when reached, the reporter sends the flows.
                             Increasing `cacheMaxFlows` and `cacheActiveTimeout` can decrease the network traffic overhead and the CPU load,
-                            however you can expect higher memory consumption and an increased latency in the flow collection.
+                            however you can expect higher memory consumption and an increased latency in the flow collection. The default is 120K.
                           format: int32
                           minimum: 1
                           type: integer
@@ -1058,12 +1056,10 @@ spec:
                           maxItems: 8
                           type: array
                         excludeInterfaces:
-                          default:
-                            - lo
                           description: |-
                             `excludeInterfaces` contains the interface names that are excluded from flow tracing.
                             An entry enclosed by slashes, such as `/br-/`, is matched as a regular expression.
-                            Otherwise it is matched as a case-sensitive string.
+                            Otherwise it is matched as a case-sensitive string. `lo` is excluded by default.
                           items:
                             type: string
                           type: array
@@ -1322,7 +1318,6 @@ spec:
                               type: string
                           type: object
                         imagePullPolicy:
-                          default: IfNotPresent
                           description: '`imagePullPolicy` is the Kubernetes pull policy for the image defined above'
                           enum:
                             - IfNotPresent
@@ -1339,11 +1334,9 @@ spec:
                             type: string
                           type: array
                         kafkaBatchSize:
-                          default: 1048576
                           description: '`kafkaBatchSize` limits the maximum size of a request in bytes before being sent to a partition. Ignored when not using Kafka. Default: 1MB.'
                           type: integer
                         logLevel:
-                          default: info
                           description: '`logLevel` defines the log level for the NetObserv eBPF Agent'
                           enum:
                             - trace
@@ -1444,7 +1437,6 @@ spec:
                                           type: string
                                       type: object
                                     type:
-                                      default: Disabled
                                       description: |-
                                         Select the type of TLS configuration:<br>
                                         - `Disabled` (default) to not configure TLS for the endpoint.
@@ -1456,8 +1448,6 @@ spec:
                                         - Provided
                                         - Auto
                                       type: string
-                                  required:
-                                    - type
                                   type: object
                               type: object
                           type: object
@@ -1470,12 +1460,6 @@ spec:
                             When privileged mode is on, the `SecondaryNetworks` feature is also implicitly enabled.
                           type: boolean
                         resources:
-                          default:
-                            limits:
-                              memory: 800Mi
-                            requests:
-                              cpu: 100m
-                              memory: 50Mi
                           description: |-
                             `resources` are the compute resources required by this container.
                             For more information, see https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
@@ -1537,7 +1521,6 @@ spec:
                               type: object
                           type: object
                         sampling:
-                          default: 50
                           description: Sampling interval of the eBPF probe. 100 means one packet on 100 is sent. 0 or 1 means all packets are sampled.
                           format: int32
                           minimum: 0
@@ -1550,12 +1533,10 @@ spec:
                         Deprecated: only `eBPF` remains supported.
                       properties:
                         cacheActiveTimeout:
-                          default: 20s
                           description: '`cacheActiveTimeout` is the max period during which the reporter aggregates flows before sending.'
                           pattern: ^\d+(ns|ms|s|m)?$
                           type: string
                         cacheMaxFlows:
-                          default: 400
                           description: '`cacheMaxFlows` is the max number of flows in an aggregate; when reached, the reporter sends the flows.'
                           format: int32
                           minimum: 0
@@ -1568,7 +1549,6 @@ spec:
                               type: string
                           type: object
                         forceSampleAll:
-                          default: false
                           description: |-
                             `forceSampleAll` allows disabling sampling in the IPFIX-based flow reporter.
                             It is not recommended to sample all the traffic with IPFIX, as it might generate cluster instability.
@@ -1594,7 +1574,6 @@ spec:
                               type: string
                           type: object
                         sampling:
-                          default: 400
                           description: |-
                             `sampling` is the sampling interval on the reporter. 100 means one flow on 100 is sent.
                             To ensure cluster stability, it is not possible to set a value below 2.
@@ -1617,7 +1596,6 @@ spec:
                       type: string
                   type: object
                 consolePlugin:
-                  default: {}
                   description: '`consolePlugin` defines the settings related to the Web Console.'
                   properties:
                     advanced:
@@ -2891,11 +2869,9 @@ spec:
                           type: string
                       type: object
                     enable:
-                      default: true
                       description: Enables the console plugin deployment.
                       type: boolean
                     imagePullPolicy:
-                      default: IfNotPresent
                       description: '`imagePullPolicy` is the Kubernetes pull policy for the image defined above.'
                       enum:
                         - IfNotPresent
@@ -2903,7 +2879,6 @@ spec:
                         - Never
                       type: string
                     logLevel:
-                      default: info
                       description: '`logLevel` for the web console backend.'
                       enum:
                         - trace
@@ -2915,12 +2890,9 @@ spec:
                         - panic
                       type: string
                     portNaming:
-                      default:
-                        enable: true
                       description: '`portNaming` defines the configuration of the port-to-service name translation.'
                       properties:
                         enable:
-                          default: true
                           description: Enable the console plugin port-to-service name translation
                           type: boolean
                         portNames:
@@ -2932,28 +2904,6 @@ spec:
                           type: object
                       type: object
                     quickFilters:
-                      default:
-                        - default: true
-                          filter:
-                            flow_layer: '"app"'
-                          name: Applications
-                        - filter:
-                            flow_layer: '"infra"'
-                          name: Infrastructure
-                        - default: true
-                          filter:
-                            dst_kind: '"Pod"'
-                            src_kind: '"Pod"'
-                          name: Pods network
-                        - filter:
-                            dst_kind: '"Service"'
-                          name: Services network
-                        - filter:
-                            src_subnet_label: '"",EXT:'
-                          name: External ingress
-                        - filter:
-                            dst_subnet_label: '"",EXT:'
-                          name: External egress
                       description: |-
                         `quickFilters` configures quick filter presets for the web console.
                         Filters for external traffic assume the subnet labels are configured to distinguish internal and external traffic (see `spec.processor.subnetLabels`).
@@ -2979,18 +2929,11 @@ spec:
                         type: object
                       type: array
                     replicas:
-                      default: 1
                       description: '`replicas` defines the number of replicas (pods) to start.'
                       format: int32
                       minimum: 0
                       type: integer
                     resources:
-                      default:
-                        limits:
-                          memory: 100Mi
-                        requests:
-                          cpu: 100m
-                          memory: 50Mi
                       description: |-
                         `resources`, in terms of compute resources, required by this container.
                         For more information, see https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/.
@@ -3126,11 +3069,9 @@ spec:
                         description: Kafka configuration, such as the address and topic, to send enriched flows to.
                         properties:
                           address:
-                            default: ""
                             description: Address of the Kafka server
                             type: string
                           compression:
-                            default: none
                             description: |-
                               Compression codec to use when producing messages to Kafka.
                               Accepted values are: `none` (default), `gzip`, `snappy`, `lz4`, `zstd`.
@@ -3267,7 +3208,6 @@ spec:
                                 type: object
                             type: object
                           topic:
-                            default: ""
                             description: Kafka topic to use. It must exist. NetObserv does not create it.
                             type: string
                         required:
@@ -3414,11 +3354,9 @@ spec:
                   description: Kafka configuration, allowing to use Kafka as a broker as part of the flow collection pipeline. Available when the `spec.deploymentModel` is `Kafka`.
                   properties:
                     address:
-                      default: ""
                       description: Address of the Kafka server
                       type: string
                     compression:
-                      default: none
                       description: |-
                         Compression codec to use when producing messages to Kafka.
                         Accepted values are: `none` (default), `gzip`, `snappy`, `lz4`, `zstd`.
@@ -3555,7 +3493,6 @@ spec:
                           type: object
                       type: object
                     topic:
-                      default: ""
                       description: Kafka topic to use. It must exist. NetObserv does not create it.
                       type: string
                   required:
@@ -3598,14 +3535,13 @@ spec:
                           type: string
                       type: object
                     enable:
-                      default: true
                       description: |-
-                        Set `enable` to `true` to store flows in Loki.
-                        The Console plugin can use either Loki or Prometheus as a data source for metrics (see also `spec.prometheus.querier`), or both.
+                        Set `enable` to `true` to store flows in Loki, or `false` to not use Loki.
+                        The web console can use either Loki or Prometheus as a data source for metrics (see also `spec.prometheus.querier`), or both.
                         Not all queries are transposable from Loki to Prometheus. Hence, if Loki is disabled, some features of the plugin are disabled as well,
                         such as getting per-pod information or viewing raw flows.
                         If both Prometheus and Loki are enabled, Prometheus takes precedence and Loki is used as a fallback for queries that Prometheus cannot handle.
-                        If they are both disabled, the Console plugin is not deployed.
+                        If they are both disabled, the web console is not deployed.
                       type: boolean
                     lokiStack:
                       description: |-
@@ -3613,7 +3549,6 @@ spec:
                         It is ignored for other modes.
                       properties:
                         name:
-                          default: loki
                           description: Name of an existing LokiStack resource to use.
                           type: string
                         namespace:
@@ -3623,8 +3558,6 @@ spec:
                             In order to do so, you must grant it permissions to the `netobserv-secret-watcher` and `netobserv-secret-creator` roles in the corresponding namespaces.
                             Refer to the Loki configuration documentation for more information.
                           type: string
-                      required:
-                        - name
                       type: object
                     manual:
                       description: |-
@@ -3632,7 +3565,6 @@ spec:
                         It is ignored for other modes.
                       properties:
                         authToken:
-                          default: Disabled
                           description: |-
                             `authToken` describes the way to get a token to authenticate to Loki.<br>
                             - `Disabled` does not send any token with the request.<br>
@@ -3645,14 +3577,12 @@ spec:
                             - Forward
                           type: string
                         ingesterUrl:
-                          default: http://loki:3100/
                           description: |-
                             `ingesterUrl` is the address of an existing Loki ingester service to push the flows to. When using the Loki Operator,
                             set it to the Loki gateway service with the `network` tenant set in path, for example
                             https://loki-gateway-http.netobserv.svc:8080/api/logs/v1/network.
                           type: string
                         querierUrl:
-                          default: http://loki:3100/
                           description: |-
                             `querierUrl` specifies the address of the Loki querier service.
                             When using the Loki Operator, set it to the Loki gateway service with the `network` tenant set in path, for example
@@ -3732,7 +3662,6 @@ spec:
                             `statusTLS` configuration is used when `statusUrl` is set.
                           type: string
                         tenantID:
-                          default: netobserv
                           description: |-
                             `tenantID` is the Loki `X-Scope-OrgID` that identifies the tenant for each request.
                             When using the Loki Operator, set it to `network`, which corresponds to a special tenant mode.
@@ -3809,15 +3738,12 @@ spec:
                         It is ignored for other modes.
                       properties:
                         ingesterUrl:
-                          default: http://loki-distributor:3100/
                           description: '`ingesterUrl` is the address of an existing Loki ingester service to push the flows to.'
                           type: string
                         querierUrl:
-                          default: http://loki-query-frontend:3100/
                           description: '`querierURL` specifies the address of the Loki querier service.'
                           type: string
                         tenantID:
-                          default: netobserv
                           description: '`tenantID` is the Loki `X-Scope-OrgID` header that identifies the tenant for each request.'
                           type: string
                         tls:
@@ -3886,13 +3812,12 @@ spec:
                           type: object
                       type: object
                     mode:
-                      default: Monolithic
                       description: |-
                         `mode` must be set according to the installation mode of Loki:<br>
-                        - Use `LokiStack` when Loki is managed using the Loki Operator<br>
-                        - Use `Monolithic` when Loki is installed as a monolithic workload<br>
-                        - Use `Microservices` when Loki is installed as microservices, but without Loki Operator<br>
-                        - Use `Manual` if none of the options above match your setup<br>
+                        - Use `LokiStack` when Loki is managed using the Loki Operator.<br>
+                        - Use `Monolithic` when Loki is installed as a monolithic workload.<br>
+                        - Use `Microservices` when Loki is installed as microservices, but without Loki Operator.<br>
+                        - Use `Manual` if none of the options above match your setup.<br>
                       enum:
                         - Manual
                         - LokiStack
@@ -3906,13 +3831,11 @@ spec:
                         It is ignored for other modes.
                       properties:
                         installDemoLoki:
-                          default: false
                           description: |-
                             Set `installDemoLoki` to `true` to automatically create Loki deployment, service and storage.
                             This is meant for development and demo use only, and not recommended in production.
                           type: boolean
                         tenantID:
-                          default: netobserv
                           description: '`tenantID` is the Loki `X-Scope-OrgID` header that identifies the tenant for each request.'
                           type: string
                         tls:
@@ -3980,34 +3903,27 @@ spec:
                               type: object
                           type: object
                         url:
-                          default: http://loki:3100/
                           description: '`url` is the unique address of an existing Loki service that points to both the ingester and the querier.'
                           type: string
                       type: object
                     readTimeout:
-                      default: 30s
                       description: |-
                         `readTimeout` is the maximum console plugin loki query total time limit.
                         A timeout of zero means no timeout.
                       type: string
                     writeBatchSize:
-                      default: 10485760
-                      description: '`writeBatchSize` is the maximum batch size (in bytes) of Loki logs to accumulate before sending.'
+                      description: '`writeBatchSize` is the maximum batch size (in bytes) of Loki logs to accumulate before sending. Default: 10MB.'
                       format: int64
                       minimum: 1
                       type: integer
                     writeBatchWait:
-                      default: 1s
                       description: '`writeBatchWait` is the maximum time to wait before sending a Loki batch.'
                       type: string
                     writeTimeout:
-                      default: 10s
                       description: |-
                         `writeTimeout` is the maximum Loki time connection / request limit.
                         A timeout of zero means no timeout.
                       type: string
-                  required:
-                    - mode
                   type: object
                 namespace:
                   description: Namespace where NetObserv pods are deployed.
@@ -5084,7 +5000,6 @@ spec:
                         advertised prefixes from FRRConfiguration resources. Requires frr-k8s to be installed in the cluster.
                       type: boolean
                     clusterName:
-                      default: ""
                       description: '`clusterName` is the name of the cluster to appear in the flows data. In a multi-cluster context, it makes it possible to identify the flows provenance.'
                       type: string
                     consumerReplicas:
@@ -5143,7 +5058,6 @@ spec:
                         type: object
                       type: array
                     imagePullPolicy:
-                      default: IfNotPresent
                       description: '`imagePullPolicy` is the Kubernetes pull policy for the image defined above'
                       enum:
                         - IfNotPresent
@@ -5354,7 +5268,6 @@ spec:
                                   type: object
                               type: object
                             type:
-                              default: Auto
                               description: |-
                                 Select the type of TLS configuration:<br>
                                 - `Disabled` to not configure TLS for the k8scache endpoint. Disabling TLS results in a less secure deployment model.<br>
@@ -5368,8 +5281,6 @@ spec:
                                 - Auto
                                 - Auto-mTLS
                               type: string
-                          required:
-                            - type
                           type: object
                       type: object
                     kafkaConsumerAutoscaler:
@@ -5674,15 +5585,12 @@ spec:
                           type: string
                       type: object
                     kafkaConsumerBatchSize:
-                      default: 10485760
                       description: '`kafkaConsumerBatchSize` indicates to the broker the maximum batch size, in bytes, that the consumer accepts. Ignored when not using Kafka. Default: 10MB.'
                       type: integer
                     kafkaConsumerQueueCapacity:
-                      default: 1000
-                      description: '`kafkaConsumerQueueCapacity` defines the capacity of the internal message queue used in the Kafka consumer client. Ignored when not using Kafka.'
+                      description: '`kafkaConsumerQueueCapacity` defines the capacity of the internal message queue used in the Kafka consumer client. Ignored when not using Kafka. Default: 1000.'
                       type: integer
                     kafkaConsumerReplicas:
-                      default: 3
                       description: |-
                         `kafkaConsumerReplicas` defines the number of replicas (pods) to start for `flowlogs-pipeline-transformer`, which consumes Kafka messages.
                         This setting is ignored when Kafka is disabled.
@@ -5692,7 +5600,6 @@ spec:
                       minimum: 0
                       type: integer
                     logLevel:
-                      default: info
                       description: '`logLevel` of the processor runtime'
                       enum:
                         - trace
@@ -5704,7 +5611,6 @@ spec:
                         - panic
                       type: string
                     logTypes:
-                      default: Flows
                       description: |-
                         `logTypes` defines the desired record types to generate. Possible values are:<br>
                         - `Flows` to export regular network flows. This is the default.<br>
@@ -6008,7 +5914,6 @@ spec:
                                       type: string
                                   type: object
                                 type:
-                                  default: Disabled
                                   description: |-
                                     Select the type of TLS configuration:<br>
                                     - `Disabled` (default) to not configure TLS for the endpoint.
@@ -6020,22 +5925,13 @@ spec:
                                     - Provided
                                     - Auto
                                   type: string
-                              required:
-                                - type
                               type: object
                           type: object
                       type: object
                     multiClusterDeployment:
-                      default: false
                       description: Set `multiClusterDeployment` to `true` to enable multi clusters feature. This adds `clusterName` label to flows data
                       type: boolean
                     resources:
-                      default:
-                        limits:
-                          memory: 800Mi
-                        requests:
-                          cpu: 100m
-                          memory: 100Mi
                       description: |-
                         `resources` are the compute resources required by this container.
                         For more information, see https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
@@ -6176,7 +6072,6 @@ spec:
                               type: object
                           type: object
                         tlsType:
-                          default: Auto
                           description: |-
                             Select the type of TLS configuration:<br>
                             - `Disabled` to not configure TLS for the endpoint. Disabling TLS results in a less secure deployment model.<br>
@@ -6190,8 +6085,6 @@ spec:
                             - Auto
                             - Auto-mTLS
                           type: string
-                      required:
-                        - tlsType
                       type: object
                     slicesConfig:
                       description: Global configuration managing FlowCollectorSlices custom resources.
@@ -6207,7 +6100,6 @@ spec:
                             - AllowList
                           type: string
                         enable:
-                          default: false
                           description: '`enable` determines if the FlowCollectorSlice feature is enabled. If not, all resources of kind FlowCollectorSlice are simply ignored.'
                           type: boolean
                         namespacesAllowList:
@@ -6218,8 +6110,6 @@ spec:
                           items:
                             type: string
                           type: array
-                      required:
-                        - enable
                       type: object
                     subnetLabels:
                       description: |-
@@ -6270,6 +6160,18 @@ spec:
                       description: If `unmanagedReplicas` is `true`, the operator will not reconcile `consumerReplicas`. This is useful when using a pod autoscaler.
                       type: boolean
                   type: object
+                profile:
+                  description: |-
+                    `profile` defines a preset configuration for a few FlowCollector default settings. Any value explicitly set in the FlowCollector resource
+                    overrides the profile values. Possible profiles are:<br>
+                    - `Low`: Low precision, with low resource usage and minimal impact on the cluster. In this mode, Loki is disabled, sampling is set to 400, there is no special eBPF feature enabled and eBPF `cacheMaxFlows` is decreased to 50K.<br>
+                    - `High`: High precision profile, with more features enabled, but potentially a more significant impact on the cluster resources. This mode assumes Loki is installed, sampling is set to 1 (all packets are sampled), and these eBPF features are enabled: `DNSTracking`, `FlowRTT`, `PacketDrop`, `SecondaryNetworks`, `TLSTracking` and `UDNMapping`.<br>
+                    - `Default`: Medium precision, suitable for most installations, equivalent to no profile.<br>
+                  enum:
+                    - Low
+                    - High
+                    - Default
+                  type: string
                 prometheus:
                   description: '`prometheus` defines Prometheus settings, such as querier configuration used to fetch metrics from the Console plugin.'
                   properties:
@@ -6277,15 +6179,14 @@ spec:
                       description: Prometheus querying configuration, such as client settings, used in the Console plugin.
                       properties:
                         enable:
-                          default: true
                           description: |-
-                            When `enable` is `true`, the Console plugin queries flow metrics from Prometheus instead of Loki whenever possible.
+                            When `enable` is `true`, the web console queries flow metrics from Prometheus instead of Loki whenever possible.
                             It is enabled by default: set it to `false` to disable this feature.
-                            The Console plugin can use either Loki or Prometheus as a data source for metrics (see also `spec.loki`), or both.
+                            The web console can use either Loki or Prometheus as a data source for metrics (see also `spec.loki`), or both.
                             Not all queries are transposable from Loki to Prometheus. Hence, if Loki is disabled, some features of the plugin are disabled as well,
                             such as getting per-pod information or viewing raw flows.
                             If both Prometheus and Loki are enabled, Prometheus takes precedence and Loki is used as a fallback for queries that Prometheus cannot handle.
-                            If they are both disabled, the Console plugin is not deployed.
+                            If they are both disabled, the web console is not deployed.
                           type: boolean
                         manual:
                           description: Prometheus configuration for `Manual` mode.
@@ -6429,12 +6330,10 @@ spec:
                                   type: object
                               type: object
                             url:
-                              default: http://prometheus:9090
                               description: '`url` is the address of an existing Prometheus service to use for querying metrics.'
                               type: string
                           type: object
                         mode:
-                          default: Auto
                           description: |-
                             `mode` must be set according to the type of Prometheus installation that stores NetObserv metrics:<br>
                             - Use `Auto` to try configuring automatically for known vendors.<br>
@@ -6444,13 +6343,10 @@ spec:
                             - Auto
                           type: string
                         timeout:
-                          default: 30s
                           description: |-
                             `timeout` is the read timeout for console plugin queries to Prometheus.
                             A timeout of zero means no timeout.
                           type: string
-                      required:
-                        - mode
                       type: object
                   type: object
               type: object

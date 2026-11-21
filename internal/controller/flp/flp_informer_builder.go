@@ -126,7 +126,7 @@ func (b *informerBuilder) deployment() (*appsv1.Deployment, error) {
 			snGroups = append(snGroups, strings.Join(indexes, ","))
 		}
 	}
-	if b.desired.Agent.EBPF.IsUDNMappingEnabled() {
+	if b.desired.IsUDNMappingEnabled() {
 		snGroups = append(snGroups, "udn")
 	}
 	if len(snGroups) > 0 {

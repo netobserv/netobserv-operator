@@ -37,53 +37,7 @@ metadata:
             "name": "cluster"
           },
           "spec": {
-            "agent": {
-              "ebpf": {
-                "cacheActiveTimeout": "15s",
-                "cacheMaxFlows": 120000,
-                "excludeInterfaces": [
-                  "lo"
-                ],
-                "interfaces": [],
-                "privileged": false,
-                "sampling": 50
-              },
-              "type": "eBPF"
-            },
-            "consolePlugin": {
-              "enable": true
-            },
-            "deploymentModel": "Service",
-            "exporters": [],
-            "loki": {
-              "enable": true,
-              "lokiStack": {
-                "name": "loki"
-              },
-              "mode": "Monolithic",
-              "monolithic": {
-                "url": "http://loki.netobserv.svc.cluster.local.:3100/"
-              }
-            },
-            "namespace": "netobserv",
-            "networkPolicy": {
-              "additionalNamespaces": [],
-              "enable": true
-            },
-            "processor": {
-              "consumerReplicas": 3,
-              "metrics": {
-                "disableAlerts": []
-              },
-              "slicesConfig": {
-                "enable": false
-              }
-            },
-            "prometheus": {
-              "querier": {
-                "enable": true
-              }
-            }
+            "profile": "Low"
           }
         }
       ]
@@ -561,6 +515,8 @@ spec:
         path: processor.subnetLabels.customLabels
       - displayName: Unmanaged replicas
         path: processor.unmanagedReplicas
+      - displayName: Profile
+        path: profile
       - displayName: Prometheus
         path: prometheus
       - displayName: Querier

@@ -38,11 +38,13 @@ func SetDeployedNamespace(ctx context.Context, c client.Client, cpnt ComponentNa
 			}
 			return err
 		}
+
+		patch := client.MergeFromWithOptions(fc.DeepCopy(), client.MergeFromWithOptimisticLock{})
 		if fc.Annotations == nil {
 			fc.Annotations = make(map[string]string)
 		}
 		fc.Annotations[annot] = ns
-		return c.Update(ctx, &fc)
+		return c.Patch(ctx, &fc, patch)
 	})
 }
 

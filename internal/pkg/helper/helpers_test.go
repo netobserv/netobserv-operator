@@ -4,9 +4,12 @@ import (
 	"testing"
 	"time"
 
+	flowslatest "github.com/netobserv/netobserv-operator/api/flowcollector/v1beta2"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/yaml"
 )
 
@@ -159,4 +162,34 @@ func TestCRDDefault(t *testing.T) {
 func TestPrometheusMetricName(t *testing.T) {
 	name := PrometheusMetricName("a-metric-name:unit")
 	assert.Equal(t, "a_metric_name:unit", name)
+}
+
+func TestEnsureDefaults(t *testing.T) {
+	fc := flowslatest.FlowCollector{
+		Spec: flowslatest.FlowCollectorSpec{},
+	}
+	err := EnsureDefaults(&fc)
+	require.NoError(t, err)
+	assert.Equal(t, flowslatest.DefaultFlowCollector, &fc.Spec)
+}
+
+func TestEnsureDefaults_Overrides(t *testing.T) {
+	fc := flowslatest.FlowCollector{
+		Spec: flowslatest.FlowCollectorSpec{
+			Namespace: "test",
+			Agent: flowslatest.FlowCollectorAgent{
+				EBPF: flowslatest.FlowCollectorEBPF{
+					Sampling:           ptr.To(int32(100)),
+					CacheActiveTimeout: "20s",
+				},
+			},
+		},
+	}
+	err := EnsureDefaults(&fc)
+	require.NoError(t, err)
+	assert.Equal(t, "test", fc.Spec.Namespace)
+	assert.EqualValues(t, 100, *fc.Spec.Agent.EBPF.Sampling)
+	assert.Equal(t, "20s", fc.Spec.Agent.EBPF.CacheActiveTimeout)
+	assert.Equal(t, 1048576, fc.Spec.Agent.EBPF.KafkaBatchSize)
+	assert.Equal(t, 10485760, fc.Spec.Processor.KafkaConsumerBatchSize)
 }
