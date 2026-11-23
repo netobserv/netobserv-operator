@@ -187,6 +187,19 @@ func TestCreateHealthDashboard_Default(t *testing.T) {
 	assert.Equal("Flows per second", d.Rows[row].Panels[0].Title)
 	assert.Len(d.Rows[row].Panels[0].Targets, 1)
 	assert.Contains(d.Rows[row].Panels[0].Targets[0].Expr, "netobserv_ingest_flows_processed")
+
+	flpRow := d.FindRow("Flowlogs-pipeline statistics")
+	assert.Len(flpRow.Panels, 7)
+	panel := d.FindPanel("Unenriched traffic (% bytes)")
+	if assert.NotNil(panel) {
+		assert.Equal("graph", string(panel.Type))
+		assert.Len(panel.Targets, 2)
+		assert.Contains(panel.Targets[0].Expr, "netobserv_workload_egress_bytes_total")
+		assert.Contains(panel.Targets[1].Expr, "netobserv_workload_egress_bytes_total")
+		assert.Equal("source", panel.Targets[0].LegendFormat)
+		assert.Equal("destination", panel.Targets[1].LegendFormat)
+
+	}
 }
 
 func TestCreateCustomDashboard(t *testing.T) {
