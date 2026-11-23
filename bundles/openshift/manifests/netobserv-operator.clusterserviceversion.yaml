@@ -697,6 +697,10 @@ spec:
     | Kafka partitions<br>*In your Kafka installation*                                  | N/A                    | 48                  | 48                   |
     | Kafka brokers<br>*In your Kafka installation*                                     | N/A                    | 3 (default)         | 3 (default)          |
 
+    ## CLI
+
+    A companion CLI is available alongside the web console, and does not require to install this operator. It offers similar capabilities for on-demand capture, including full packets capture. See the [OpenShift CLI documentation](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html/network_observability/network-observability-cli).
+
     ## Further reading
 
     Please refer to the documentation on GitHub for more information.
