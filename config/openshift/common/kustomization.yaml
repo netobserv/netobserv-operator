@@ -7,20 +7,20 @@ namePrefix: netobserv-
 
 resources:
 - monitor.yaml
-
-patches:
-  - path: ./manager-patch.yaml
-    target:
-      kind: Deployment
-      name: controller-manager
-# Labels to add to all resources and selectors.
-#commonLabels:
-#  someName: someValue
-
-bases:
+- roles.yaml
+- role_bindings.yaml
 - ../../crd
 - ../../rbac
 - ../../manager
 - ../../webhook
-patchesStrategicMerge:
-- patch.yaml
+
+# Labels to add to all resources and selectors.
+#commonLabels:
+#  someName: someValue
+
+patches:
+- path: ./manager-patch.yaml
+  target:
+    kind: Deployment
+    name: controller-manager
+- path: patch.yaml

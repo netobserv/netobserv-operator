@@ -24,6 +24,8 @@ spec:
         - --health-probe-bind-address=:8081
         - --metrics-bind-address=:8443
         - --leader-elect
+        - --metrics-cert-file=/etc/tls/private/tls.crt
+        - --metrics-cert-key-file=/etc/tls/private/tls.key
         env:
           - name: RELATED_IMAGE_EBPF_AGENT
             value: quay.io/netobserv/netobserv-ebpf-agent:v2.0.2-community
@@ -31,16 +33,6 @@ spec:
             value: quay.io/netobserv/flowlogs-pipeline:v2.0.2-community
           - name: RELATED_IMAGE_WEB_CONSOLE
             value: quay.io/netobserv/network-observability-console-plugin:v2.0.2-community
-          - name: RELATED_IMAGE_DEMO_LOKI
-            value: grafana/loki:3.5.0
-          - name: STATIC_PLUGIN_CPU_REQUEST
-            value: "10m"
-          - name: STATIC_PLUGIN_MEMORY_REQUEST
-            value: "64Mi"
-          - name: STATIC_PLUGIN_CPU_LIMIT
-            value: ""
-          - name: STATIC_PLUGIN_MEMORY_LIMIT
-            value: ""
           - name: NAMESPACE
             valueFrom:
               fieldRef:
@@ -87,5 +79,15 @@ spec:
             cpu: 100m
             memory: 100Mi
         terminationMessagePolicy: FallbackToLogsOnError
+        volumeMounts:
+          - mountPath: /etc/tls/private
+            name: manager-metric-tls
+            readOnly: true
+      volumes:
+        - name: manager-metric-tls
+          secret:
+            defaultMode: 420
+            secretName: manager-metrics-tls
       serviceAccountName: controller-manager
       terminationGracePeriodSeconds: 10
+      affinity: {} # keep for helm-post-process.sh

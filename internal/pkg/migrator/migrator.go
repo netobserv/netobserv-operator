@@ -46,7 +46,7 @@ var (
 	retryBackoff = wait.Backoff{
 		Steps:    10,
 		Duration: 10 * time.Second,
-		Factor:   5.0,
+		Factor:   2.0,
 		Jitter:   0.1,
 	}
 )

@@ -1,0 +1,135 @@
+{{ if .Values.certManager.enable }}
+# NetObserv CA, based either on self-signed, or on provided issuer
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: netobserv-ca
+  namespace: {{ .Values.certManager.trustNamespace }}
+spec:
+  isCA: true
+  commonName: netobserv-ca
+  secretName: netobserv-ca-secret
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: {{ .Values.certManager.existingIssuer.name | default "netobserv-self-signed" }}
+    kind: {{ .Values.certManager.existingIssuer.kind | default "Issuer" }}
+    group: cert-manager.io
+---
+# Optional self-signed issuer
+{{ if not .Values.certManager.existingIssuer.name }}
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: netobserv-self-signed
+  namespace: {{ .Values.certManager.trustNamespace }}
+spec:
+  selfSigned: {}
+---
+{{ end }}
+# NetObserv issuer, derived either from self-signed, or from configured issuer
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: netobserv-issuer
+spec:
+  ca:
+    secretName: netobserv-ca-secret
+---
+# Certificate for NetObserv Operator webhooks
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: webhook-cert
+spec:
+  secretName: webhook-server-cert
+  dnsNames:
+  - netobserv-webhook-service.{{ .Release.Namespace }}.svc
+  - netobserv-webhook-service.{{ .Release.Namespace }}.svc.{{ .Values.clusterDomain }}
+  issuerRef:
+    name: netobserv-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io
+---
+# Certificate for NetObserv Operator metrics
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: metrics-cert
+spec:
+  secretName: manager-metrics-tls
+  dnsNames:
+  - netobserv-metrics-service.{{ .Release.Namespace }}.svc
+  - netobserv-metrics-service.{{ .Release.Namespace }}.svc.{{ .Values.clusterDomain }}
+  issuerRef:
+    name: netobserv-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io
+---
+# Certificate for flowlogs-pipeline
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: flowlogs-pipeline-cert
+spec:
+  secretName: flowlogs-pipeline-cert
+  dnsNames:
+  - flowlogs-pipeline.{{ .Release.Namespace }}.svc
+  - flowlogs-pipeline.{{ .Release.Namespace }}.svc.{{ .Values.clusterDomain }}
+  issuerRef:
+    name: netobserv-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io
+---
+# Certificate for k8scache client (flowlogs-pipeline-informers)
+# Note: k8scache server reuses the flowlogs-pipeline-cert certificate
+# since both gRPC ports use the same service DNS name
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: flowlogs-pipeline-informers-k8scache-client-cert
+spec:
+  secretName: flowlogs-pipeline-informers-k8scache-client-cert
+  commonName: netobserv-flowlogs-pipeline-informers
+  issuerRef:
+    name: netobserv-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io
+---
+# Certificate for eBPF agents
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: "{{ .Release.Namespace }}-privileged"
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: ebpf-agent-cert
+  namespace: "{{ .Release.Namespace }}-privileged"
+spec:
+  secretName: ebpf-agent-cert
+  commonName: netobserv-ebpf-agent
+  issuerRef:
+    name: netobserv-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io
+---
+# CA bundle
+apiVersion: trust.cert-manager.io/v1alpha1
+kind: Bundle
+metadata:
+  name: netobserv-ca
+spec:
+  sources:
+  - secret:
+      name: netobserv-ca-secret
+      key: ca.crt
+  target:
+    configMap:
+      key: service-ca.crt
+    namespaceSelector:
+      matchExpressions:
+      - { key: kubernetes.io/metadata.name, operator: In, values: ["{{ .Release.Namespace }}", "{{ .Release.Namespace }}-privileged"] }
+{{ end }}
