@@ -24,6 +24,16 @@ ${1}value: "{{ .Values.ebpfAgent.image }}:{{ .Values.ebpfAgent.version }}"
 ' $depl
 grep -q 'ebpfAgent.digest' $depl || { echo "ERROR: Agent substitution had no match for '/netobserv/netobserv-ebpf-agent'"; exit 1; }
 
+# CLI image
+perl -i -pe '
+  s|^([[:space:]]*)value: .*/netobserv/network-observability-cli[:\@].*$|{{- if .Values.cli.digest }}
+${1}value: "{{ .Values.cli.image }}\@{{ .Values.cli.digest }}"
+{{- else }}
+${1}value: "{{ .Values.cli.image }}:{{ .Values.cli.version }}"
+{{- end }}|
+' $depl
+grep -q 'cli.digest' $depl || { echo "ERROR: CLI substitution had no match for '/netobserv/network-observability-cli'"; exit 1; }
+
 # FLP image
 perl -i -pe '
   s|^([[:space:]]*)value: .*/netobserv/flowlogs-pipeline[:\@].*$|{{- if .Values.flowlogsPipeline.digest }}
