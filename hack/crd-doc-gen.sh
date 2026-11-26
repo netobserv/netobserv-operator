@@ -9,34 +9,63 @@ CRDOC=${CRDOC:-./bin/crdoc}
 
 mkdir -p _tmp
 
-# Copy and edit CRDs
-for bundle in bundles/*; do
-  for crd in "flows.netobserv.io_flowcollectors.yaml" "flows.netobserv.io_flowmetrics.yaml" "flows.netobserv.io_flowcollectorslices.yaml"; do
-    cp $bundle/manifests/$crd _tmp/
-    $YQ -i 'del(.spec.conversion) | del(.spec.versions[] | select(.deprecated == true))' _tmp/$crd
-  done
+generate() {
+  local downstream_bundle=$1
 
-  $YQ -i 'del(.spec.versions[].schema.openAPIV3Schema.properties.spec.properties.agent.properties.ipfix)
-    | del(.spec.versions[].schema.openAPIV3Schema.properties.spec.properties.agent.properties.ebpf.properties.resources.properties.claims)
-    | del(.spec.versions[].schema.openAPIV3Schema.properties.spec.properties.agent.properties.ebpf.properties.advanced.properties.scheduling.properties.affinity.properties)
-    | del(.spec.versions[].schema.openAPIV3Schema.properties.spec.properties.agent.properties.ebpf.properties.advanced.properties.scheduling.properties.tolerations.items)
-    | del(.spec.versions[].schema.openAPIV3Schema.properties.spec.properties.processor.properties.resources.properties.claims)
-    | del(.spec.versions[].schema.openAPIV3Schema.properties.spec.properties.processor.properties.advanced.properties.scheduling.properties.affinity.properties)
-    | del(.spec.versions[].schema.openAPIV3Schema.properties.spec.properties.processor.properties.advanced.properties.scheduling.properties.tolerations.items)
-    | del(.spec.versions[].schema.openAPIV3Schema.properties.spec.properties.consolePlugin.properties.resources.properties.claims)
-    | del(.spec.versions[].schema.openAPIV3Schema.properties.spec.properties.consolePlugin.properties.autoscaler.properties)
-    | del(.spec.versions[].schema.openAPIV3Schema.properties.spec.properties.consolePlugin.properties.advanced.properties.scheduling.properties.affinity.properties)
-    | del(.spec.versions[].schema.openAPIV3Schema.properties.spec.properties.consolePlugin.properties.advanced.properties.scheduling.properties.tolerations.items)
-    | del(.spec.versions[].schema.openAPIV3Schema.properties.spec.properties.processor.properties.kafkaConsumerAutoscaler.properties)
-    '  _tmp/flows.netobserv.io_flowcollectors.yaml
-
-  target=$(basename $bundle)
-  if [[ $target == "k8s" ]]; then
-    target="."
+  if [[ "$downstream_bundle" == "" ]]; then
+    # Helm / community
+    target="docs/"
   else
-    mkdir -p docs/$target
+    # Downstream OLM bundle
+    target="docs/$(basename $downstream_bundle)/"
+    mkdir -p $target
   fi
-	$CRDOC --resources _tmp/flows.netobserv.io_flowcollectors.yaml --output docs/$target/FlowCollector.md
-	$CRDOC --resources _tmp/flows.netobserv.io_flowmetrics.yaml --output docs/$target/FlowMetric.md
-	$CRDOC --resources _tmp/flows.netobserv.io_flowcollectorslices.yaml --output docs/$target/FlowCollectorSlice.md
+
+  for kind in "FlowCollector" "FlowMetric" "FlowCollectorSlice"; do
+    plural="$(printf '%s' "$kind" | tr '[:upper:]' '[:lower:]')s"
+
+    if [[ "$downstream_bundle" == "" ]]; then
+      # Helm / community
+      crd="apiextensions.k8s.io_v1_customresourcedefinition_$plural.flows.netobserv.io.yaml"
+      cp "helm/templates/$crd" _tmp/
+    else
+      # Downstream OLM bundle
+      crd="flows.netobserv.io_$plural.yaml"
+      cp "$downstream_bundle/manifests/$crd" _tmp/
+    fi
+
+    $YQ -i 'del(.spec.conversion) | del(.spec.versions[] | select(.deprecated == true))' _tmp/$crd
+
+    if [[ "$kind" == "FlowCollector" ]]; then
+      $YQ -i 'del(.spec.versions[].schema.openAPIV3Schema.properties.spec.properties.agent.properties.ipfix)
+        | del(.spec.versions[].schema.openAPIV3Schema.properties.spec.properties.agent.properties.ebpf.properties.resources.properties.claims)
+        | del(.spec.versions[].schema.openAPIV3Schema.properties.spec.properties.agent.properties.ebpf.properties.advanced.properties.scheduling.properties.affinity.properties)
+        | del(.spec.versions[].schema.openAPIV3Schema.properties.spec.properties.agent.properties.ebpf.properties.advanced.properties.scheduling.properties.tolerations.items)
+        | del(.spec.versions[].schema.openAPIV3Schema.properties.spec.properties.processor.properties.resources.properties.claims)
+        | del(.spec.versions[].schema.openAPIV3Schema.properties.spec.properties.processor.properties.advanced.properties.scheduling.properties.affinity.properties)
+        | del(.spec.versions[].schema.openAPIV3Schema.properties.spec.properties.processor.properties.advanced.properties.scheduling.properties.tolerations.items)
+        | del(.spec.versions[].schema.openAPIV3Schema.properties.spec.properties.consolePlugin.properties.resources.properties.claims)
+        | del(.spec.versions[].schema.openAPIV3Schema.properties.spec.properties.consolePlugin.properties.autoscaler.properties)
+        | del(.spec.versions[].schema.openAPIV3Schema.properties.spec.properties.consolePlugin.properties.advanced.properties.scheduling.properties.affinity.properties)
+        | del(.spec.versions[].schema.openAPIV3Schema.properties.spec.properties.consolePlugin.properties.advanced.properties.scheduling.properties.tolerations.items)
+        | del(.spec.versions[].schema.openAPIV3Schema.properties.spec.properties.processor.properties.kafkaConsumerAutoscaler.properties)
+        ' _tmp/$crd
+    fi
+
+  	$CRDOC --resources _tmp/$crd --output $target/$kind.md
+
+    if [[ "$downstream_bundle" == "" ]]; then
+      # Remove helm templating artifacts such as {{`{{ Label }}`}}
+      $SED -i -r 's/\{\{`/`/g' $target/$kind.md
+      $SED -i -r 's/`}}/`/g' $target/$kind.md
+    fi
+  done
+}
+
+# Helm / community
+generate
+
+# Downstream OLM bundle
+for bundle in bundles/*; do
+  generate $bundle
 done
