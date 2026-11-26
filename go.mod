@@ -14,7 +14,7 @@ require (
 	github.com/openshift/api v0.0.0-20260619095050-5346161d1bf2
 	github.com/openshift/controller-runtime-common v0.0.0-20260428152732-64ee174f5e2e
 	github.com/openshift/library-go v0.0.0-20260625074842-d80d43df888c
-	github.com/operator-framework/api v0.46.0
+	github.com/operator-framework/api v0.47.1
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.87.0
 	github.com/prometheus/common v0.74.0
 	github.com/sirupsen/logrus v1.10.2
