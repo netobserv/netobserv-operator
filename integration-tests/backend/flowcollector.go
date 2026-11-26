@@ -243,7 +243,7 @@ func (flow Flowcollector) createRoleBindings() {
 		}
 		return false, nsErr
 	})
-	o.Expect(err).NotTo(o.HaveOccurred(), "timed out waiting for namespace %s to be created", privNS)
+	assertWaitPollNoErr(err, fmt.Sprintf("Namespace %s was not created", privNS))
 
 	secretRBs := []struct {
 		name        string

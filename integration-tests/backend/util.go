@@ -243,7 +243,7 @@ func getSecrets(namespace string) (string, error) {
 		secrets = strings.Join(names, " ")
 		return true, nil
 	})
-	o.Expect(err).NotTo(o.HaveOccurred(), "Secrets not available")
+	assertWaitPollNoErr(err, fmt.Sprintf("Secrets not available in namespace %s", namespace))
 	return secrets, err
 }
 
@@ -1074,7 +1074,7 @@ func assertAllPodsToBeReady(namespace string) {
 		}
 		return true, nil
 	})
-	o.Expect(err).NotTo(o.HaveOccurred())
+	assertWaitPollNoErr(err, fmt.Sprintf("Some Pods are not ready in NS %s", namespace))
 }
 
 // waitAndGetSpecificPodLogs polls until pod logs contain the filter string, returns logs file path
@@ -1532,7 +1532,7 @@ func pollVerifyComponentsDeleted(deleteList, remainList []string) {
 		e2e.Logf("All components verified: deleted=%d, remaining=%d", len(deleteList), len(remainList))
 		return true, nil
 	})
-	o.Expect(err).NotTo(o.HaveOccurred(), "timed out waiting for components to be deleted after pause")
+	assertWaitPollNoErr(err, "Components were not deleted after pause")
 }
 
 // patchFlowCollector applies a JSON patch to the cluster flowcollector

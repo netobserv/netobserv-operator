@@ -397,7 +397,7 @@ func (pod *udnPodResource) createUdnPod() {
 		return true, nil
 	})
 
-	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("fail to create pod %v", pod.name))
+	assertWaitPollNoErr(err, fmt.Sprintf("fail to create pod %v", pod.name))
 }
 
 func createUDNNamespace(ns string) {

@@ -2452,7 +2452,7 @@ var _ = g.Describe("[sig-netobserv] Network_Observability", func() {
 			e2e.Logf("Waiting for FlowCollector to show 'on hold' status...")
 			return false, nil
 		})
-		o.Expect(err).NotTo(o.HaveOccurred())
+		assertWaitPollNoErr(err, "FlowCollector did not show 'on hold' status")
 
 		// Components with stable names that should remain when paused
 		// Common components across all OCP versions
@@ -2745,7 +2745,7 @@ var _ = g.Describe("[sig-netobserv] Network_Observability", func() {
 			}
 			return true, nil
 		})
-		o.Expect(err).NotTo(o.HaveOccurred())
+		assertWaitPollNoErr(err, "cert-manager webhook did not become ready for cert apply")
 		defer func() {
 			_ = exec.Command("oc", "delete", "-f", certFile, "-n", namespace).Run()
 		}()
