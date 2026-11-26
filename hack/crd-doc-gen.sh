@@ -22,7 +22,7 @@ generate() {
   fi
 
   for kind in "FlowCollector" "FlowMetric" "FlowCollectorSlice"; do
-    plural="${kind,,}s"
+    plural="$(printf '%s' "$kind" | tr '[:upper:]' '[:lower:]')s"
 
     if [[ "$downstream_bundle" == "" ]]; then
       # Helm / community
