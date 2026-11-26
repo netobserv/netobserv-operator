@@ -99,11 +99,16 @@ func (spec *FlowCollectorSpec) UseHostNetwork() bool {
 	return spec.DeploymentModel == DeploymentModelDirect
 }
 
-func (spec *FlowCollectorSpec) IsAgentFeatureEnabled(feature AgentFeature) bool {
+func (spec *FlowCollectorSpec) GetAgentFeatures() []AgentFeature {
 	if spec.Agent.EBPF.Features == nil && spec.Profile == ProfileHighResources {
-		return slices.Contains(HighProfileFeatures, feature)
+		return HighProfileFeatures()
 	}
-	return slices.Contains(spec.Agent.EBPF.Features, feature)
+	return spec.Agent.EBPF.Features
+}
+
+func (spec *FlowCollectorSpec) IsAgentFeatureEnabled(feature AgentFeature) bool {
+	feats := spec.GetAgentFeatures()
+	return slices.Contains(feats, feature)
 }
 
 func (spec *FlowCollectorSpec) IsPktDropEnabled() bool {

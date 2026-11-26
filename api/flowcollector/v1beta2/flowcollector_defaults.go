@@ -10,16 +10,6 @@ import (
 )
 
 var (
-	// See spec.profile
-	HighProfileFeatures = []AgentFeature{
-		DNSTracking,
-		FlowRTT,
-		PacketDrop,
-		SecondaryNetworks,
-		TLSTracking,
-		UDNMapping,
-	}
-
 	// Note that we set default in-code rather than in CRD, in order to keep track of value being unset or set intentionnally in FlowCollector
 	DefaultIncludeList = []string{
 		"node_ingress_bytes_total",
@@ -385,3 +375,15 @@ var (
 		Execution:     FlowCollectorExecution{},
 	}
 )
+
+// HighProfileFeatures returns the default features when `spec.profile` is High.
+func HighProfileFeatures() []AgentFeature {
+	return []AgentFeature{
+		DNSTracking,
+		FlowRTT,
+		PacketDrop,
+		SecondaryNetworks,
+		TLSTracking,
+		UDNMapping,
+	}
+}

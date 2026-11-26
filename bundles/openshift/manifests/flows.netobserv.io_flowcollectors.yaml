@@ -6661,6 +6661,15 @@ spec:
 
                     Deprecated: annotations are used instead
                   type: string
+                profile:
+                  description: |-
+                    `profile` reports how the configured profile in `spec.profile` is resolved:
+                    the default values of the derived settings, and any effective overrides.
+                  properties:
+                    summary:
+                      description: A human-readable summary of how the selected profile is resolved, showing effective values and overrides.
+                      type: string
+                  type: object
               required:
                 - conditions
               type: object

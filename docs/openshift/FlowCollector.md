@@ -6373,6 +6373,14 @@ If the namespace is different, the config map or the secret is copied so that it
 Deprecated: annotations are used instead<br/>
         </td>
         <td>false</td>
+      </tr><tr>
+        <td><b><a href="#flowcollectorstatusprofile">profile</a></b></td>
+        <td>object</td>
+        <td>
+          `profile` reports how the configured profile in `spec.profile` is resolved:
+the default values of the derived settings, and any effective overrides.<br/>
+        </td>
+        <td>false</td>
       </tr></tbody>
 </table>
 
@@ -6974,6 +6982,34 @@ with respect to the current state of the instance.<br/>
           `unhealthyPodCount` is the number of pods in a degraded state (CrashLoopBackOff, OOMKilled, etc.).<br/>
           <br/>
             <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### FlowCollector.status.profile
+<sup><sup>[↩ Parent](#flowcollectorstatus)</sup></sup>
+
+
+
+`profile` reports how the configured profile in `spec.profile` is resolved:
+the default values of the derived settings, and any effective overrides.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>summary</b></td>
+        <td>string</td>
+        <td>
+          A human-readable summary of how the selected profile is resolved, showing effective values and overrides.<br/>
         </td>
         <td>false</td>
       </tr></tbody>

@@ -1769,6 +1769,12 @@ type FlowCollectorIntegrationsStatus struct {
 	Exporters []FlowCollectorExporterStatus `json:"exporters,omitempty"`
 }
 
+// `FlowCollectorProfileStatus` reports profile-related information.
+type FlowCollectorProfileStatus struct {
+	// A human-readable summary of how the selected profile is resolved, showing effective values and overrides.
+	Summary string `json:"summary,omitempty"`
+}
+
 // `FlowCollectorStatus` defines the observed state of FlowCollector
 type FlowCollectorStatus struct {
 	// `conditions` represents the latest available observations of an object's state
@@ -1781,6 +1787,11 @@ type FlowCollectorStatus struct {
 	// `integrations` reports the status of external integrations (Loki, monitoring, exporters).
 	// +optional
 	Integrations *FlowCollectorIntegrationsStatus `json:"integrations,omitempty"`
+
+	// `profile` reports how the configured profile in `spec.profile` is resolved:
+	// the default values of the derived settings, and any effective overrides.
+	// +optional
+	Profile FlowCollectorProfileStatus `json:"profile"`
 
 	// Namespace where console plugin and flowlogs-pipeline have been deployed.
 	//
