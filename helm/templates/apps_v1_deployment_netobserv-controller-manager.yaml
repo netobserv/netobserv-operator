@@ -41,6 +41,12 @@ spec:
 {{- else }}
           value: "{{ .Values.ebpfAgent.image }}:{{ .Values.ebpfAgent.version }}"
 {{- end }}
+        - name: RELATED_IMAGE_CLI
+{{- if .Values.cli.digest }}
+          value: "{{ .Values.cli.image }}@{{ .Values.cli.digest }}"
+{{- else }}
+          value: "{{ .Values.cli.image }}:{{ .Values.cli.version }}"
+{{- end }}
         - name: RELATED_IMAGE_FLOWLOGS_PIPELINE
 {{- if .Values.flowlogsPipeline.digest }}
           value: "{{ .Values.flowlogsPipeline.image }}@{{ .Values.flowlogsPipeline.digest }}"
@@ -67,6 +73,12 @@ spec:
               fieldPath: metadata.namespace
         - name: OPERATOR_NETWORK_POLICY
           value: "{{ .Values.operator.installNetworkPolicy }}"
+        - name: FLOWCAPTURE_MAX_CONCURRENT
+          value: "3"
+        - name: FLOWCAPTURE_MAX_DURATION
+          value: 1h
+        - name: FLOWCAPTURE_MAX_BYTES
+          value: "0"
 {{- if .Values.operator.digest }}
         image: "{{ .Values.operator.image }}@{{ .Values.operator.digest }}"
 {{- else }}

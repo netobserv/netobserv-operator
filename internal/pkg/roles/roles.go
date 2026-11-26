@@ -11,16 +11,19 @@ type RoleName string
 
 const (
 	// [Cluster]Roles, must match names in config/rbac/component_roles.yaml (without netobserv- prefix)
-	LokiWriterRole          ClusterRoleName = "netobserv-loki-writer"
-	LokiReaderRole          ClusterRoleName = "netobserv-loki-reader"
-	PromReaderRole          ClusterRoleName = "netobserv-metrics-reader"
-	ExposeMetricsRole       RoleName        = "netobserv-expose-metrics"
-	FLPInformersRole        ClusterRoleName = "netobserv-informers"
-	FLPExtraReaderRole      ClusterRoleName = "netobserv-flp-extra-reader"
-	HostNetworkRole         ClusterRoleName = "netobserv-hostnetwork"
-	ConsoleTokenReviewRole  ClusterRoleName = "netobserv-token-review"
-	FlowCollectorViewerRole ClusterRoleName = "netobserv-flowcollector-viewer-role"
-	ConfigWatcherRole       RoleName        = "netobserv-config-watcher"
+	LokiWriterRole              ClusterRoleName = "netobserv-loki-writer"
+	LokiReaderRole              ClusterRoleName = "netobserv-loki-reader"
+	PromReaderRole              ClusterRoleName = "netobserv-metrics-reader"
+	ExposeMetricsRole           RoleName        = "netobserv-expose-metrics"
+	FLPInformersRole            ClusterRoleName = "netobserv-informers"
+	FLPExtraReaderRole          ClusterRoleName = "netobserv-flp-extra-reader"
+	HostNetworkRole             ClusterRoleName = "netobserv-hostnetwork"
+	ConsoleTokenReviewRole      ClusterRoleName = "netobserv-token-review"
+	FlowCollectorViewerRole     ClusterRoleName = "netobserv-flowcollector-viewer-role"
+	ConfigWatcherRole           RoleName        = "netobserv-config-watcher"
+	FlowCaptureInformersRole    ClusterRoleName = "netobserv-flowcapture-informers"
+	FlowCaptureSCCRole          ClusterRoleName = "netobserv-flowcapture-scc"
+	FlowCapturePlaintextSCCRole ClusterRoleName = "netobserv-flowcapture-plaintext-scc"
 )
 
 // OperandClusterRoleBindings lists the preinstalled ClusterRoleBindings whose subjects are managed

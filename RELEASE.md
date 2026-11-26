@@ -14,7 +14,7 @@ make helm-expose-console
 
 All components deployed by this operator can be released separatly, at their own pace.
 
-To release them, a tag in the format "v1.6.0-community" or "v1.6.0-crc0" must be set on the desired clean HEAD state (generally, up-to-date `main` branch; "crc" stands for "community release candidate"), then pushed. It applies to [the console plugin](https://github.com/netobserv/netobserv-web-console/), [flowlogs-pipeline](https://github.com/netobserv/flowlogs-pipeline) and [netobserv-ebpf-agent](https://github.com/netobserv/netobserv-ebpf-agent).
+To release them, a tag in the format "v1.6.0-community" or "v1.6.0-crc0" must be set on the desired clean HEAD state (generally, up-to-date `main` branch; "crc" stands for "community release candidate"), then pushed. It applies to [the console plugin](https://github.com/netobserv/netobserv-web-console/), [flowlogs-pipeline](https://github.com/netobserv/flowlogs-pipeline), [netobserv-ebpf-agent](https://github.com/netobserv/netobserv-ebpf-agent), and [network-observability-cli](https://github.com/netobserv/netobserv-cli).
 
 E.g:
 

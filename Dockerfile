@@ -14,6 +14,7 @@ COPY go.sum go.sum
 COPY vendor/ vendor/
 COPY main.go main.go
 COPY api/ api/
+COPY pkg/ pkg/
 COPY internal/ internal/
 COPY config/crd/bases config/crd/bases
 

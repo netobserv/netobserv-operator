@@ -2,9 +2,17 @@ package manager
 
 import (
 	"errors"
+	"fmt"
+	"time"
 
 	"github.com/netobserv/netobserv-operator/internal/controller/constants"
 	"github.com/netobserv/netobserv-operator/internal/pkg/cluster"
+)
+
+const (
+	DefaultMaxConcurrentCaptures       = 3
+	DefaultMaxCaptureDuration          = time.Hour
+	DefaultMaxCaptureBytes       int64 = 0 // zero means no byte limit
 )
 
 // Config of the operator.
@@ -13,6 +21,8 @@ type Config struct {
 	DemoLokiImage string
 	// EBPFAgentImage is the image of the eBPF agent that is managed by the operator
 	EBPFAgentImage string
+	// CaptureImage is the image used by FlowCapture collector pods.
+	CaptureImage string
 	// FlowlogsPipelineImage is the image of the Flowlogs-Pipeline that is managed by the operator
 	FlowlogsPipelineImage string
 	// WebConsoleImage is the image of the web console that is managed by the operator
@@ -32,6 +42,9 @@ type Config struct {
 	// Static plugin configuration
 	StaticPluginConfig          StaticPluginConfig
 	DeployOperatorNetworkPolicy *bool
+	MaxConcurrentCaptures       int
+	MaxCaptureDuration          time.Duration
+	MaxCaptureBytes             int64
 }
 
 // Config of the static plugin.
@@ -86,6 +99,9 @@ func (c *Config) Validate() error {
 	if c.EBPFAgentImage == "" {
 		return errors.New("eBPF agent image env can't be empty")
 	}
+	if c.CaptureImage == "" {
+		return errors.New("capture image env can't be empty")
+	}
 	if c.FlowlogsPipelineImage == "" {
 		return errors.New("flowlogs-pipeline image env can't be empty")
 	}
@@ -94,6 +110,15 @@ func (c *Config) Validate() error {
 	}
 	if c.Namespace == "" {
 		return errors.New("namespace env can't be empty")
+	}
+	if c.MaxConcurrentCaptures < 0 {
+		return fmt.Errorf("max concurrent captures must not be negative")
+	}
+	if c.MaxCaptureDuration < 0 {
+		return fmt.Errorf("max capture duration must not be negative")
+	}
+	if c.MaxCaptureBytes < 0 {
+		return fmt.Errorf("max capture bytes must not be negative")
 	}
 	return nil
 }

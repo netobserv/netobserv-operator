@@ -8,6 +8,7 @@ resources:
 - bases/flows.netobserv.io_flowcollectors.yaml
 - bases/flows.netobserv.io_flowmetrics.yaml
 - bases/flows.netobserv.io_flowcollectorslices.yaml
+- bases/flows.netobserv.io_flowcaptures.yaml
 
 patches:
 - path: singleton_in_flowcollectors.yaml
