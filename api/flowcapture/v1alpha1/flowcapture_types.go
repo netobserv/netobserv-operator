@@ -155,7 +155,7 @@ type FlowCaptureStatus struct {
 
 // FlowCapture requests a short-lived capture of flows, packets, or metrics.
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:scope=Namespaced,shortName=fcap
+// +kubebuilder:resource:scope=Namespaced
 // +kubebuilder:subresource:status
 type FlowCapture struct {
 	metav1.TypeMeta   `json:",inline"`

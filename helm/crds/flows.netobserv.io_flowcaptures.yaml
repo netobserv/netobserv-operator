@@ -12,8 +12,6 @@ spec:
     kind: FlowCapture
     listKind: FlowCaptureList
     plural: flowcaptures
-    shortNames:
-      - fcap
     singular: flowcapture
   scope: Namespaced
   versions:
