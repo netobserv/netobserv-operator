@@ -126,7 +126,7 @@ func (b *PipelineBuilder) addEnrichStage(previous config.PipelineBuilderStage) c
 			},
 		},
 	}
-	if b.desired.Agent.EBPF.IsPacketTranslationEnabled() {
+	if b.desired.IsPacketTranslationEnabled() {
 		rules = append(rules, api.NetworkTransformRules{
 			{
 				Type: api.NetworkAddKubernetes,
@@ -188,7 +188,7 @@ func (b *PipelineBuilder) addEnrichStage(previous config.PipelineBuilderStage) c
 		}
 		secondaryNetworks = append(secondaryNetworks, flpSN)
 	}
-	if b.desired.Agent.EBPF.IsUDNMappingEnabled() {
+	if b.desired.IsUDNMappingEnabled() {
 		secondaryNetworks = append(secondaryNetworks, api.SecondaryNetwork{
 			Name:  ovnkSecondary,
 			Index: map[string]any{"udn": nil},
@@ -379,7 +379,7 @@ func (b *PipelineBuilder) addConnectionTracking(lastStage config.PipelineBuilder
 		},
 	}
 
-	if b.desired.Agent.EBPF.IsPktDropEnabled() {
+	if b.desired.IsPktDropEnabled() {
 		outputPktDropFields := []api.OutputField{
 			{
 				Name:      "PktDropBytes",
@@ -411,7 +411,7 @@ func (b *PipelineBuilder) addConnectionTracking(lastStage config.PipelineBuilder
 		outputFields = append(outputFields, outputPktDropFields...)
 	}
 
-	if b.desired.Agent.EBPF.IsDNSTrackingEnabled() {
+	if b.desired.IsDNSTrackingEnabled() {
 		outDNSTrackingFields := []api.OutputField{
 			{
 				Name:      "DnsFlagsResponseCode",
@@ -425,7 +425,7 @@ func (b *PipelineBuilder) addConnectionTracking(lastStage config.PipelineBuilder
 		outputFields = append(outputFields, outDNSTrackingFields...)
 	}
 
-	if b.desired.Agent.EBPF.IsNetworkEventsEnabled() {
+	if b.desired.IsNetworkEventsEnabled() {
 		outNetworkEventsFlowFields := []api.OutputField{
 			{
 				Name:      "NetworkEvents",
@@ -435,7 +435,7 @@ func (b *PipelineBuilder) addConnectionTracking(lastStage config.PipelineBuilder
 		outputFields = append(outputFields, outNetworkEventsFlowFields...)
 	}
 
-	if b.desired.Agent.EBPF.IsFlowRTTEnabled() {
+	if b.desired.IsFlowRTTEnabled() {
 		outputFields = append(outputFields, api.OutputField{
 			Name:      "MaxTimeFlowRttNs",
 			Operation: "max",

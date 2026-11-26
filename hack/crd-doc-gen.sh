@@ -40,3 +40,10 @@ for bundle in bundles/*; do
 	$CRDOC --resources _tmp/flows.netobserv.io_flowmetrics.yaml --output docs/$target/FlowMetric.md
 	$CRDOC --resources _tmp/flows.netobserv.io_flowcollectorslices.yaml --output docs/$target/FlowCollectorSlice.md
 done
+
+# FlowCollector defaults are applied in-code (see DefaultFlowCollector) rather than
+# via the CRD schema, so crdoc cannot see them: document them separately, and link that
+# file from the generated references. The defaults do not depend on the vendor, hence a
+# single file.
+go run -mod=vendor ./hack/docdefaults docs/FlowCollectorDefaults.md \
+  docs/FlowCollector.md docs/openshift/FlowCollector.md

@@ -321,6 +321,7 @@ func (s *Manager) updateStatus(ctx context.Context, c client.Client) {
 			prevComponents = fc.Status.Components.DeepCopy()
 		}
 		s.populateComponentStatuses(&fc, prevComponents)
+		fc.Status.Profile.Summary = getResolvedProfileSummary(&fc.Spec)
 		if err := c.Status().Update(ctx, &fc); err != nil {
 			return err
 		}

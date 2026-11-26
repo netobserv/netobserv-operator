@@ -121,6 +121,8 @@ func TestGetEnvConfig_Default(t *testing.T) {
 			},
 		},
 	}
+	err := helper.EnsureDefaults(&fc)
+	require.NoError(t, err)
 	info := reconcilers.Common{Namespace: "netobserv", ClusterInfo: &cluster.Info{}}
 	agent := NewAgentController(info.NewInstance(nil, status.Instance{}))
 
@@ -128,9 +130,15 @@ func TestGetEnvConfig_Default(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, []corev1.EnvVar{
+		{Name: "CACHE_ACTIVE_TIMEOUT", Value: "15s"},
+		{Name: "CACHE_MAX_FLOWS", Value: "120000"},
+		{Name: "LOG_LEVEL", Value: "info"},
+		{Name: "EXCLUDE_INTERFACES", Value: "lo"},
+		{Name: "SAMPLING", Value: "50"},
 		{Name: "METRICS_ENABLE", Value: "true"},
 		{Name: "METRICS_SERVER_PORT", Value: "9400"},
 		{Name: "METRICS_PREFIX", Value: "netobserv_agent_"},
+		{Name: "GOMEMLIMIT", Value: "754974720"},
 		{Name: "AGENT_IP", Value: "",
 			ValueFrom: &corev1.EnvVarSource{
 				FieldRef: &corev1.ObjectFieldSelector{
@@ -149,6 +157,33 @@ func TestGetEnvConfig_Default(t *testing.T) {
 		{Name: "GRPC_RECONNECT_TIMER", Value: "5m"},
 		{Name: "GRPC_RECONNECT_TIMER_RANDOMIZATION", Value: "30s"},
 	}, env)
+}
+
+func TestGetEnvConfig_LowProfile(t *testing.T) {
+	fc := flowslatest.FlowCollector{
+		Spec: flowslatest.FlowCollectorSpec{
+			Profile: flowslatest.ProfileLowResources,
+		},
+	}
+	info := reconcilers.Common{Namespace: "netobserv", ClusterInfo: &cluster.Info{}}
+	agent := NewAgentController(info.NewInstance(nil, status.Instance{}))
+
+	env, err := agent.envConfig(context.Background(), &fc, map[string]string{})
+	require.NoError(t, err)
+
+	assert.Contains(t, env, corev1.EnvVar{Name: "CACHE_MAX_FLOWS", Value: "50000"})
+	assert.Contains(t, env, corev1.EnvVar{Name: "SAMPLING", Value: "400"})
+	assert.NotContains(t, env, corev1.EnvVar{Name: "ENABLE_DNS_TRACKING", Value: "true"})
+
+	// Make sure it can be overridden
+	fc.Spec.Agent.EBPF.Sampling = ptr.To(int32(401))
+	fc.Spec.Agent.EBPF.Features = append(fc.Spec.Agent.EBPF.Features, flowslatest.DNSTracking)
+	env, err = agent.envConfig(context.Background(), &fc, map[string]string{})
+	require.NoError(t, err)
+
+	assert.Contains(t, env, corev1.EnvVar{Name: "CACHE_MAX_FLOWS", Value: "50000"})
+	assert.Contains(t, env, corev1.EnvVar{Name: "SAMPLING", Value: "401"})
+	assert.Contains(t, env, corev1.EnvVar{Name: "ENABLE_DNS_TRACKING", Value: "true"})
 }
 
 func TestGetEnvConfig_WithOverrides(t *testing.T) {
@@ -184,6 +219,8 @@ func TestGetEnvConfig_WithOverrides(t *testing.T) {
 			},
 		},
 	}
+	err := helper.EnsureDefaults(&fc)
+	require.NoError(t, err)
 
 	info := reconcilers.Common{Namespace: "netobserv", ClusterInfo: &cluster.Info{}}
 	agent := NewAgentController(info.NewInstance(nil, status.Instance{}))
@@ -196,6 +233,11 @@ func TestGetEnvConfig_WithOverrides(t *testing.T) {
 		{Name: "PREFERRED_INTERFACE_FOR_MAC_PREFIX", Value: "0a:58=ens5"},
 		{Name: "TARGET_HOST", Value: "test"},
 		{Name: "TC_ATTACH_MODE", Value: "any"},
+		{Name: "CACHE_ACTIVE_TIMEOUT", Value: "15s"},
+		{Name: "CACHE_MAX_FLOWS", Value: "120000"},
+		{Name: "LOG_LEVEL", Value: "info"},
+		{Name: "EXCLUDE_INTERFACES", Value: "lo"},
+		{Name: "SAMPLING", Value: "50"},
 		{Name: "GOMEMLIMIT", Value: "754974720"},
 		{Name: "FLOW_FILTER_RULES", Value: `[{"ip_cidr":"0.0.0.0/0","action":"Accept"}]`},
 		{Name: "AGENT_IP", Value: "",
@@ -221,6 +263,8 @@ func TestGetEnvConfig_OCP4_14(t *testing.T) {
 			},
 		},
 	}
+	err := helper.EnsureDefaults(&fc)
+	require.NoError(t, err)
 
 	cmn := reconcilers.Common{
 		Namespace:   "netobserv",
@@ -232,9 +276,15 @@ func TestGetEnvConfig_OCP4_14(t *testing.T) {
 	env, err := agent.envConfig(context.Background(), &fc, map[string]string{})
 	require.NoError(t, err)
 	assert.Equal(t, []corev1.EnvVar{
+		{Name: "CACHE_ACTIVE_TIMEOUT", Value: "15s"},
+		{Name: "CACHE_MAX_FLOWS", Value: "120000"},
+		{Name: "LOG_LEVEL", Value: "info"},
+		{Name: "EXCLUDE_INTERFACES", Value: "lo"},
+		{Name: "SAMPLING", Value: "50"},
 		{Name: "METRICS_ENABLE", Value: "true"},
 		{Name: "METRICS_SERVER_PORT", Value: "9400"},
 		{Name: "METRICS_PREFIX", Value: "netobserv_agent_"},
+		{Name: "GOMEMLIMIT", Value: "754974720"},
 		{Name: "AGENT_IP", Value: "",
 			ValueFrom: &corev1.EnvVarSource{
 				FieldRef: &corev1.ObjectFieldSelector{
@@ -316,7 +366,7 @@ func TestBpfmanConfig(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, ds)
 
-	assert.Equal(t, corev1.EnvVar{Name: "EBPF_PROGRAM_MANAGER_MODE", Value: "true"}, ds.Spec.Template.Spec.Containers[0].Env[0])
+	assert.Contains(t, ds.Spec.Template.Spec.Containers[0].Env, corev1.EnvVar{Name: "EBPF_PROGRAM_MANAGER_MODE", Value: "true"})
 	assert.Equal(t, "bpfman-maps", ds.Spec.Template.Spec.Volumes[1].Name)
 	assert.Equal(t, map[string]string{
 		"csi.bpfman.io/maps":    "direct_flows,aggregated_flows,aggregated_flows_dns,aggregated_flows_pkt_drop,aggregated_flows_network_events,aggregated_flows_xlat,additional_flow_metrics,packet_record,dns_flows,global_counters,filter_map,peer_filter_map,ipsec_ingress_map,ipsec_egress_map,ssl_data_event_map,dns_name_map,quic_flows",

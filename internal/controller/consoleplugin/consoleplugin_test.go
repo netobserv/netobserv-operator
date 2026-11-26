@@ -766,3 +766,22 @@ func TestScopeFilteringNoLoki_WorkloadMetrics(t *testing.T) {
 	assert.Equal(t, []string{"network", "zone", "host", "namespace", "owner"}, scopeIDs(frontend.Scopes))
 	assert.Empty(t, warning)
 }
+
+func TestNoLokiInLowProfile(t *testing.T) {
+	spec := flowslatest.FlowCollectorSpec{
+		Profile: flowslatest.ProfileLowResources,
+	}
+	loki := helper.NewLokiConfig(&spec.Loki, "any")
+	builder := getBuilder(&spec, &loki)
+	cm, _, err := builder.configMap(context.Background(), nil, &lokiStatusUnused)
+	require.NoError(t, err)
+	assert.NotNil(t, cm)
+
+	// Parse the config
+	var cfg config.PluginConfig
+	err = yaml.Unmarshal([]byte(cm.Data["config.yaml"]), &cfg)
+	require.NoError(t, err)
+
+	// Verify that Loki URL is empty, which is how the console knows Loki is absent
+	assert.Empty(t, cfg.Loki.URL)
+}

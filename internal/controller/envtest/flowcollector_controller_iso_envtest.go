@@ -93,31 +93,18 @@ func FlowCollectorIsoSpecs(ctxGetter test.ContextGetter) {
 				},
 			},
 			Agent: flowslatest.FlowCollectorAgent{
-				Type: "eBPF",
-				IPFIX: flowslatest.FlowCollectorIPFIX{
-					Sampling:           2, // 0 is forbidden here
-					CacheActiveTimeout: "5s",
-					CacheMaxFlows:      100,
-					ForceSampleAll:     false,
-					ClusterNetworkOperator: flowslatest.ClusterNetworkOperatorConfig{
-						Namespace: "test",
-					},
-					OVNKubernetes: flowslatest.OVNKubernetesConfig{
-						Namespace:     "test",
-						DaemonSetName: "test",
-						ContainerName: "test",
-					},
-				},
+				Type:  "eBPF",
+				IPFIX: nil,
 				EBPF: flowslatest.FlowCollectorEBPF{
 					Sampling:           &zero,
 					CacheActiveTimeout: "15s",
-					CacheMaxFlows:      100,
+					CacheMaxFlows:      ptr.To(int32(100)),
 					ImagePullPolicy:    "Always",
 					Advanced:           &flowslatest.AdvancedAgentConfig{},
 					LogLevel:           "trace",
 					Resources:          v1.ResourceRequirements{Limits: nil, Requests: nil},
-					Interfaces:         []string{},
-					ExcludeInterfaces:  []string{},
+					Interfaces:         nil,
+					ExcludeInterfaces:  nil,
 					Privileged:         false,
 					KafkaBatchSize:     0,
 					Features:           nil,
@@ -143,12 +130,12 @@ func FlowCollectorIsoSpecs(ctxGetter test.ContextGetter) {
 				},
 				Resources:  v1.ResourceRequirements{Limits: nil, Requests: nil},
 				LogLevel:   "trace",
-				Autoscaler: flowslatest.FlowCollectorHPA{Status: "Disabled", MinReplicas: &zero, MaxReplicas: zero, Metrics: []ascv2.MetricSpec{}},
+				Autoscaler: flowslatest.FlowCollectorHPA{Status: "Disabled", MinReplicas: ptr.To(int32(0)), MaxReplicas: zero, Metrics: []ascv2.MetricSpec{}},
 				PortNaming: flowslatest.ConsolePluginPortConfig{
 					Enable:    ptr.To(false),
 					PortNames: map[string]string{},
 				},
-				QuickFilters: []flowslatest.QuickFilter{},
+				QuickFilters: nil,
 			},
 			Loki: flowslatest.FlowCollectorLoki{
 				Enable: ptr.To(true),

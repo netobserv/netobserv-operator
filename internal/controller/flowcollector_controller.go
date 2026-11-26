@@ -220,8 +220,9 @@ func (r *FlowCollectorReconciler) checkFinalizer(ctx context.Context, desired *f
 	if controllerutil.ContainsFinalizer(desired, flowsFinalizer) {
 		return nil
 	}
+	patch := client.MergeFromWithOptions(desired.DeepCopy(), client.MergeFromWithOptimisticLock{})
 	controllerutil.AddFinalizer(desired, flowsFinalizer)
-	return r.Update(ctx, desired)
+	return r.Patch(ctx, desired, patch)
 }
 
 // finalize cleans up resources that are not garbage-collected with the FlowCollector, then removes the finalizer to let the deletion proceed.
@@ -236,9 +237,9 @@ func (r *FlowCollectorReconciler) finalize(ctx context.Context, clh *helper.Clie
 			return err
 		}
 	}
-
+	patch := client.MergeFromWithOptions(desired.DeepCopy(), client.MergeFromWithOptimisticLock{})
 	controllerutil.RemoveFinalizer(desired, flowsFinalizer)
-	return r.Update(ctx, desired)
+	return r.Patch(ctx, desired, patch)
 }
 
 func (r *FlowCollectorReconciler) newCommonInfo(clh *helper.Client, ns string, loki *helper.LokiConfig) reconcilers.Common {

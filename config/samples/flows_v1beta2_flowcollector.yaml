@@ -5,6 +5,7 @@ metadata:
 spec:
   namespace: netobserv
   deploymentModel: Service
+  # profile: Low
   networkPolicy:
     enable: true
     additionalNamespaces: []

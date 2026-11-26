@@ -33,7 +33,7 @@ type volumeInfo struct {
 	mountPath   string
 }
 
-func getHostVolumesInfo(spec *flowslatest.FlowCollectorEBPF, vendor constants.Vendor) []volumeInfo {
+func getHostVolumesInfo(spec *flowslatest.FlowCollectorSpec, vendor constants.Vendor) []volumeInfo {
 	var info []volumeInfo
 	if spec.IsSecondaryNetworksEnabled() {
 		info = append(info, volumeInfo{name: bpfNetNSMountName, hostPath: bpfNetNSMountPath, mountPath: bpfNetNSMountPath})
@@ -55,7 +55,7 @@ func getHostVolumesInfo(spec *flowslatest.FlowCollectorEBPF, vendor constants.Ve
 	return info
 }
 
-func buildVolumes(spec *flowslatest.FlowCollectorEBPF, vendor constants.Vendor, vols volumes.Builder, envOverrides map[string]string) ([]corev1.VolumeMount, []corev1.Volume) {
+func buildVolumes(spec *flowslatest.FlowCollectorSpec, vendor constants.Vendor, vols volumes.Builder, envOverrides map[string]string) ([]corev1.VolumeMount, []corev1.Volume) {
 	volumeMounts := vols.GetMounts()
 	volumes := vols.GetVolumes()
 
